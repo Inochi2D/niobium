@@ -134,6 +134,7 @@ public:
         nu_freea(queueCreateInfos_);
         nu_freea(deviceExtensions_);
         nu_freea(vkQueues_);
+        nu_freea(deviceName_);
         vkDestroyDevice(handle_, null);
     }
 
