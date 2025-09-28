@@ -1,0 +1,24 @@
+.dub
+docs.json
+__dummy.html
+docs/
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst
+
+out/
+dub.selections.json
+__dummy_docs/
+test/
+
+# Redub Junk
+.ldc2_cache
+
+# Other Junk
+.DS_Store
+.vscode/
+
+# Output examples
+*.png

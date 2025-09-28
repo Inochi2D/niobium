@@ -1,0 +1,20 @@
+name "vulkan"
+description "Vulkan backend for Niobium."
+
+targetPath "out/"
+targetName "niobium-vk"
+importPaths "../../source"
+
+dependency "nuvk:vulkan" path="../../../nuvk"
+dependency "nuvk:spirv" path="../../../nuvk"
+dependency "numem" version="~>1.3"
+dependency "nulib" version="~>0.3"
+
+configuration "vulkan" {
+    targetType "staticLibrary"
+    versions "VULKAN_1_1" "VULKAN_1_2" "VULKAN_1_3"
+}
+
+configuration "none" {
+    targetType "none"
+}
