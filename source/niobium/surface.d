@@ -14,6 +14,31 @@ import niobium.device;
 import numem;
 
 /**
+    Presentation modes for a surface.
+*/
+enum NioPresentMode : uint {
+
+    /**
+        Frames are presented as soon as they are able, may result
+        in screen tearing.
+    */
+    immediate,
+    
+    /**
+        Frames are presented from a queue during vertial blanking, 
+        if frames in flight fill up the queue the application blocks
+        until the queue is free again.
+    */
+    vsync,
+
+    /**
+        Frames are presented in a triple buffered queue, with
+        waiting images being overwritten if the queue is full.
+    */
+    mailbox
+}
+
+/**
     Represents a surface, whether it be a window, a full screen framebuffer,
     or something else.
 */
@@ -73,6 +98,12 @@ public:
         The native underlying handle of the object.
     */
     abstract @property void* handle();
+
+    /**
+        Presentation mode for the surface
+    */
+    abstract @property NioPresentMode presentMode();
+    abstract @property void presentMode(NioPresentMode mode);
 }
 
 //

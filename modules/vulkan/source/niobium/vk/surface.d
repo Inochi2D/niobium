@@ -29,6 +29,7 @@ class NioVkSurface : NioSurface {
 private:
 @nogc:
     VkSurfaceKHR handle_;
+    NioPresentMode mode_;
 
 public:
     
@@ -36,6 +37,14 @@ public:
         The native underlying handle of the object.
     */
     override @property VkSurfaceKHR handle() => handle_;
+
+    /**
+        Presentation mode for the surface
+    */
+    override @property NioPresentMode presentMode() => mode_;
+    override @property void presentMode(NioPresentMode mode) {
+        this.mode_ = mode;
+    }
     
     /// Destructor
     ~this() {
