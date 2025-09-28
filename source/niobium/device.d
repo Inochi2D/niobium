@@ -49,6 +49,35 @@ public:
 }
 
 /**
+    An object which belongs to a device.
+*/
+abstract
+class NioDeviceObject : NuRefCounted {
+private:
+@nogc:
+    NioDevice device_;
+
+protected:
+
+    /**
+        Constructs a new device object.
+
+        Params:
+            device = The device that "owns" this object.
+    */
+    this(NioDevice device) {
+        this.device_ = device;
+    }
+
+public:
+
+    /**
+        The device that created this object.
+    */
+    final @property NioDevice device() => device_;
+}
+
+/**
     A Niobium Device Type
 */
 enum NioDeviceType : uint {
