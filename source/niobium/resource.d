@@ -11,8 +11,10 @@
 */
 module niobium.resource;
 import niobium.device;
-import numem;
 
+/**
+    Storage mode for the resource
+*/
 enum NioStorageMode : uint {
     
     /**
@@ -62,9 +64,4 @@ public:
         Size of the resource in bytes.
     */
     abstract @property uint size();
-
-    /**
-        Alignment of the resource in bytes.
-    */
-    abstract @property uint alignment();
 }

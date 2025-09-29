@@ -12,7 +12,6 @@
 module niobium.texture;
 import niobium.resource;
 import niobium.device;
-import numem;
 
 /**
     Used to construct a $(D NioTexture) from a device,
@@ -34,6 +33,11 @@ struct NioTextureDescriptor {
         Storage mode of the texture.
     */
     NioStorageMode storage;
+
+    /**
+        Usage flags for the texture.
+    */
+    NioTextureUsage usage = NioTextureUsage.transfer | NioTextureUsage.sampled;
     
     /**
         Width of the texture in pixels.
@@ -90,6 +94,11 @@ public:
         The type of the texture.
     */
     abstract @property NioTextureType type();
+
+    /**
+        The usage flags of the texture.
+    */
+    abstract @property NioTextureUsage usage();
 
     /**
         Width of the texture in pixels.
@@ -151,6 +160,11 @@ public:
         The type of the texture.
     */
     final @property NioTextureType type() => texture_.type;
+
+    /**
+        The usage flags of the texture.
+    */
+    final @property NioTextureUsage usage() => texture_.usage;
 
     /**
         Width of the texture in pixels.
@@ -269,9 +283,47 @@ enum NioPixelFormat : uint {
 }
 
 /**
+    Bit flags describing how a texture may be used.
+*/
+enum NioTextureUsage : uint {
+
+    /**
+        No usage flags is set.
+    */
+    none                = 0x00000000U,
+
+    /**
+        Image may be transferred from and to.
+    */
+    transfer            = 0x00000001U,
+
+    /**
+        Texture may be sampled in a shader.
+    */
+    sampled             = 0x00000002U,
+
+    /**
+        Texture may be attached to a pipeline for rendering.
+    */
+    attachment          = 0x00000004U,
+
+    /**
+        Texture may be used as a video encoding desination or
+        source.
+    */
+    videoEncode         = 0x00000010U,
+
+    /**
+        Texture may be used as a video decoding desination or
+        source.
+    */
+    videoDecode         = 0x00000020U,
+}
+
+/**
     Different kinds of types a texture can be.
 */
-enum NioTextureType {
+enum NioTextureType : uint {
     
     /**
         1-dimensional texture.

@@ -40,6 +40,7 @@ private:
     NioPixelFormat format_;
     NioExtent2D size_;
     VkSwapchainCreateInfoKHR swapCreateInfo;
+    VkSurfaceCapabilitiesKHR surfaceCaps;
 
     // Handles
     NioVkDevice device_;
@@ -50,11 +51,15 @@ private:
     // Swapchain
     bool needsRebuild = true;
     VK_KHR_swapchain swapFuncs;
-    uint currentImageIdx_;
+
+    // Drawables
     uint imageCount_;
-    VkSemaphore vkSwapSemaphore_;
-    VkImage[] vkImages_;
-    NioDrawable[] drawables_;
+    uint currentImageIdx_;
+    NioVkDrawable[] drawables_;
+
+    // Sync
+    uint currentSemaphoreIdx_;
+    VkSemaphore[] semaphores_;
 
     void rebuild() {
         bool isReady_ = 
@@ -67,28 +72,63 @@ private:
         if (!isReady_)
             return;
 
+        import std.stdio : writeln;
+
         swapCreateInfo.oldSwapchain = swapchain_;
-        if (swapFuncs.vkCreateSwapchainKHR(device_.handle, &swapCreateInfo, null, &swapchain_) == VK_SUCCESS) {
+        auto result = swapFuncs.vkCreateSwapchainKHR(device_.vkDevice, &swapCreateInfo, null, &swapchain_);
+        if (result == VK_SUCCESS) {
 
-            // Fetch new images for NioDrawables.
-            swapFuncs.vkGetSwapchainImagesKHR(device_.handle, swapchain_, &imageCount_, null);
-            vkImages_ = vkImages_.nu_resize(imageCount_);
-            swapFuncs.vkGetSwapchainImagesKHR(device_.handle, swapchain_, &imageCount_, vkImages_.ptr);
-
-            // Delete old drawables.
-            foreach(i; 0..drawables_.length) {
-                drawables_[i].release();
-                drawables_[i] = null;
-            }
-            drawables_ = drawables_.nu_resize(imageCount_);
-            
-            // Create new drawables.
-            foreach(i; 0..drawables_.length) {
-                drawables_[i] = nogc_new!NioVkDrawable(this, vkImages_[i]);
-            }
+            // Recreate drawables.
+            this.createDrawables(this.getSwapchainImages(), drawables_, semaphores_);
+            this.currentImageIdx_ = 0;
+            this.currentSemaphoreIdx_ = 0;
             this.needsRebuild = false;
             return;
         }
+    }
+
+    /// Gets swapchain images.
+    VkImage[] getSwapchainImages() {
+        uint pCount;
+        swapFuncs.vkGetSwapchainImagesKHR(device_.vkDevice, swapchain_, &pCount, null);
+        VkImage[] images = nu_malloca!VkImage(pCount);
+
+        swapFuncs.vkGetSwapchainImagesKHR(device_.vkDevice, swapchain_, &pCount, images.ptr);
+        return images;
+    }
+
+    /// (Re-)creates the drawables.
+    void createDrawables(VkImage[] images, ref NioVkDrawable[] drawables, ref VkSemaphore[] semaphores) {
+        if (drawables_.length > 0)
+            this.destroyDrawables();
+
+        // Resize arrays.
+        drawables = nu_malloca!NioVkDrawable(images.length);
+        semaphores = nu_malloca!VkSemaphore(images.length);
+        this.imageCount_ = cast(uint)images.length;
+
+        // Create new drawables.
+        auto semaphoreCreateInfo = VkSemaphoreCreateInfo();
+        foreach(i; 0..images.length) {
+            drawables[i] = nogc_new!NioVkDrawable(this, images[i]);
+            vkCreateSemaphore(device_.vkDevice, &semaphoreCreateInfo, null, &semaphores[i]);
+        }
+        nu_freea(images);
+    }
+
+    /// Destroys the drawables.
+    void destroyDrawables() {
+
+        // Delete old objects.
+        if (drawables_.length > 0)
+            nogc_delete(drawables_[0..$]);
+        
+        foreach(i; 0..semaphores_.length) {
+            vkDestroySemaphore(device_.vkDevice, semaphores_[i], null);
+        }
+
+        nu_freea(drawables_);
+        nu_freea(semaphores_);
     }
 
     void setup() {
@@ -96,9 +136,10 @@ private:
             surface: handle_,
             clipped: false,
             imageArrayLayers: 1,
+            imageUsage: VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             imageSharingMode: VK_SHARING_MODE_EXCLUSIVE,
-            compositeAlpha: VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
-            preTransform: VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR,
+            compositeAlpha: VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            preTransform: VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
         );
     }
 
@@ -122,16 +163,28 @@ public:
     */
     override @property NioDevice device() => device_;
     override @property void device(NioDevice value) {
-        this.device_ = cast(NioVkDevice)value;
-        this.device_.handle.loadProcs!VK_KHR_swapchain(swapFuncs);
-        this.needsRebuild = true;
+        if (auto nvkDevice = cast(NioVkDevice)value) {
+            if (!(nvkDevice.vkDevice && nvkDevice.vkPhysicalDevice))
+                return;
 
-        // Rebuild formats list.
-        uint fmtCount;
-        __nio_surface_procs.procs.vkGetPhysicalDeviceSurfaceFormatsKHR(device_.vkPhysicalDevice, handle_, &fmtCount, null);
+            nvkDevice.vkDevice.loadProcs!VK_KHR_swapchain(swapFuncs);
+            this.device_ = nvkDevice;
+            this.needsRebuild = true;
 
-        supportedFormats_ = supportedFormats_.nu_resize(fmtCount);
-        __nio_surface_procs.procs.vkGetPhysicalDeviceSurfaceFormatsKHR(device_.vkPhysicalDevice, handle_, &fmtCount, supportedFormats_.ptr);
+            // Rebuild formats list.
+            uint fmtCount;
+            __nio_surface_procs.procs.vkGetPhysicalDeviceSurfaceFormatsKHR(nvkDevice.vkPhysicalDevice, handle_, &fmtCount, null);
+
+            supportedFormats_ = supportedFormats_.nu_resize(fmtCount);
+            __nio_surface_procs.procs.vkGetPhysicalDeviceSurfaceFormatsKHR(nvkDevice.vkPhysicalDevice, handle_, &fmtCount, supportedFormats_.ptr);
+
+            // Get surface capabilities.
+            __nio_surface_procs.procs.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+                device_.vkPhysicalDevice, 
+                handle_, 
+                &surfaceCaps
+            );
+        }
     }
 
     /**
@@ -166,8 +219,10 @@ public:
     */
     override @property uint framesInFlight() => framesInFlight_;
     override @property void framesInFlight(uint value) {
-        swapCreateInfo.minImageCount = value;
-        this.framesInFlight_ = value;
+        import nulib.math : max;
+
+        this.framesInFlight_ = max(surfaceCaps.minImageCount, value);
+        swapCreateInfo.minImageCount = framesInFlight_;
         this.needsRebuild = true;
     }
 
@@ -189,17 +244,16 @@ public:
     ~this() {
         VK_KHR_surface procs = __nio_surface_procs.get().procs;
 
-        if (drawables_)
-            nu_freea(drawables_);
+        this.destroyDrawables();
 
         if (supportedFormats_)
             nu_freea(supportedFormats_);
         
+        if (swapchain_)
+            swapFuncs.vkDestroySwapchainKHR(device_.vkDevice, swapchain_, null);
+        
         if (handle_)
             procs.vkDestroySurfaceKHR(__nio_vk_instance, handle_, null);
-        
-        if (swapchain_)
-            swapFuncs.vkDestroySwapchainKHR(device_.handle, swapchain_, null);
     }
 
     /**
@@ -287,15 +341,18 @@ public:
             drawable surface, or $(D null).
     */
     override NioDrawable next() {
-        if (!isReady)
-            return null;
-        
         if (needsRebuild)
             this.rebuild();
+        
+        if (!isReady)
+            return null;
 
-        auto result = swapFuncs.vkAcquireNextImageKHR(device_.handle, swapchain_, 1000, vkSwapSemaphore_, null, &currentImageIdx_);
-        if (result == VK_SUCCESS)
+        auto result = swapFuncs.vkAcquireNextImageKHR(device_.vkDevice, swapchain_, 1000, semaphores_[currentSemaphoreIdx_], null, &currentImageIdx_);
+        if (result == VK_SUCCESS) {
+            drawables_[currentImageIdx_].semaphore = semaphores_[currentSemaphoreIdx_];
+            currentSemaphoreIdx_ = (currentSemaphoreIdx_ + 1) % semaphores_.length;
             return drawables_[currentImageIdx_];
+        }
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             this.needsRebuild = true;
@@ -316,6 +373,7 @@ private:
     NioVkDrawableTextureView view_;
 
 public:
+
     /**
         Semaphore signalled when the drawable is ready
         for use.
@@ -324,11 +382,8 @@ public:
 
     /// Destructor
     ~this() {
-        auto vkDevice = (cast(NioVkDevice)surface_.device).handle;
-
         texture_.release();
         view_.release();
-        vkDestroySemaphore(vkDevice, semaphore, null);
     }
 
     /**
@@ -336,11 +391,6 @@ public:
     */
     this(NioVkSurface surface, VkImage image) {
         super(surface);
-
-        auto vkDevice = (cast(NioVkDevice)surface_.device).handle;
-        
-        auto createInfo = VkSemaphoreCreateInfo();
-        vkCreateSemaphore(vkDevice, &createInfo, null, &semaphore);
 
         this.surface_ = surface;
         this.texture_ = nogc_new!NioVkDrawableTexture(surface.device, this, image);
@@ -351,6 +401,31 @@ public:
         The texture view of this drawable.
     */
     override @property NioTextureView texture() => view_;
+
+    /**
+        Schedules the drawable for presentation ASAP.
+
+        Command queues keep track of any drawables that have been
+        enqueued within them, the drawable will be presented
+        on the queue that acquired it.
+    */
+    override void present() {
+        // surface.swapFuncs.vkQueuePresentKHR(queue, );
+    }
+
+    /**
+        Presents the drawable after a minimum duration.
+
+        Command queues keep track of any drawables that have been
+        enqueued within them, the drawable will be presented
+        on the queue that acquired it.
+
+        Params:
+            timeout = Timeout in miliseconds to wait for presentation.
+    */
+    override void presentAfter(long timeout) {
+
+    }
 }
 
 /**
@@ -385,6 +460,11 @@ public:
         The type of the texture.
     */
     override @property NioTextureType type() => NioTextureType.texture2d;
+    
+    /**
+        The usage flags of the texture.
+    */
+    override @property NioTextureUsage usage() => NioTextureUsage.attachment | NioTextureUsage.sampled;
 
     /**
         Width of the texture in pixels.
@@ -415,11 +495,6 @@ public:
         Size of the resource in bytes.
     */
     override @property uint size() => 0;
-
-    /**
-        Alignment of the resource in bytes.
-    */
-    override @property uint alignment() => 1;
 
     /**
         Constructs a new drawable texture.
@@ -489,14 +564,9 @@ public:
     */
     override @property uint size() => 0;
 
-    /**
-        Alignment of the resource in bytes.
-    */
-    override @property uint alignment() => 1;
-
     /// Destructor
     ~this() {
-        vkDestroyImageView((cast(NioVkDevice)device).handle, view_, null);
+        vkDestroyImageView((cast(NioVkDevice)device).vkDevice, view_, null);
     }
 
     /**
@@ -512,7 +582,7 @@ public:
             components: VkComponentMapping(VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A),
             subresourceRange: VkImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS)
         );
-        vkEnforce(vkCreateImageView((cast(NioVkDevice)device).handle, &createInfo, null, &view_));
+        vkEnforce(vkCreateImageView((cast(NioVkDevice)device).vkDevice, &createInfo, null, &view_));
     }
 }
 

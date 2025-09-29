@@ -10,10 +10,11 @@
         Luna Nielsen
 */
 module niobium.device;
-import numem;
 import niobium.texture;
 import niobium.buffer;
 import niobium.heap;
+import numem;
+import nulib;
 
 /**
     A device which is capable of doing 3D rendering and/or
@@ -97,8 +98,16 @@ class NioDeviceObject : NuRefCounted {
 private:
 @nogc:
     NioDevice device_;
+    string label_;
 
 protected:
+
+    /**
+        The device that created this object.
+    */
+    final @property void device(NioDevice value) {
+        this.device_ = value;
+    }
 
     /**
         Constructs a new device object.
@@ -110,12 +119,32 @@ protected:
         this.device_ = device;
     }
 
+    /**
+        Called when the label has been changed.
+
+        Params:
+            label = The new label of the device.
+    */
+    void onLabelChanged(string label) { }
+
 public:
 
     /**
         The device that created this object.
     */
     final @property NioDevice device() => device_;
+
+    /**
+        Label of the object when debugging.
+    */
+    final @property string label() => label_;
+    final @property void label(string value) {
+        if (label_)
+            nu_freea(label_);
+        
+        this.label_ = nstring(value).take();
+        this.onLabelChanged(label_);
+    }
 }
 
 /**

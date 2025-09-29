@@ -14,12 +14,12 @@ import niobium.resource;
 import niobium.texture;
 import niobium.buffer;
 import niobium.device;
-import numem;
 
 /**
     Describes the creation parameters of a $(D NioHeap).
 */
 struct NioHeapDescriptor {
+@nogc:
     
     /**
         Storage mode of the heap, inherited by all objects
@@ -43,6 +43,21 @@ struct NioHeapDescriptor {
             Defaults to 16 kilobytes.
     */
     uint pageSize = 16_384;
+}
+
+/**
+    Aligns the given size to the given alignment.
+
+    Params:
+        size =      The size to align, in bytes.
+        alignment = The byte alignment, in bytes.
+    
+    Returns:
+        The size aligned to the given alignment.
+*/
+pragma(inline, true)
+T alignTo(T)(T size, T alignment) @nogc if (__traits(isIntegral, T)) {
+    return size + (size % alignment);
 }
 
 /**
@@ -80,7 +95,7 @@ public:
         Creates a new texture at a specified byte offset in the heap.
 
         Params:
-            descriptor = Descriptor for the texture.
+            descriptor =    Descriptor for the texture.
             offset =        The offset into the heap in bytes
         
         Returns:

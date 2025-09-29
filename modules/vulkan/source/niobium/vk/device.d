@@ -10,6 +10,7 @@
         Luna Nielsen
 */
 module niobium.vk.device;
+import niobium.vk.heap;
 import niobium.device;
 import niobium.resource;
 import niobium.texture;
@@ -20,6 +21,7 @@ import vulkan.core;
 import vulkan.eh;
 import numem;
 import nulib;
+import niobium.vk.texture;
 
 /**
     A device which is capable of doing 3D rendering and/or
@@ -45,6 +47,9 @@ private:
     VkPhysicalDevice phandle_;
     VkDevice handle_;
 
+    // Memory
+    NioAllocator allocator_;
+
     void createDevice() {
         import nulib.math : min;
         import vulkan.khr.swapchain : VK_KHR_SWAPCHAIN_EXTENSION_NAME;
@@ -56,6 +61,9 @@ private:
             activeQueueProperties_[i] = queues.getFirstQueueFor(1U << i);
         }
 
+        float[] tmpQueuePriorities = nu_malloca!float(32);
+        tmpQueuePriorities[0..$] = 1.0f;
+
         // Build queue create info.
         vector!VkDeviceQueueCreateInfo qcis;
         outer: foreach(queueProp; activeQueueProperties_) {
@@ -65,24 +73,16 @@ private:
             // If queue was already added, increase the queue count.
             foreach(ref qci; qcis[]) {
                 if (qci.queueFamilyIndex == queueProp) {
-                    uint targetCount = min(qci.queueCount+1, queues[queueProp].queueCount);
-
-                    // Resizes priorities.
-                    float[] priorities = cast(float[])qci.pQueuePriorities[0..qci.queueCount];
-                    priorities = priorities.nu_resize(targetCount);
-                    priorities[$-1] = 1.0f;
-
-                    qci.pQueuePriorities = priorities.ptr;
-                    qci.queueCount = targetCount;
+                    qci.queueCount = min(qci.queueCount+1, queues[queueProp].queueCount);
+                    qci.pQueuePriorities = tmpQueuePriorities.ptr;
                     continue outer;
                 }
             }
 
-            float* priorities = cast(float*)nu_malloc(float.sizeof);
             qcis ~= VkDeviceQueueCreateInfo(
                 queueFamilyIndex: cast(uint)queueProp,
                 queueCount: 1,
-                pQueuePriorities: priorities
+                pQueuePriorities: tmpQueuePriorities.ptr
             );
         }
         queueCreateInfos_ = qcis.take();
@@ -108,6 +108,7 @@ private:
             ppEnabledExtensionNames: deviceExtensions_.ptr
         );
         vkEnforce(vkCreateDevice(phandle_, &createInfo, null, &handle_));
+        nu_freea(tmpQueuePriorities);
     }
 
     void createQueues() {
@@ -128,7 +129,7 @@ public:
     /**
         Low level handle for the device.
     */
-    final @property VkDevice handle() => handle_;
+    final @property VkDevice vkDevice() => handle_;
 
     /**
         Low level handle for the physical device.
@@ -150,20 +151,24 @@ public:
     */
     final @property VkPhysicalDeviceMemoryProperties vkMemoryProperties() => memoryProps_;
 
+    /**
+        The device-owned memory allocator.
+    */
+    final @property NioAllocator allocator() => allocator_;
+
     /// Destructor
     ~this() {
         
         // Free the pointers we allocated.
         foreach(ext; deviceExtensions_)
             nu_free(cast(void*)ext);
-        foreach(createInfo; queueCreateInfos_)
-            nu_free(cast(void*)createInfo.pQueuePriorities);
         
         // Free containers and handles.
         nu_freea(queueCreateInfos_);
         nu_freea(deviceExtensions_);
         nu_freea(vkQueues_);
         nu_freea(deviceName_);
+        nogc_delete(allocator_);
         vkDestroyDevice(handle_, null);
     }
 
@@ -175,12 +180,16 @@ public:
 
         VkPhysicalDeviceProperties pdProps;
         vkGetPhysicalDeviceProperties(physicalDevice, &pdProps);
-        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProps_);
+
         this.deviceLimits_ = pdProps.limits;
         this.deviceType_ = pdProps.deviceType.toNioDeviceType();
         this.deviceName_ = nstring(pdProps.deviceName.ptr).take();
         this.createDevice();
         this.createQueues();
+
+        this.allocator_ = nogc_new!NioPoolAllocator(phandle_, handle_, NioPoolAllocatorDescriptor(
+            size: 134_217_728, 
+        ));
     }
 
     /**
@@ -193,7 +202,7 @@ public:
             A new $(D NioHeap) or $(D null) on failure.
     */
     override NioHeap createHeap(NioHeapDescriptor descriptor) {
-        return null;
+        return nogc_new!NioVkHeap(this, descriptor);
     }
 
     /**
@@ -209,7 +218,7 @@ public:
             A new $(D NioTexture) or $(D null) on failure.
     */
     override NioTexture createTexture(NioTextureDescriptor descriptor) {
-        return null;
+        return nogc_new!NioVkTexture(this, descriptor);
     }
 
     /**
@@ -228,6 +237,14 @@ public:
         return null;
     }
 
+    /**
+        Gets device memory with the given requirements.
+    */
+    final
+    VkDeviceMemory getDeviceMemory(VkMemoryRequirements requirements) {
+        return null;
+    }
+
     /// Stringification override
     override string toString() => name; // @suppress(dscanner.suspicious.object_const)
 }
@@ -240,6 +257,22 @@ NioDeviceType toNioDeviceType(VkPhysicalDeviceType type) @nogc {
         case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:      return NioDeviceType.dGPU;
         case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:       return NioDeviceType.vGPU;
         case VK_PHYSICAL_DEVICE_TYPE_CPU:               return NioDeviceType.cpu;
+    }
+}
+
+/**
+    Sets the debug name for an object.
+*/
+void setDebugName(VkDevice device, VkObjectType objectType, void* handle, string tag) @nogc {
+    if (__nio_vk_debug_utils.vkSetDebugUtilsObjectNameEXT) {
+        auto createInfo = VkDebugUtilsObjectNameInfoEXT(
+            objectType: objectType,
+            objectHandle: cast(ulong)handle,
+            pObjectName: nstring(tag).take.ptr
+        );
+    
+        __nio_vk_debug_utils.vkSetDebugUtilsObjectNameEXT(device, &createInfo);
+        nu_free(cast(void*)createInfo.pObjectName);
     }
 }
 
@@ -370,7 +403,6 @@ ptrdiff_t getFirstQueueFor(VkQueueFamilyProperties[] props, VkQueueFlags flags) 
 pragma(crt_constructor)
 export extern(C) void __nio_crt_init() @nogc {
     auto extensions =   getInstanceExtensions();
-
     auto appInfo = VkApplicationInfo(
         apiVersion: VK_API_VERSION_1_3
     );
@@ -383,6 +415,8 @@ export extern(C) void __nio_crt_init() @nogc {
 
     vkEnforce(vkCreateInstance(&createInfo, null, __nio_vk_instance));
     nu_freea(extensions);
+
+    __nio_vk_instance.loadProcs(__nio_vk_debug_utils);
     enumerateVulkanDevices();
 }
 
@@ -395,6 +429,7 @@ export extern(C) void __nio_crt_fini() @nogc {
     vkDestroyInstance(__nio_vk_instance, null);
 }
 
+/// Gets instance extensions.
 const(char)*[] getInstanceExtensions() @nogc nothrow {
     uint pCount;
     vkEnumerateInstanceExtensionProperties(null, &pCount, null);
@@ -410,4 +445,34 @@ const(char)*[] getInstanceExtensions() @nogc nothrow {
     }
     nu_freea(props);
     return names;
+}
+
+/// Gets whether an extension list has a given extension.
+bool hasInstanceExtension(const(char)*[] list, string ext) {
+    foreach(item; list) {
+        if (item.fromStringz() == ext)
+            return true;
+    }
+    return false;
+}
+
+
+//
+//              DEBUG TAGS IMPLEMENTATION DETAILS
+//
+VK_EXT_debug_utils __nio_vk_debug_utils;
+
+struct VkDebugUtilsObjectNameInfoEXT {
+    VkStructureType    sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    const(void)*       pNext;
+    VkObjectType       objectType;
+    ulong              objectHandle;
+    const(char)*       pObjectName;
+} 
+
+struct VK_EXT_debug_utils {
+extern(System) @nogc nothrow:
+
+    @VkProcName("vkSetDebugUtilsObjectNameEXT")
+    VkResult function(VkDevice, const(VkDebugUtilsObjectNameInfoEXT)*) vkSetDebugUtilsObjectNameEXT;
 }

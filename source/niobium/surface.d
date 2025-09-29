@@ -12,6 +12,7 @@
 module niobium.surface;
 import niobium.texture;
 import niobium.device;
+import niobium.queue;
 import niobium.types;
 import numem;
 
@@ -171,10 +172,11 @@ public:
     obtained from a surface's internal swapchain.
 */
 abstract
-class NioDrawable : NuRefCounted {
+class NioDrawable : NuObject {
 private:
 @nogc:
     NioSurface surface_;
+    NioCommandQueue queue_;
 
 protected:
 
@@ -188,6 +190,21 @@ protected:
 public:
 
     /**
+        The queue which has claimed this drawable by using it.
+
+        Note:
+            This can only be set once, and should be set by
+            the Niobium implementation for you. It is invalid
+            to submit a present to a queue that hasn't claimed
+            the drawable.
+    */
+    final @property NioCommandQueue queue() => queue_;
+    final @property void queue(NioCommandQueue value) {
+        if (!queue_)
+            this.queue_ = value;
+    }
+
+    /**
         The surface that this drawable belongs to.
     */
     final @property NioSurface surface() => surface_;
@@ -196,6 +213,27 @@ public:
         The texture view of this drawable.
     */
     abstract @property NioTextureView texture();
+
+    /**
+        Schedules the drawable for presentation ASAP.
+
+        Command queues keep track of any drawables that have been
+        enqueued within them, the drawable will be presented
+        on the queue that acquired it.
+    */
+    abstract void present();
+
+    /**
+        Presents the drawable after a minimum duration.
+
+        Command queues keep track of any drawables that have been
+        enqueued within them, the drawable will be presented
+        on the queue that acquired it.
+
+        Params:
+            timeout = Timeout in miliseconds to wait for presentation.
+    */
+    abstract void presentAfter(long timeout);
 }
 
 //
