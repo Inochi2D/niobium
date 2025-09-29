@@ -108,6 +108,8 @@ public:
     */
     this(NioDevice device, NioTextureDescriptor desc, NioAllocator allocator = null) {
         super(device);
+
+        enforce(desc.usage != NioTextureUsage.none, "Invalid texture usage 'none'!");
         this.allocator_ = allocator ? allocator : (cast(NioVkDevice)device).allocator;
         this.createImage(desc);
     }

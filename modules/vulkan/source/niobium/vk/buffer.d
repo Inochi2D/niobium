@@ -99,6 +99,8 @@ public:
     */
     this(NioDevice device, NioBufferDescriptor desc, NioAllocator allocator = null) {
         super(device);
+
+        enforce(desc.usage != NioBufferUsage.none, "Invalid buffer usage 'none'!");
         this.allocator_ = allocator ? allocator : (cast(NioVkDevice)device).allocator;
         this.createBuffer(desc);
     }

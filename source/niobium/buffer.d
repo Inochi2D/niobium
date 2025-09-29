@@ -98,6 +98,11 @@ public:
 enum NioBufferUsage : uint {
 
     /**
+        No usage flags is set.
+    */
+    none                    = 0x00000000U,
+
+    /**
         Buffer may be used as the source for transfer operations.
     */
     transfer                = 0x00000001,

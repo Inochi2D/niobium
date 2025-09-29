@@ -32,7 +32,7 @@ struct NioTextureDescriptor {
     /**
         Storage mode of the texture.
     */
-    NioStorageMode storage;
+    NioStorageMode storage = NioStorageMode.privateStorage;
 
     /**
         Usage flags for the texture.
