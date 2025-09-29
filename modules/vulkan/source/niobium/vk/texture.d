@@ -27,10 +27,11 @@ private:
 @nogc:
     NioAllocator allocator_;
     NioAllocation allocation_;
+    VkImage handle_;
+    
     VkImageCreateInfo vkdesc_;
     NioTextureDescriptor desc_;
     VkImageLayout layout_;
-    VkImage handle_;
 
     void createImage(NioTextureDescriptor desc) {
         auto nvkDevice = (cast(NioVkDevice)device);
@@ -39,12 +40,12 @@ private:
         this.vkdesc_ = VkImageCreateInfo(
             imageType: desc_.type.toVkImageType(),
             format: desc_.format.toVkFormat(),
-            extent: VkExtent3D(desc_.width, desc_.height, desc_.depth),
-            mipLevels: desc_.levels,
-            arrayLayers: desc_.layers,
+            extent: VkExtent3D(desc.width, desc.height, desc.depth),
+            mipLevels: desc.levels,
+            arrayLayers: desc.layers,
             samples: VK_SAMPLE_COUNT_1_BIT,
             tiling: VK_IMAGE_TILING_OPTIMAL,
-            usage: desc_.usage.toVkImageUsage(),
+            usage: desc.usage.toVkImageUsage(),
             sharingMode: VK_SHARING_MODE_EXCLUSIVE,
             initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
         );

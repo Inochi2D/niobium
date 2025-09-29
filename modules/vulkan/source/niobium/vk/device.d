@@ -22,6 +22,7 @@ import vulkan.eh;
 import numem;
 import nulib;
 import niobium.vk.texture;
+import niobium.vk.buffer;
 
 /**
     A device which is capable of doing 3D rendering and/or
@@ -234,15 +235,7 @@ public:
             A new $(D NioBuffer) or $(D null) on failure.
     */
     override NioBuffer createBuffer(NioBufferDescriptor descriptor) {
-        return null;
-    }
-
-    /**
-        Gets device memory with the given requirements.
-    */
-    final
-    VkDeviceMemory getDeviceMemory(VkMemoryRequirements requirements) {
-        return null;
+        return nogc_new!NioVkBuffer(this, descriptor);
     }
 
     /// Stringification override

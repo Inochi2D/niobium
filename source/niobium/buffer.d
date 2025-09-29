@@ -100,50 +100,35 @@ enum NioBufferUsage : uint {
     /**
         Buffer may be used as the source for transfer operations.
     */
-    transferSource          = 0x00000001,
-    
-    /**
-        Buffer may be used as the destination for transfer operations.
-    */
-    transferDestination     = 0x00000002,
+    transfer                = 0x00000001,
     
     /**
         Buffer may be used as a uniform block.
     */
-    uniformBuffer           = 0x00000004,
+    uniformBuffer           = 0x00000002,
     
     /**
         Buffer may be used as a storage buffer.
     */
-    storageBuffer           = 0x00000008,
+    storageBuffer           = 0x00000004,
     
     /**
         Buffer may be used as a index buffer.
     */
-    indexBuffer             = 0x00000010,
+    indexBuffer             = 0x00000008,
     
     /**
         Buffer may be used as a vertex buffer.
     */
-    vertexBuffer            = 0x00000020,
+    vertexBuffer            = 0x00000010,
     
     /**
         Buffer may be used as a source for video decoding.
     */
-    videoDecodeSource       = 0x01000000,
-    
-    /**
-        Buffer may be used as a destination for video decoding.
-    */
-    videoDecodeDestination  = 0x02000000,
+    videoDecode             = 0x01000000,
     
     /**
         Buffer may be used as a source for video encoding.
     */
-    videoEncodeSource       = 0x04000000,
-    
-    /**
-        Buffer may be used as a destination for video encoding.
-    */
-    videoEncodeDestination  = 0x08000000,
+    videoEncode             = 0x02000000,
 }

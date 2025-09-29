@@ -12,6 +12,7 @@
 module niobium.vk.heap;
 import niobium.vk.device;
 import niobium.vk.texture;
+import niobium.vk.buffer;
 import niobium.resource;
 import niobium.texture;
 import niobium.heap;
@@ -110,7 +111,8 @@ public:
             A new $(D NioBuffer) or $(D null) on failure.
     */
     override NioBuffer createBuffer(NioBufferDescriptor descriptor) {
-        return null;
+        descriptor.storage = desc_.storageMode;
+        return nogc_new!NioVkBuffer(device, descriptor, allocator);
     }
 
     /**
