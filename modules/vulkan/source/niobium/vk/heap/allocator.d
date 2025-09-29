@@ -276,10 +276,7 @@ private:
     ptrdiff_t addBlock(VkDeviceSize size, uint type) {
         if (type >= pools.length)
             return -1;
-
-        import std.stdio : writeln;
-
-
+        
         // Allocate new block.
         auto newBlock = MemoryBlock(
             memory: nogc_new!NioDeviceMemory(device, NioDeviceMemoryDescriptor(
@@ -295,8 +292,6 @@ private:
         pools[type].blocks = pools[type].blocks.nu_resize(front+1);
         pools[type].blocks[$-1] = newBlock;
         allocCount++;
-
-        debug writeln("addBlock: ", size, " ", type, " front=", front);
         return front;
     }
 
