@@ -37,7 +37,7 @@ private:
         
         this.desc_ = desc;
         this.vkdesc_ = VkBufferCreateInfo(
-            size: desc.length,
+            size: desc.size,
             usage: desc.usage.toVkBufferUsage(),
             sharingMode: VK_SHARING_MODE_EXCLUSIVE
         );

@@ -31,9 +31,9 @@ struct NioBufferDescriptor {
     NioStorageMode storage;
 
     /**
-        Length of the buffer in bytes.
+        Size of the buffer in bytes.
     */
-    uint length;
+    uint size;
 }
 
 /**
