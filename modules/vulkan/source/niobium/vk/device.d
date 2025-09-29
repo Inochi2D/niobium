@@ -121,6 +121,31 @@ private:
 
 public:
 
+    /**
+        Low level handle for the device.
+    */
+    final @property VkDevice handle() => handle_;
+
+    /**
+        Low level handle for the physical device.
+    */
+    final @property VkPhysicalDevice vkPhysicalDevice() => phandle_;
+
+    /**
+        Name of the device.
+    */
+    override @property string name() => deviceName_;
+
+    /**
+        Type of the device.
+    */
+    override @property NioDeviceType type() => deviceType_;
+
+    /**
+        Vulkan Memory Properties.
+    */
+    final @property VkPhysicalDeviceMemoryProperties vkMemoryProperties() => memoryProps_;
+
     /// Destructor
     ~this() {
         
@@ -153,26 +178,6 @@ public:
         this.createDevice();
         this.createQueues();
     }
-
-    /**
-        Name of the device.
-    */
-    override @property string name() => deviceName_;
-
-    /**
-        Type of the device.
-    */
-    override @property NioDeviceType type() => deviceType_;
-
-    /**
-        The native underlying handle of the object.
-    */
-    override @property VkDevice handle() => handle_;
-
-    /**
-        Vulkan Memory Properties.
-    */
-    final @property VkPhysicalDeviceMemoryProperties vkMemoryProperties() => memoryProps_;
 
     /// Stringification override
     override string toString() => name; // @suppress(dscanner.suspicious.object_const)

@@ -15,6 +15,48 @@ import niobium.device;
 import numem;
 
 /**
+    Used to construct a $(D NioTexture) from a device,
+    the descriptor is used to describe the texture.
+*/
+struct NioTextureDescriptor {
+
+    /**
+        The kind of texture being made.
+    */
+    NioTextureType type = NioTextureType.texture2d;
+    
+    /**
+        The format of pixels in the texture.
+    */
+    NioPixelFormat format;
+    
+    /**
+        Width of the texture in pixels.
+    */
+    uint width;
+    
+    /**
+        Height of the texture in pixels.
+    */
+    uint height;
+    
+    /**
+        Depth of the texture in pixels.
+    */
+    uint depth = 1;
+    
+    /**
+        Mip level count of the texture.
+    */
+    uint levels = 1;
+    
+    /**
+        Array layer count of the texture.
+    */
+    uint layers = 1;
+}
+
+/**
     A texture.
 */
 abstract
@@ -33,7 +75,16 @@ protected:
     }
 
 public:
-@nogc:
+
+    /**
+        The pixel format of the texture.
+    */
+    abstract @property NioPixelFormat format();
+
+    /**
+        The type of the texture.
+    */
+    abstract @property NioTextureType type();
 
     /**
         Width of the texture in pixels.
@@ -59,11 +110,6 @@ public:
         Mip level count of the texture.
     */
     abstract @property uint levels();
-
-    /**
-        The pixel format of the texture.
-    */
-    abstract @property NioPixelFormat format();
 }
 
 /**
@@ -72,6 +118,7 @@ public:
 abstract
 class NioTextureView : NioResource {
 private:
+@nogc:
     NioTexture texture_;
 
 protected:
@@ -89,12 +136,16 @@ protected:
     }
 
 public:
-@nogc:
 
     /**
         The texture this is a view of.
     */
     final @property NioTexture texture() => texture_;
+
+    /**
+        The type of the texture.
+    */
+    final @property NioTextureType type() => texture_.type;
 
     /**
         Width of the texture in pixels.
@@ -210,4 +261,25 @@ enum NioPixelFormat : uint {
     depth32Stencil8 =       0x00000101U,
     x24Stencil8 =           0x00000102U,
     x32Stencil8 =           0x00000103U,
+}
+
+/**
+    Different kinds of types a texture can be.
+*/
+enum NioTextureType {
+    
+    /**
+        1-dimensional texture.
+    */
+    texture1d,
+    
+    /**
+        2-dimensional texture.
+    */
+    texture2d,
+    
+    /**
+        3-dimensional texture.
+    */
+    texture3d,
 }

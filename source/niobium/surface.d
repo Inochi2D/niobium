@@ -10,8 +10,22 @@
         Luna Nielsen
 */
 module niobium.surface;
+import niobium.texture;
 import niobium.device;
+import niobium.types;
 import numem;
+
+// Darwin Version Identifier
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+else version (VisionOS)
+    version = Darwin;
 
 /**
     Presentation modes for a surface.
@@ -46,7 +60,64 @@ abstract
 class NioSurface : NuRefCounted {
 public:
 @nogc:
+
+    /**
+        The device the surface is attached to.
+    */
+    abstract @property NioDevice device();
+    abstract @property void device(NioDevice);
+
+    /**
+        Size of the surface.
+    */
+    abstract @property NioExtent2D size();
+    abstract @property void size(NioExtent2D);
+
+    /**
+        Format of the surface.
+    */
+    abstract @property NioPixelFormat format();
+    abstract @property void format(NioPixelFormat);
+
+    /**
+        The amount of frames that can be in-flight.
+    */
+    abstract @property uint framesInFlight();
+    abstract @property void framesInFlight(uint);
+
+    /**
+        Presentation mode for the surface
+    */
+    abstract @property NioPresentMode presentMode();
+    abstract @property void presentMode(NioPresentMode);
+
+    /**
+        Whether the surface is ready for use.
+    */
+    abstract @property bool isReady();
     
+    /**
+        Gets whether the surface supports the given pixel
+        format.
+
+        Params:
+            format = The pixel format to query.
+        
+        Returns:
+            $(D true) if the surface supports the given format,
+            $(D false) otherwise.
+    */
+    abstract bool supports(NioPixelFormat format);
+
+    /**
+        Acquires the next drawable from the surface.
+
+        Returns:
+            $(D NioDrawable) representing the next available
+            drawable surface, or $(D null).
+    */
+    abstract NioDrawable next();
+
     /**
         Creates a Niobium Surface from a Win32 window.
         
@@ -66,7 +137,7 @@ public:
             display = The wayland display to create the surface for.
             surface = The wayland surface (window) to create the surface for.
     */
-    version(linux)
+    version(posix)
     static NioSurface createForWindow(void* display, void* surface) @nogc {
         return nio_surface_create_for_wl_window(display, surface);
     }
@@ -78,32 +149,53 @@ public:
             display =   The X11 Display to create the surface for.
             window =    The X11 window to create the surface for.
     */
-    version(linux)
+    version(posix)
     static NioSurface createForWindow(void* display, uint window) @nogc {
         return nio_surface_create_for_x11_window(display, window);
     }
 
     /**
-        Creates a Niobium Surface from a Metal Drawable.
+        Creates a Niobium Surface from a $(D CAMetalLayer).
         
         Params:
-            drawable = The MTLDrawable to create the surface for.
+            drawable = The $(D CAMetalLayer) to create the surface for.
     */
     version(Darwin)
-    static NioSurface createForDrawable(void* drawable) @nogc {
+    static NioSurface createForLayer(void* layer) @nogc {
         return nio_surface_create_for_mtl_drawable(drawable);
     }
+}
+
+/**
+    A lightweight strongly typed object referring to textures
+    obtained from a surface's internal swapchain.
+*/
+abstract
+class NioDrawable : NuRefCounted {
+private:
+@nogc:
+    NioSurface surface_;
+
+protected:
 
     /**
-        The native underlying handle of the object.
+        Constructs a new drawable.
     */
-    abstract @property void* handle();
+    this(NioSurface surface) {
+        this.surface_ = surface;
+    }
+
+public:
 
     /**
-        Presentation mode for the surface
+        The surface that this drawable belongs to.
     */
-    abstract @property NioPresentMode presentMode();
-    abstract @property void presentMode(NioPresentMode mode);
+    final @property NioSurface surface() => surface_;
+
+    /**
+        The texture view of this drawable.
+    */
+    abstract @property NioTextureView texture();
 }
 
 //
@@ -114,11 +206,11 @@ private extern(C):
 version(Windows)
 extern extern(C) NioSurface nio_surface_create_for_win32_window(void* hinstance, void* hwnd) @nogc;
 
-version(linux)
+version(posix)
 extern extern(C) NioSurface nio_surface_create_for_wl_window(void* display, void* surface) @nogc;
 
-version(linux)
+version(posix)
 extern extern(C) NioSurface nio_surface_create_for_x11_window(void* display, uint window) @nogc;
 
 version(Darwin)
-extern extern(C) NioSurface nio_surface_create_for_mtl_drawable(void* drawable) @nogc;
+extern extern(C) NioSurface nio_surface_create_for_mtl_layer(void* layer) @nogc;

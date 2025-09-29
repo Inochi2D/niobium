@@ -15,59 +15,20 @@ import niobium.device;
 import numem;
 
 /**
-    Usage flags of a buffer.
+    Used to construct a $(D NioBuffer) from a device,
+    the descriptor is used to describe the buffer.
 */
-enum NioBufferUsage : uint {
+struct NioBufferDescriptor {
 
     /**
-        Buffer may be used as the source for transfer operations.
+        How the buffer will be used.
     */
-    transferSource          = 0x00000001,
-    
+    NioBufferUsage usage;
+
     /**
-        Buffer may be used as the destination for transfer operations.
+        Length of the buffer in bytes.
     */
-    transferDestination     = 0x00000002,
-    
-    /**
-        Buffer may be used as a uniform block.
-    */
-    uniformBuffer           = 0x00000004,
-    
-    /**
-        Buffer may be used as a storage buffer.
-    */
-    storageBuffer           = 0x00000008,
-    
-    /**
-        Buffer may be used as a index buffer.
-    */
-    indexBuffer             = 0x00000010,
-    
-    /**
-        Buffer may be used as a vertex buffer.
-    */
-    vertexBuffer            = 0x00000020,
-    
-    /**
-        Buffer may be used as a source for video decoding.
-    */
-    videoDecodeSource       = 0x01000000,
-    
-    /**
-        Buffer may be used as a destination for video decoding.
-    */
-    videoDecodeDestination  = 0x02000000,
-    
-    /**
-        Buffer may be used as a source for video encoding.
-    */
-    videoEncodeSource       = 0x04000000,
-    
-    /**
-        Buffer may be used as a destination for video encoding.
-    */
-    videoEncodeDestination  = 0x08000000,
+    uint length;
 }
 
 /**
@@ -124,4 +85,60 @@ public:
             offset =    Offset into the buffer to upload the data.
     */
     abstract void upload(void[] data, size_t offset);
+}
+
+/**
+    Usage flags of a buffer.
+*/
+enum NioBufferUsage : uint {
+
+    /**
+        Buffer may be used as the source for transfer operations.
+    */
+    transferSource          = 0x00000001,
+    
+    /**
+        Buffer may be used as the destination for transfer operations.
+    */
+    transferDestination     = 0x00000002,
+    
+    /**
+        Buffer may be used as a uniform block.
+    */
+    uniformBuffer           = 0x00000004,
+    
+    /**
+        Buffer may be used as a storage buffer.
+    */
+    storageBuffer           = 0x00000008,
+    
+    /**
+        Buffer may be used as a index buffer.
+    */
+    indexBuffer             = 0x00000010,
+    
+    /**
+        Buffer may be used as a vertex buffer.
+    */
+    vertexBuffer            = 0x00000020,
+    
+    /**
+        Buffer may be used as a source for video decoding.
+    */
+    videoDecodeSource       = 0x01000000,
+    
+    /**
+        Buffer may be used as a destination for video decoding.
+    */
+    videoDecodeDestination  = 0x02000000,
+    
+    /**
+        Buffer may be used as a source for video encoding.
+    */
+    videoEncodeSource       = 0x04000000,
+    
+    /**
+        Buffer may be used as a destination for video encoding.
+    */
+    videoEncodeDestination  = 0x08000000,
 }

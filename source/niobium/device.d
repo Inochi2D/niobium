@@ -41,11 +41,6 @@ public:
         Type of the device.
     */
     abstract @property NioDeviceType type();
-
-    /**
-        The native underlying handle of the object.
-    */
-    abstract @property void* handle();
 }
 
 /**
