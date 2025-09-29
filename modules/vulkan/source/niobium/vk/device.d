@@ -11,6 +11,10 @@
 */
 module niobium.vk.device;
 import niobium.device;
+import niobium.resource;
+import niobium.texture;
+import niobium.buffer;
+import niobium.heap;
 import vulkan.loader;
 import vulkan.core;
 import vulkan.eh;
@@ -177,6 +181,51 @@ public:
         this.deviceName_ = nstring(pdProps.deviceName.ptr).take();
         this.createDevice();
         this.createQueues();
+    }
+
+    /**
+        Creates a new heap.
+
+        Params:
+            descriptor = Descriptor for the heap.
+        
+        Returns:
+            A new $(D NioHeap) or $(D null) on failure.
+    */
+    override NioHeap createHeap(NioHeapDescriptor descriptor) {
+        return null;
+    }
+
+    /**
+        Creates a new texture.
+
+        The texture is created on the internal device heap, managed
+        by Niobium itself.
+
+        Params:
+            descriptor = Descriptor for the texture.
+        
+        Returns:
+            A new $(D NioTexture) or $(D null) on failure.
+    */
+    override NioTexture createTexture(NioTextureDescriptor descriptor) {
+        return null;
+    }
+
+    /**
+        Creates a new buffer.
+
+        The buffer is created on the internal device heap, managed
+        by Niobium itself.
+
+        Params:
+            descriptor = Descriptor for the buffer.
+        
+        Returns:
+            A new $(D NioBuffer) or $(D null) on failure.
+    */
+    override NioBuffer createBuffer(NioBufferDescriptor descriptor) {
+        return null;
     }
 
     /// Stringification override

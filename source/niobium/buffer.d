@@ -26,6 +26,11 @@ struct NioBufferDescriptor {
     NioBufferUsage usage;
 
     /**
+        Storage mode of the buffer.
+    */
+    NioStorageMode storage;
+
+    /**
         Length of the buffer in bytes.
     */
     uint length;

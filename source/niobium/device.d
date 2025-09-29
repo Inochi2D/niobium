@@ -11,10 +11,17 @@
 */
 module niobium.device;
 import numem;
+import niobium.texture;
+import niobium.buffer;
+import niobium.heap;
 
 /**
     A device which is capable of doing 3D rendering and/or
     GPGPU computations.
+
+    Note:
+        You should not implement this class yourself, but use
+        the provided enumerator to get system-provided devices.
 */
 abstract
 class NioDevice : NuRefCounted {
@@ -41,6 +48,45 @@ public:
         Type of the device.
     */
     abstract @property NioDeviceType type();
+
+    /**
+        Creates a new heap.
+
+        Params:
+            descriptor = Descriptor for the heap.
+        
+        Returns:
+            A new $(D NioHeap) or $(D null) on failure.
+    */
+    abstract NioHeap createHeap(NioHeapDescriptor descriptor);
+
+    /**
+        Creates a new texture.
+
+        The texture is created on the internal device heap, managed
+        by Niobium itself.
+
+        Params:
+            descriptor = Descriptor for the texture.
+        
+        Returns:
+            A new $(D NioTexture) or $(D null) on failure.
+    */
+    abstract NioTexture createTexture(NioTextureDescriptor descriptor);
+
+    /**
+        Creates a new buffer.
+
+        The buffer is created on the internal device heap, managed
+        by Niobium itself.
+
+        Params:
+            descriptor = Descriptor for the buffer.
+        
+        Returns:
+            A new $(D NioBuffer) or $(D null) on failure.
+    */
+    abstract NioBuffer createBuffer(NioBufferDescriptor descriptor);
 }
 
 /**

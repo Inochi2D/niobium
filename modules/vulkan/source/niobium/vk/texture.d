@@ -16,6 +16,17 @@ import niobium.device;
 import vulkan.core;
 import numem;
 
+// /**
+//     Vulkan Texture
+// */
+// class NioVkTexture : NioTexture {
+// private:
+// @nogc:
+//     VkImageLayout layout_;
+//     VkImage handle_;
+// public:
+// }
+
 /**
     Converts a $(D NioPixelFormat) format to its $(D VkFormat) equivalent.
 

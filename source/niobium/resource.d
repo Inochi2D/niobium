@@ -13,6 +13,26 @@ module niobium.resource;
 import niobium.device;
 import numem;
 
+enum NioStorageMode : uint {
+    
+    /**
+        The resource is shared between CPU and GPU.
+    */
+    sharedStorage = 0x01,
+
+    /**
+        The resource is stored seperated on the CPU and GPU,
+        changes must be synchronized between them.
+    */
+    managedStorage = 0x02,
+
+    /**
+        The resource is stored on the GPU and can't be
+        directly interacted with from the CPU.
+    */
+    privateStorage = 0x03
+}
+
 /**
     Base class of all high level resources.
 */
@@ -32,6 +52,11 @@ protected:
     }
 
 public:
+
+    /**
+        Storage mode of the resource.
+    */
+    abstract @property NioStorageMode storageMode();
 
     /**
         Size of the resource in bytes.

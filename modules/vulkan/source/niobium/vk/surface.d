@@ -13,6 +13,7 @@ module niobium.vk.surface;
 import niobium.vk.texture;
 import niobium.vk.device;
 import niobium.surface;
+import niobium.resource;
 import niobium.texture;
 import niobium.device;
 import niobium.types;
@@ -91,7 +92,7 @@ private:
     }
 
     void setup() {
-        swapCreateInfo = VkSwapchainCreateInfoKHR(
+        this.swapCreateInfo = VkSwapchainCreateInfoKHR(
             surface: handle_,
             clipped: false,
             imageArrayLayers: 1,
@@ -293,11 +294,14 @@ public:
             this.rebuild();
 
         auto result = swapFuncs.vkAcquireNextImageKHR(device_.handle, swapchain_, 1000, vkSwapSemaphore_, null, &currentImageIdx_);
+        if (result == VK_SUCCESS)
+            return drawables_[currentImageIdx_];
+
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             this.needsRebuild = true;
             return this.next();
         }
-        return drawables_[currentImageIdx_];
+        return null;
     }
 }
 
@@ -322,7 +326,8 @@ public:
     ~this() {
         auto vkDevice = (cast(NioVkDevice)surface_.device).handle;
 
-        this.view_.release();
+        texture_.release();
+        view_.release();
         vkDestroySemaphore(vkDevice, semaphore, null);
     }
 
@@ -360,6 +365,11 @@ private:
     VkImage image_;
 
 public:
+
+    /**
+        Storage mode of the texture view.
+    */
+    override @property NioStorageMode storageMode() => NioStorageMode.privateStorage;
 
     /**
         Handle to underlying vulkan image.
@@ -443,6 +453,11 @@ public:
         Handle to underlying vulkan image view.
     */
     final @property VkImageView vkImageView() => view_;
+
+    /**
+        Storage mode of the texture view.
+    */
+    override @property NioStorageMode storageMode() => NioStorageMode.privateStorage;
 
     /**
         The format this view is interpreting the texture as.

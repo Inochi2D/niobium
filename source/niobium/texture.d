@@ -29,6 +29,11 @@ struct NioTextureDescriptor {
         The format of pixels in the texture.
     */
     NioPixelFormat format;
+
+    /**
+        Storage mode of the texture.
+    */
+    NioStorageMode storage;
     
     /**
         Width of the texture in pixels.
