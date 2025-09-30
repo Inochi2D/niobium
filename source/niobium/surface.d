@@ -212,28 +212,7 @@ public:
     /**
         The texture view of this drawable.
     */
-    abstract @property NioTextureView texture();
-
-    /**
-        Schedules the drawable for presentation ASAP.
-
-        Command queues keep track of any drawables that have been
-        enqueued within them, the drawable will be presented
-        on the queue that acquired it.
-    */
-    abstract void present();
-
-    /**
-        Presents the drawable after a minimum duration.
-
-        Command queues keep track of any drawables that have been
-        enqueued within them, the drawable will be presented
-        on the queue that acquired it.
-
-        Params:
-            timeout = Timeout in miliseconds to wait for presentation.
-    */
-    abstract void presentAfter(long timeout);
+    abstract @property NioTexture texture();
 }
 
 //

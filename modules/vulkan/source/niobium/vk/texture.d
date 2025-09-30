@@ -25,12 +25,18 @@ import numem;
 class NioVkTexture : NioTexture {
 private:
 @nogc:
-    NioAllocator allocator_;
-    NioAllocation allocation_;
-    VkImage handle_;
+    // Backing Memory
+    NioAllocator    allocator_;
+    NioAllocation   allocation_;
     
-    VkImageCreateInfo vkdesc_;
+    // Handles
+    VkImage     image_;
+    VkImageView view_;
+    
+    // State
     NioTextureDescriptor desc_;
+    VkImageCreateInfo vkdesc_;
+    VkImageViewCreateInfo vkviewdesc_;
     VkImageLayout layout_;
 
     void createImage(NioTextureDescriptor desc) {
@@ -49,12 +55,12 @@ private:
             sharingMode: VK_SHARING_MODE_EXCLUSIVE,
             initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
         );
-        vkEnforce(vkCreateImage(nvkDevice.vkDevice, &vkdesc_, null, &handle_));
+        vkEnforce(vkCreateImage(nvkDevice.vkDevice, &vkdesc_, null, &image_));
         this.layout_ = vkdesc_.initialLayout;
 
         // Allocate memory for our texture.
         VkMemoryRequirements vkmemreq_;
-        vkGetImageMemoryRequirements(nvkDevice.vkDevice, handle_, &vkmemreq_);
+        vkGetImageMemoryRequirements(nvkDevice.vkDevice, image_, &vkmemreq_);
 
         VkMemoryAllocateFlags flags = desc.storage.toVkMemoryProperties();
         ptrdiff_t type = allocator_.getTypeForMasked(flags, vkmemreq_.memoryTypeBits);
@@ -63,12 +69,22 @@ private:
             if (allocation_.memory) {
                 vkBindImageMemory(
                     nvkDevice.vkDevice, 
-                    handle_, 
+                    image_, 
                     allocation_.memory.handle,
                     allocation_.offset 
                 );
             }
         }
+
+        // Create View
+        this.vkviewdesc_ = VkImageViewCreateInfo(
+            image: image_,
+            viewType: desc.type.toVkImageViewType(),
+            format: desc.format.toVkFormat(),
+            components: VkComponentMapping(VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY),
+            subresourceRange: VkImageSubresourceRange(desc.format.toVkAspect(), 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS)
+        );
+        vkEnforce(vkCreateImageView(nvkDevice.vkDevice, &vkviewdesc_, null, &view_));
     }
 
 protected:
@@ -84,9 +100,20 @@ protected:
         auto vkDevice = (cast(NioVkDevice)device).vkDevice;
 
         import niobium.vk.device : setDebugName;
-        vkDevice.setDebugName(VK_OBJECT_TYPE_IMAGE, handle_, label);
+        vkDevice.setDebugName(VK_OBJECT_TYPE_IMAGE, image_, label);
+        vkDevice.setDebugName(VK_OBJECT_TYPE_IMAGE_VIEW, view_, label);
     }
 public:
+
+    /**
+        Underlying Vulkan Image.
+    */
+    final @property VkImage image() => image_;
+
+    /**
+        Underlying Vulkan Image View.
+    */
+    final @property VkImageView view() => view_;
 
     /// Destructor
     ~this() {
@@ -95,7 +122,8 @@ public:
             allocator_.free(allocation_);
         }
 
-        vkDestroyImage(vkDevice, handle_, null);
+        vkDestroyImageView(vkDevice, view_, null);
+        vkDestroyImage(vkDevice, image_, null);
     }
 
     /**
@@ -234,6 +262,25 @@ VkFormat toVkFormat(NioPixelFormat format) @nogc {
 }
 
 /**
+    Converts a $(D NioPixelFormat) format to its $(D VkImageAspectFlags) equivalent.
+
+    Params:
+        format = The $(D NioPixelFormat)
+    
+    Returns:
+        The $(D VkImageAspectFlags) equivalent.
+*/
+VkImageAspectFlags toVkAspect(NioPixelFormat format) @nogc {
+    switch(format) with(NioPixelFormat) {
+        case depth24Stencil8:       return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+        case depth32Stencil8:       return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+        case x24Stencil8:           return VK_IMAGE_ASPECT_STENCIL_BIT;
+        case x32Stencil8:           return VK_IMAGE_ASPECT_STENCIL_BIT;
+        default:                    return VK_IMAGE_ASPECT_COLOR_BIT;
+    }
+}
+
+/**
     Converts a $(D NioTextureType) type to its $(D VkImageType) equivalent.
 
     Params:
@@ -245,9 +292,33 @@ VkFormat toVkFormat(NioPixelFormat format) @nogc {
 pragma(inline, true)
 VkImageType toVkImageType(NioTextureType type) @nogc {
     final switch(type) with(NioTextureType) {
-        case texture1d: return VK_IMAGE_TYPE_1D;
-        case texture2d: return VK_IMAGE_TYPE_2D;
-        case texture3d: return VK_IMAGE_TYPE_3D;
+        case type1D, type1DArray:                       return VK_IMAGE_TYPE_1D;
+        case type2D, type2DArray, 
+             type2DMultisample, type2DMultisampleArray, 
+             typeCube, typeCubeArray:                   return VK_IMAGE_TYPE_2D;
+        case type3D:                                    return VK_IMAGE_TYPE_3D;
+    }
+}
+
+/**
+    Converts a $(D NioTextureType) type to its $(D VkImageViewType) equivalent.
+
+    Params:
+        type = The $(D NioTextureType)
+    
+    Returns:
+        The $(D VkImageViewType) equivalent.
+*/
+pragma(inline, true)
+VkImageViewType toVkImageViewType(NioTextureType type) @nogc {
+    final switch(type) with(NioTextureType) {
+        case type1D:                                return VK_IMAGE_VIEW_TYPE_1D;
+        case type1DArray:                           return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+        case type2D, type2DMultisample:             return VK_IMAGE_VIEW_TYPE_2D;
+        case type2DArray, type2DMultisampleArray:   return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        case type3D:                                return VK_IMAGE_VIEW_TYPE_3D;
+        case typeCube:                              return VK_IMAGE_VIEW_TYPE_CUBE;
+        case typeCubeArray:                         return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
     }
 }
 

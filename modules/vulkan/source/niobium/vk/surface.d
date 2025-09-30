@@ -370,7 +370,6 @@ private:
 @nogc:
     NioVkSurface surface_;
     NioVkDrawableTexture texture_;
-    NioVkDrawableTextureView view_;
 
 public:
 
@@ -383,7 +382,6 @@ public:
     /// Destructor
     ~this() {
         texture_.release();
-        view_.release();
     }
 
     /**
@@ -394,38 +392,12 @@ public:
 
         this.surface_ = surface;
         this.texture_ = nogc_new!NioVkDrawableTexture(surface.device, this, image);
-        this.view_ = nogc_new!NioVkDrawableTextureView(surface.device, texture_);
     }
 
     /**
         The texture view of this drawable.
     */
-    override @property NioTextureView texture() => view_;
-
-    /**
-        Schedules the drawable for presentation ASAP.
-
-        Command queues keep track of any drawables that have been
-        enqueued within them, the drawable will be presented
-        on the queue that acquired it.
-    */
-    override void present() {
-        // surface.swapFuncs.vkQueuePresentKHR(queue, );
-    }
-
-    /**
-        Presents the drawable after a minimum duration.
-
-        Command queues keep track of any drawables that have been
-        enqueued within them, the drawable will be presented
-        on the queue that acquired it.
-
-        Params:
-            timeout = Timeout in miliseconds to wait for presentation.
-    */
-    override void presentAfter(long timeout) {
-
-    }
+    override @property NioTexture texture() => texture_;
 }
 
 /**
@@ -438,6 +410,7 @@ private:
     VkSwapchainCreateInfoKHR swapCreateInfo_;
     NioVkDrawable drawable_;
     VkImage image_;
+    VkImageView view_;
 
 public:
 
@@ -459,7 +432,7 @@ public:
     /**
         The type of the texture.
     */
-    override @property NioTextureType type() => NioTextureType.texture2d;
+    override @property NioTextureType type() => NioTextureType.type2D;
     
     /**
         The usage flags of the texture.
@@ -496,6 +469,12 @@ public:
     */
     override @property uint size() => 0;
 
+    /// Destructor
+    ~this() {
+        auto nvkDevice = cast(NioVkDevice)device;
+        vkDestroyImageView(nvkDevice.vkDevice, view_, null);
+    }
+
     /**
         Constructs a new drawable texture.
     */
@@ -506,79 +485,11 @@ public:
         this.image_ = image;
         this.swapCreateInfo_ = (cast(NioVkSurface)drawable.surface).swapCreateInfo;
         this.format_ = drawable.surface.format;
-    }
-}
-
-/**
-    A drawable texture.
-*/
-class NioVkDrawableTextureView : NioTextureView {
-private:
-@nogc:
-    VkImageView view_;
-
-public:
-
-    /**
-        Handle to underlying vulkan image.
-    */
-    final @property VkImage vkImage() => (cast(NioVkDrawableTexture)texture).vkImage;
-
-    /**
-        Handle to underlying vulkan image view.
-    */
-    final @property VkImageView vkImageView() => view_;
-
-    /**
-        Storage mode of the texture view.
-    */
-    override @property NioStorageMode storageMode() => NioStorageMode.privateStorage;
-
-    /**
-        The format this view is interpreting the texture as.
-    */
-    override @property NioPixelFormat format() => texture.format;
-
-    /**
-        The base layer being viewed.
-    */
-    override @property uint layer() => 0;
-
-    /**
-        Array layer count of the texture.
-    */
-    override @property uint layers() => texture.layers;
-
-    /**
-        The base mip level being viewed.
-    */
-    override @property uint level() => 0;
-
-    /**
-        Mip level count of the texture.
-    */
-    override @property uint levels() => texture.levels;
-
-    /**
-        Size of the resource in bytes.
-    */
-    override @property uint size() => 0;
-
-    /// Destructor
-    ~this() {
-        vkDestroyImageView((cast(NioVkDevice)device).vkDevice, view_, null);
-    }
-
-    /**
-        Creates a new drawable texture view.
-    */
-    this(NioDevice device, NioVkDrawableTexture texture) {
-        super(device, texture);
 
         auto createInfo = VkImageViewCreateInfo(
-            image: vkImage,
+            image: image,
             viewType: VK_IMAGE_VIEW_TYPE_2D,
-            format: texture.swapCreateInfo_.imageFormat,
+            format: swapCreateInfo_.imageFormat,
             components: VkComponentMapping(VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A),
             subresourceRange: VkImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS)
         );

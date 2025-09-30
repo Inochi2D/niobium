@@ -22,7 +22,7 @@ struct NioTextureDescriptor {
     /**
         The kind of texture being made.
     */
-    NioTextureType type = NioTextureType.texture2d;
+    NioTextureType type = NioTextureType.type2D;
     
     /**
         The format of pixels in the texture.
@@ -119,87 +119,6 @@ public:
         Array layer count of the texture.
     */
     abstract @property uint layers();
-
-    /**
-        Mip level count of the texture.
-    */
-    abstract @property uint levels();
-}
-
-/**
-    An alternate view into the data of a texture.
-*/
-abstract
-class NioTextureView : NioResource {
-private:
-@nogc:
-    NioTexture texture_;
-
-protected:
-
-    /**
-        Constructs a new texture view.
-
-        Params:
-            device =    The device that "owns" this view.
-            texture =   The texture this is a view of.
-    */
-    this(NioDevice device, NioTexture texture) {
-        super(device);
-        this.texture_ = texture;
-    }
-
-public:
-
-    /**
-        The texture this is a view of.
-    */
-    final @property NioTexture texture() => texture_;
-
-    /**
-        The type of the texture.
-    */
-    final @property NioTextureType type() => texture_.type;
-
-    /**
-        The usage flags of the texture.
-    */
-    final @property NioTextureUsage usage() => texture_.usage;
-
-    /**
-        Width of the texture in pixels.
-    */
-    final @property uint width() => texture_.width;
-
-    /**
-        Height of the texture in pixels.
-    */
-    final @property uint height() => texture_.height;
-
-    /**
-        Depth of the texture in pixels.
-    */
-    final @property uint depth() => texture_.depth;
-
-    /**
-        The format this view is interpreting the texture as.
-    */
-    abstract @property NioPixelFormat format();
-
-    /**
-        The base layer being viewed.
-    */
-    abstract @property uint layer();
-
-    /**
-        Array layer count of the texture.
-    */
-    abstract @property uint layers();
-
-    /**
-        The base mip level being viewed.
-    */
-    abstract @property uint level();
 
     /**
         Mip level count of the texture.
@@ -328,15 +247,45 @@ enum NioTextureType : uint {
     /**
         1-dimensional texture.
     */
-    texture1d,
+    type1D                  = 0x00000010,
+
+    /**
+        1-dimensional array texture.
+    */
+    type1DArray             = 0x00000011,
     
     /**
         2-dimensional texture.
     */
-    texture2d,
+    type2D                  = 0x00000020,
+    
+    /**
+        2-dimensional array texture.
+    */
+    type2DArray             = 0x00000021,
+    
+    /**
+        2-dimensional multisampled texture.
+    */
+    type2DMultisample       = 0x00000022,
+    
+    /**
+        2-dimensional multisampled array texture.
+    */
+    type2DMultisampleArray  = 0x00000023,
     
     /**
         3-dimensional texture.
     */
-    texture3d,
+    type3D                  = 0x00000030,
+    
+    /**
+        Cubemap texture.
+    */
+    typeCube                = 0x00000040,
+    
+    /**
+        Cubemap array texture.
+    */
+    typeCubeArray           = 0x00000041,
 }
