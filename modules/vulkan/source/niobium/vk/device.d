@@ -197,13 +197,13 @@ public:
         Creates a new heap.
 
         Params:
-            descriptor = Descriptor for the heap.
+            desc = Descriptor for the heap.
         
         Returns:
             A new $(D NioHeap) or $(D null) on failure.
     */
-    override NioHeap createHeap(NioHeapDescriptor descriptor) {
-        return nogc_new!NioVkHeap(this, descriptor);
+    override NioHeap createHeap(NioHeapDescriptor desc) {
+        return nogc_new!NioVkHeap(this, desc);
     }
 
     /**
@@ -213,13 +213,28 @@ public:
         by Niobium itself.
 
         Params:
-            descriptor = Descriptor for the texture.
+            desc = Descriptor for the texture.
         
         Returns:
             A new $(D NioTexture) or $(D null) on failure.
     */
-    override NioTexture createTexture(NioTextureDescriptor descriptor) {
-        return nogc_new!NioVkTexture(this, descriptor);
+    override NioTexture createTexture(NioTextureDescriptor desc) {
+        return nogc_new!NioVkTexture(this, desc);
+    }
+
+    /**
+        Creates a new texture which reinterprets the data of another
+        texture.
+
+        Params:
+            texture =   Texture to create a view of.
+            desc =      Descriptor for the texture.
+        
+        Returns:
+            A new $(D NioTexture) or $(D null) on failure.
+    */
+    override NioTexture createTextureView(NioTexture texture, NioTextureDescriptor desc) {
+        return nogc_new!NioVkTexture(this, texture, desc);
     }
 
     /**
@@ -229,13 +244,13 @@ public:
         by Niobium itself.
 
         Params:
-            descriptor = Descriptor for the buffer.
+            desc = Descriptor for the buffer.
         
         Returns:
             A new $(D NioBuffer) or $(D null) on failure.
     */
-    override NioBuffer createBuffer(NioBufferDescriptor descriptor) {
-        return nogc_new!NioVkBuffer(this, descriptor);
+    override NioBuffer createBuffer(NioBufferDescriptor desc) {
+        return nogc_new!NioVkBuffer(this, desc);
     }
 
     /// Stringification override

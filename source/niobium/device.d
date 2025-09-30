@@ -54,12 +54,12 @@ public:
         Creates a new heap.
 
         Params:
-            descriptor = Descriptor for the heap.
+            desc = Descriptor for the heap.
         
         Returns:
             A new $(D NioHeap) or $(D null) on failure.
     */
-    abstract NioHeap createHeap(NioHeapDescriptor descriptor);
+    abstract NioHeap createHeap(NioHeapDescriptor desc);
 
     /**
         Creates a new texture.
@@ -68,12 +68,25 @@ public:
         by Niobium itself.
 
         Params:
-            descriptor = Descriptor for the texture.
+            desc = Descriptor for the texture.
         
         Returns:
             A new $(D NioTexture) or $(D null) on failure.
     */
-    abstract NioTexture createTexture(NioTextureDescriptor descriptor);
+    abstract NioTexture createTexture(NioTextureDescriptor desc);
+
+    /**
+        Creates a new texture which reinterprets the data of another
+        texture.
+
+        Params:
+            texture =   Texture to create a view of.
+            desc =      Descriptor for the texture.
+        
+        Returns:
+            A new $(D NioTexture) or $(D null) on failure.
+    */
+    abstract NioTexture createTextureView(NioTexture texture, NioTextureDescriptor desc);
 
     /**
         Creates a new buffer.
@@ -82,12 +95,12 @@ public:
         by Niobium itself.
 
         Params:
-            descriptor = Descriptor for the buffer.
+            desc = Descriptor for the buffer.
         
         Returns:
             A new $(D NioBuffer) or $(D null) on failure.
     */
-    abstract NioBuffer createBuffer(NioBufferDescriptor descriptor);
+    abstract NioBuffer createBuffer(NioBufferDescriptor desc);
 }
 
 /**

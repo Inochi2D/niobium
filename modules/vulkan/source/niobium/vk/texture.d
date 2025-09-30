@@ -30,14 +30,15 @@ private:
     NioAllocation   allocation_;
     
     // Handles
-    VkImage     image_;
-    VkImageView view_;
+    NioVkTexture    parent_;
+    VkImage         image_;
+    VkImageView     view_;
     
     // State
-    NioTextureDescriptor desc_;
-    VkImageCreateInfo vkdesc_;
-    VkImageViewCreateInfo vkviewdesc_;
-    VkImageLayout layout_;
+    NioTextureDescriptor    desc_;
+    VkImageCreateInfo       vkdesc_;
+    VkImageViewCreateInfo   vkviewdesc_;
+    VkImageLayout           layout_;
 
     void createImage(NioTextureDescriptor desc) {
         auto nvkDevice = (cast(NioVkDevice)device);
@@ -87,6 +88,24 @@ private:
         vkEnforce(vkCreateImageView(nvkDevice.vkDevice, &vkviewdesc_, null, &view_));
     }
 
+    void createImageView(NioVkTexture texture, NioTextureDescriptor desc) {
+        auto nvkDevice = (cast(NioVkDevice)device);
+
+        // Create View
+        this.parent_ = texture.retained();
+        this.desc_ = desc;
+        this.vkdesc_ = parent_.vkdesc_;
+        this.image_ = parent_.image;
+        this.vkviewdesc_ = VkImageViewCreateInfo(
+            image: parent_.image,
+            viewType: desc.type.toVkImageViewType(),
+            format: desc.format.toVkFormat(),
+            components: VkComponentMapping(VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY),
+            subresourceRange: VkImageSubresourceRange(desc.format.toVkAspect(), 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS)
+        );
+        vkEnforce(vkCreateImageView(nvkDevice.vkDevice, &vkviewdesc_, null, &view_));
+    }
+
 protected:
 
     /**
@@ -118,12 +137,19 @@ public:
     /// Destructor
     ~this() {
         auto vkDevice = (cast(NioVkDevice)device).vkDevice;
-        if (allocation_.memory) {
-            allocator_.free(allocation_);
+        
+        // Image-view Mode
+        if (parent_) {
+            vkDestroyImageView(vkDevice, view_, null);
+            parent_.release();
+            return;
         }
 
+        // Owning image.
         vkDestroyImageView(vkDevice, view_, null);
         vkDestroyImage(vkDevice, image_, null);
+        if (allocator_ && allocation_.memory)
+            allocator_.free(allocation_);
     }
 
     /**
@@ -140,6 +166,20 @@ public:
         enforce(desc.usage != NioTextureUsage.none, "Invalid texture usage 'none'!");
         this.allocator_ = allocator ? allocator : (cast(NioVkDevice)device).allocator;
         this.createImage(desc);
+    }
+
+    /**
+        Constructs a new $(D NioVkTexture) as a view of another texture.
+
+        Params:
+            device =    The device to create the texture on.
+            texture =   Texture to create a view of.
+            desc =      Descriptor used to create the texture.
+    */
+    this(NioDevice device, NioTexture texture, NioTextureDescriptor desc) {
+        super(device);
+
+        this.createImageView(cast(NioVkTexture)texture, desc);
     }
 
     /**
