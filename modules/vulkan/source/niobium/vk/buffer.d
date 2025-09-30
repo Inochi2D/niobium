@@ -25,10 +25,14 @@ import numem;
 class NioVkBuffer : NioBuffer {
 private:
 @nogc:
-    NioAllocator allocator_;
-    NioAllocation allocation_;
+    // Backing Memory
+    NioAllocator    allocator_;
+    NioAllocation   allocation_;
+
+    // Handles
     VkBuffer handle_;
 
+    // State
     NioBufferDescriptor desc_;
     VkBufferCreateInfo vkdesc_;
 
