@@ -1,0 +1,9 @@
+name "nioinfo"
+description "Niobium tool to show information about GPUs"
+buildOptions "debugInfoC"
+
+dependency "niobium" path="../../"
+
+targetName "nioinfo"
+targetType "executable"
+targetPath "out/"

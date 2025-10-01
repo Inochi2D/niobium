@@ -4,7 +4,6 @@ authors "Luna Nielsen"
 copyright "Copyright © 2025, Inochi2D Project"
 license "BSL-1.0"
 
-
 subPackage "modules/metal"
 subPackage "modules/vulkan"
 
