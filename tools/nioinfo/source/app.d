@@ -19,14 +19,11 @@ void main() {
 	writefln("Devices: %s", NioDevice.systemDevices().length);
 	foreach(i, device; NioDevice.systemDevices()) {
 		writefln("%s: (%s):", i, device.name);
+		writefln("  Type: %s", device.type);
 		writefln("  Queues: %s", device.queueCount);
 		writefln("  Features:");
-		writefln("    presentation=%s", device.features.presentation);
-		writefln("    meshShaders=%s", device.features.meshShaders);
-		writefln("    geometryShaders=%s", device.features.geometryShaders);
-		writefln("    tesselationShaders=%s", device.features.tesselationShaders);
-		writefln("    videoEncode=%s", device.features.videoEncode);
-		writefln("    videoDecode=%s", device.features.videoDecode);
-		writefln("    dualSourceBlend=%s", device.features.dualSourceBlend);
+		static foreach(member; __traits(allMembers, NioDeviceFeatures)) {
+			writefln("    %s=%s", member, __traits(getMember, device.features, member));
+		}
 	}
 }

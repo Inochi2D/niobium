@@ -1,6 +1,6 @@
 name "nioinfo"
 description "Niobium tool to show information about GPUs"
-buildOptions "debugInfoC"
+// buildOptions "debugInfoC"
 
 dependency "niobium" path="../../"
 
