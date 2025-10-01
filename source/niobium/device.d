@@ -140,19 +140,33 @@ public:
     abstract @property uint queueCount();
 
     /**
-        The video encode queue for the device, $(D null) if video
-        encoding is not supported.
+        Creates a new video encode queue from the device.
+
+        Queues created this way may only be used by a single thread
+        at a time.
+        
+        Returns:
+            A $(D NioVideoEncodeQueue) or $(D null) on failure.
     */
-    abstract @property NioVideoEncodeQueue videoEncodeQueue();
+    abstract NioVideoEncodeQueue createVideoEncodeQueue();
 
     /**
-        The video decode queue for the device, $(D null) if video
-        decoding is not supported.
+        Creates a new video decode queue from the device.
+
+        Queues created this way may only be used by a single thread
+        at a time.
+        
+        Returns:
+            A $(D NioVideoDecodeQueue) or $(D null) on failure.
     */
-    abstract @property NioVideoDecodeQueue videoDecodeQueue();
+    abstract NioVideoDecodeQueue createVideoDecodeQueue();
 
     /**
-        Gets a command queue from the device..
+        Creates a new command queue from the device submitting to
+        the given logical device queue.
+
+        Queues created this way may only be used by a single thread
+        at a time.
 
         Params:
             index = The index of the queue to get.
@@ -160,7 +174,7 @@ public:
         Returns:
             A $(D NioCommandQueue) or $(D null) on failure.
     */
-    abstract NioCommandQueue getCommandQueue(uint index);
+    abstract NioCommandQueue createQueue(uint index);
 
     /**
         Creates a new heap.

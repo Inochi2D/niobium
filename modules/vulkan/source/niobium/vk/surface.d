@@ -110,7 +110,7 @@ private:
         // Create new drawables.
         auto semaphoreCreateInfo = VkSemaphoreCreateInfo();
         foreach(i; 0..images.length) {
-            drawables[i] = nogc_new!NioVkDrawable(this, images[i]);
+            drawables[i] = nogc_new!NioVkDrawable(this, images[i], cast(uint)i);
             vkCreateSemaphore(device_.vkDevice, &semaphoreCreateInfo, null, &semaphores[i]);
         }
         nu_freea(images);
@@ -368,10 +368,27 @@ public:
 class NioVkDrawable : NioDrawable {
 private:
 @nogc:
+    uint index_;
     NioVkSurface surface_;
     NioVkDrawableTexture texture_;
 
 public:
+
+    /// Helper that resets the drawable, called during submission.
+    void vkReset() {
+        texture_.layout = VK_IMAGE_LAYOUT_UNDEFINED;
+        this.reset();
+    }
+
+    /**
+        The swapchain of the drawable.
+    */
+    @property VkSwapchainKHR swapchain() => surface_.swapchain_;
+
+    /**
+        The swapchain index of the drawable.
+    */
+    @property uint index() => index_;
 
     /**
         Semaphore signalled when the drawable is ready
@@ -387,10 +404,11 @@ public:
     /**
         Creates a new Drawable from a Vulkan Image.
     */
-    this(NioVkSurface surface, VkImage image) {
+    this(NioVkSurface surface, VkImage image, uint index) {
         super(surface);
 
         this.surface_ = surface;
+        this.index_ = index;
         this.texture_ = nogc_new!NioVkDrawableTexture(surface.device, this, image);
     }
 
@@ -413,6 +431,11 @@ private:
     VkImageView view_;
 
 public:
+
+    /**
+        Image layout of the drawable texture for state tracking.
+    */
+    VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     /**
         Storage mode of the texture view.

@@ -187,6 +187,14 @@ protected:
         this.surface_ = surface;
     }
 
+    /**
+        Resets the state of the drawable, allowing
+        it to be reused.
+    */
+    final void reset() {
+        this.queue_ = null;
+    }
+
 public:
 
     /**

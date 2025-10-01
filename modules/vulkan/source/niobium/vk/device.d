@@ -44,9 +44,10 @@ private:
     VkPhysicalDeviceMemoryProperties memoryProps_;
 
     // Queue related data
-    NioVkCommandQueue[] mainQueues;
-    NioVkVideoEncodeQueue encodeQueue;
-    NioVkVideoDecodeQueue decodeQueue;
+    NioVkQueueTable queueTable;
+    VkQueue[] mainQueues;
+    VkQueue encodeQueue;
+    VkQueue decodeQueue;
 
     // Handles
     VkPhysicalDevice physicalDevice_;
@@ -56,6 +57,7 @@ private:
     NioAllocator allocator_;
 
     void createDevice(NioVkQueueTable queueTable) {
+        this.queueTable = queueTable;
 
         // Fetch temporaries.
         auto deviceExtensions = physicalDevice_.getDeviceExtensions();
@@ -165,27 +167,17 @@ private:
     }
 
     void createQueues(NioVkQueueTable queueTable) {
-        this.mainQueues = mainQueues.nu_resize(queueTable.mainQueueFamily.queueCount);
-        foreach(i; 0..queueTable.mainQueueFamily.queueCount) {
-            this.mainQueues[i] = nogc_new!NioVkCommandQueue(
-                this, 
-                this.getQueue(cast(uint)queueTable.mainQueueFamily.queueFamilyIndex, cast(uint)i)
-            );
-        }
+        this.mainQueues = nu_malloca!VkQueue(queueTable.mainQueueFamily.queueCount);
+        foreach(i; 0..queueTable.mainQueueFamily.queueCount)
+            this.mainQueues[i] = this.getQueue(cast(uint)queueTable.mainQueueFamily.queueFamilyIndex, cast(uint)i);
 
-        if (queueTable.videoEncodeQueueFamily.queueCount > 0) {
-            this.encodeQueue = nogc_new!NioVkVideoEncodeQueue(
-                this, 
-                this.getQueue(cast(uint)queueTable.videoEncodeQueueFamily.queueFamilyIndex, 0)
-            );
-        }
-
-        if (queueTable.videoDecodeQueueFamily.queueCount > 0) {
-            this.decodeQueue = nogc_new!NioVkVideoDecodeQueue(
-                this, 
-                this.getQueue(cast(uint)queueTable.videoDecodeQueueFamily.queueFamilyIndex, 0)
-            );
-        }
+        this.encodeQueue = queueTable.videoEncodeQueueFamily.queueCount > 0 ? 
+            this.getQueue(cast(uint)queueTable.videoEncodeQueueFamily.queueFamilyIndex, 0) :
+            null;
+        
+        this.decodeQueue = queueTable.videoDecodeQueueFamily.queueCount > 0 ? 
+            this.getQueue(cast(uint)queueTable.videoDecodeQueueFamily.queueFamilyIndex, 0) :
+            null;
     }
 
     VkQueue getQueue(uint queueFamily, uint index) {
@@ -242,30 +234,11 @@ public:
     */
     override @property uint queueCount() => cast(uint)mainQueues.length;
 
-    /**
-        The video encode queue for the device, $(D null) if video
-        encoding is not supported.
-    */
-    override @property NioVideoEncodeQueue videoEncodeQueue() => encodeQueue;
-
-    /**
-        The video decode queue for the device, $(D null) if video
-        decoding is not supported.
-    */
-    override @property NioVideoDecodeQueue videoDecodeQueue() => decodeQueue;
-
     /// Destructor
     ~this() {
         
-        // Free queues
-        nu_freea(mainQueues);
-        if (encodeQueue)
-            nogc_delete(encodeQueue);
-        
-        if (decodeQueue)
-            nogc_delete(decodeQueue);
-        
         // Free containers and handles.
+        nu_freea(mainQueues);
         nu_freea(deviceName_);
         nogc_delete(allocator_);
         vkDestroyDevice(handle_, null);
@@ -284,7 +257,41 @@ public:
     }
 
     /**
-        Gets a command queue from the device..
+        Creates a new video encode queue from the device.
+
+        Queues created this way may only be used by a single thread
+        at a time.
+        
+        Returns:
+            A $(D NioVideoEncodeQueue) or $(D null) on failure.
+    */
+    override NioVideoEncodeQueue createVideoEncodeQueue() {
+        return encodeQueue ?
+            nogc_new!NioVkVideoEncodeQueue(this, encodeQueue) :
+            null;
+    }
+
+    /**
+        Creates a new video decode queue from the device.
+
+        Queues created this way may only be used by a single thread
+        at a time.
+        
+        Returns:
+            A $(D NioVideoDecodeQueue) or $(D null) on failure.
+    */
+    override NioVideoDecodeQueue createVideoDecodeQueue() {
+        return decodeQueue ?
+            nogc_new!NioVkVideoDecodeQueue(this, decodeQueue) :
+            null;
+    }
+
+    /**
+        Creates a new command queue from the device submitting to
+        the given logical device queue.
+
+        Queues created this way may only be used by a single thread
+        at a time.
 
         Params:
             index = The index of the queue to get.
@@ -292,9 +299,10 @@ public:
         Returns:
             A $(D NioCommandQueue) or $(D null) on failure.
     */
-    override NioCommandQueue getCommandQueue(uint index) {
-        return index < mainQueues.length ? 
-            mainQueues[index] : 
+    override NioCommandQueue createQueue(uint index) {
+        auto queueFamily = cast(uint)queueTable.mainQueueFamily.queueFamilyIndex;
+        return index < mainQueues.length && queueFamily >= 0 ? 
+            nogc_new!NioVkCommandQueue(this, mainQueues[index], cast(uint)queueFamily) : 
             null;
     }
 

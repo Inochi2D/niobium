@@ -10,6 +10,7 @@
         Luna Nielsen
 */
 module niobium.queue;
+import niobium.surface;
 import niobium.device;
 import niobium.cmd;
 
@@ -31,16 +32,6 @@ protected:
         super(device);
     }
 
-    /**
-        Called when the label has been changed.
-
-        Params:
-            label = The new label of the device.
-    */
-    override void onLabelChanged(string label) {
-        
-    }
-
 public:
 
     /**
@@ -50,20 +41,20 @@ public:
     abstract NioCommandBuffer fetch();
 
     /**
-        Commits a single command buffer onto the queue.
+        Submit a single command buffer onto the queue.
         
         Params:
             buffer = The buffer to enqueue.
     */
-    abstract void commit(NioCommandBuffer buffer);
+    abstract void submit(NioCommandBuffer buffer);
 
     /**
-        Commits a slice of command buffers into the queue.
+        Submits a slice of command buffers into the queue.
 
         Params:
             buffers = The buffers to enqueue.
     */
-    abstract void commit(NioCommandBuffer[] buffers);
+    abstract void submit(NioCommandBuffer[] buffers);
 }
 
 /**
