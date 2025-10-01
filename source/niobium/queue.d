@@ -31,6 +31,16 @@ protected:
         super(device);
     }
 
+    /**
+        Called when the label has been changed.
+
+        Params:
+            label = The new label of the device.
+    */
+    override void onLabelChanged(string label) {
+        
+    }
+
 public:
 
     /**

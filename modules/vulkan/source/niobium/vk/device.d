@@ -48,7 +48,7 @@ private:
     NioVkVideoDecodeQueue decodeQueue;
 
     // Handles
-    VkPhysicalDevice phandle_;
+    VkPhysicalDevice physicalDevice_;
     VkDevice handle_;
 
     // Memory
@@ -59,14 +59,13 @@ private:
         import vulkan.khr.swapchain : VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 
         // Fetch temporaries.
-        auto deviceExtensions = phandle_.getDeviceExtensions();
+        auto deviceExtensions = physicalDevice_.getDeviceExtensions();
         auto tmpQueuePriorities = nu_malloca!float(32);
         tmpQueuePriorities[0..$] = 1.0f;
 
         // Build queues.
         vector!VkDeviceQueueCreateInfo queueCreateInfos;
         queueCreateInfos ~= VkDeviceQueueCreateInfo(
-            flags: queueTable.mainQueueFamily.flags,
             queueFamilyIndex: cast(uint)queueTable.mainQueueFamily.queueFamilyIndex,
             queueCount: queueTable.mainQueueFamily.queueCount,
             pQueuePriorities: tmpQueuePriorities.ptr
@@ -75,7 +74,6 @@ private:
         // Video encode queues.
         if (queueTable.videoEncodeQueueFamily.queueCount > 0) {
             queueCreateInfos ~= VkDeviceQueueCreateInfo(
-                flags: queueTable.videoEncodeQueueFamily.flags,
                 queueFamilyIndex: cast(uint)queueTable.videoEncodeQueueFamily.queueFamilyIndex,
                 queueCount: queueTable.videoEncodeQueueFamily.queueCount,
                 pQueuePriorities: tmpQueuePriorities.ptr
@@ -86,7 +84,6 @@ private:
         // Video decode queues.
         if (queueTable.videoDecodeQueueFamily.queueCount > 0) {
             queueCreateInfos ~= VkDeviceQueueCreateInfo(
-                flags: queueTable.videoDecodeQueueFamily.flags,
                 queueFamilyIndex: cast(uint)queueTable.videoDecodeQueueFamily.queueFamilyIndex,
                 queueCount: queueTable.videoDecodeQueueFamily.queueCount,
                 pQueuePriorities: tmpQueuePriorities.ptr
@@ -95,12 +92,11 @@ private:
         }
 
         // Build features
-        VkPhysicalDeviceMaintenance4Features mt4 = VkPhysicalDeviceMaintenance4Features();
-        VkPhysicalDeviceVulkan13Features vk13 = VkPhysicalDeviceVulkan13Features(pNext: &mt4);
+        VkPhysicalDeviceVulkan13Features vk13 = VkPhysicalDeviceVulkan13Features();
         VkPhysicalDeviceVulkan12Features vk12 = VkPhysicalDeviceVulkan12Features(pNext: &vk13);
         VkPhysicalDeviceVulkan11Features vk11 = VkPhysicalDeviceVulkan11Features(pNext: &vk12);
         VkPhysicalDeviceFeatures2 vkf =         VkPhysicalDeviceFeatures2(pNext: &vk11);
-        vkGetPhysicalDeviceFeatures2(phandle_, &vkf);
+        vkGetPhysicalDeviceFeatures2(physicalDevice_, &vkf);
 
         // Check features & extensions
         this.deviceFeatures_.dualSourceBlend = cast(bool)vkf.features.dualSrcBlend;
@@ -109,44 +105,61 @@ private:
         this.deviceFeatures_.presentation = deviceExtensions.hasExtension("VK_KHR_swapchain");
         this.deviceFeatures_.meshShaders  = deviceExtensions.hasExtension("VK_EXT_mesh_shader");
 
+        vector!(const(char)*) extensions;
+        if (deviceFeatures_.presentation)
+            extensions ~= nstring("VK_KHR_swapchain").take().ptr;
+        if (deviceFeatures_.meshShaders)
+            extensions ~= nstring("VK_EXT_mesh_shader").take().ptr;
+
         // Create Device
         auto createInfo = VkDeviceCreateInfo(
             pNext: &vkf,
             queueCreateInfoCount: cast(uint)queueCreateInfos.length,
             pQueueCreateInfos: queueCreateInfos.ptr,
-            enabledExtensionCount: cast(uint)deviceExtensions.length,
-            ppEnabledExtensionNames: deviceExtensions.ptr
+            enabledExtensionCount: cast(uint)extensions.length,
+            ppEnabledExtensionNames: extensions.ptr
         );
-        vkEnforce(vkCreateDevice(phandle_, &createInfo, null, &handle_));
+        vkEnforce(vkCreateDevice(physicalDevice_, &createInfo, null, &handle_));
         nu_freea(tmpQueuePriorities);
         
         // Free the pointers we allocated.
-        foreach(ext; deviceExtensions)
-            nu_free(cast(void*)ext);
+        foreach(ext; deviceExtensions) nu_free(cast(void*)ext);
+        foreach(ext; extensions) nu_free(cast(void*)ext);
         nu_freea(deviceExtensions);
+        extensions.clear();
 
         // Create queues
         this.createQueues(queueTable);
     }
 
     void createQueues(NioVkQueueTable queueTable) {
-        VkQueue queue_;
-
-        this.mainQueues = nu_malloca!NioVkCommandQueue(queueTable.mainQueueFamily.queueCount);
+        this.mainQueues = mainQueues.nu_resize(queueTable.mainQueueFamily.queueCount);
         foreach(i; 0..queueTable.mainQueueFamily.queueCount) {
-            vkGetDeviceQueue(handle_, cast(uint)queueTable.mainQueueFamily.queueFamilyIndex, cast(uint)i, &queue_);
-            this.mainQueues[i] = nogc_new!NioVkCommandQueue(this, queue_);
+            this.mainQueues[i] = nogc_new!NioVkCommandQueue(
+                this, 
+                this.getQueue(cast(uint)queueTable.mainQueueFamily.queueFamilyIndex, cast(uint)i)
+            );
         }
 
         if (queueTable.videoEncodeQueueFamily.queueCount > 0) {
-            vkGetDeviceQueue(handle_, cast(uint)queueTable.videoEncodeQueueFamily.queueFamilyIndex, 0, &queue_);
-            this.encodeQueue = nogc_new!NioVkVideoEncodeQueue(this, queue_);
+            this.encodeQueue = nogc_new!NioVkVideoEncodeQueue(
+                this, 
+                this.getQueue(cast(uint)queueTable.videoEncodeQueueFamily.queueFamilyIndex, 0)
+            );
         }
 
         if (queueTable.videoDecodeQueueFamily.queueCount > 0) {
-            vkGetDeviceQueue(handle_, cast(uint)queueTable.videoDecodeQueueFamily.queueFamilyIndex, 0, &queue_);
-            this.decodeQueue = nogc_new!NioVkVideoDecodeQueue(this, queue_);
+            this.decodeQueue = nogc_new!NioVkVideoDecodeQueue(
+                this, 
+                this.getQueue(cast(uint)queueTable.videoDecodeQueueFamily.queueFamilyIndex, 0)
+            );
         }
+    }
+
+    VkQueue getQueue(uint queueFamily, uint index) {
+        VkQueue queue_;
+        vkGetDeviceQueue(handle_, queueFamily, index, &queue_);
+        return queue_;
     }
 
 public:
@@ -159,7 +172,7 @@ public:
     /**
         Low level handle for the physical device.
     */
-    final @property VkPhysicalDevice vkPhysicalDevice() => phandle_;
+    final @property VkPhysicalDevice vkPhysicalDevice() => physicalDevice_;
 
     /**
         Name of the device.
@@ -225,7 +238,7 @@ public:
         Creates a Vulkan Device from its physical device handle.
     */
     this(VkPhysicalDevice physicalDevice, NioVkQueueTable queueTable) {
-        this.phandle_ = physicalDevice;
+        this.physicalDevice_ = physicalDevice;
 
         VkPhysicalDeviceProperties pdProps;
         vkGetPhysicalDeviceProperties(physicalDevice, &pdProps);
@@ -235,7 +248,7 @@ public:
         this.deviceName_ = nstring(pdProps.deviceName.ptr).take();
         this.createDevice(queueTable);
 
-        this.allocator_ = nogc_new!NioPoolAllocator(phandle_, handle_, NioPoolAllocatorDescriptor(
+        this.allocator_ = nogc_new!NioPoolAllocator(physicalDevice_, handle_, NioPoolAllocatorDescriptor(
             size: 134_217_728, 
         ));
     }
@@ -389,10 +402,25 @@ bool hasExtension(const(char)*[] list, string ext) @nogc {
 //          DEVICE ITERATION IMPLEMENTATION DETAILS
 //
 
+__gshared extern(C) bool __nio_vk_has_enumerated;
 __gshared extern(C) NioDevice[] __nio_vk_devices;
 
 /// Gets the devices available.
 export extern(C) @property NioDevice[] __nio_enumerate_devices() @nogc {
+    if (!__nio_vk_has_enumerated) {
+        auto physicalDevices = getPhysicalDevices();
+        __nio_vk_has_enumerated = true;
+        vector!NioDevice devices;
+
+        foreach(i, physicalDevice; physicalDevices) {
+            auto queueTable = physicalDevice.fetchQueues();
+            if (physicalDevice.isSupported(queueTable))
+                devices ~= nogc_new!NioVkDevice(physicalDevice, queueTable);
+        }
+        __nio_vk_devices = devices.take();
+
+        nu_freea(physicalDevices);
+    }
     return __nio_vk_devices;
 }
 
@@ -405,21 +433,6 @@ VkPhysicalDevice[] getPhysicalDevices() @nogc {
     vkEnumeratePhysicalDevices(__nio_vk_instance, &deviceCount, devices.ptr);
     return devices;
 }
-
-/// Enumerates devices in the system
-void enumerateVulkanDevices() @nogc {
-    auto physicalDevices = getPhysicalDevices();
-
-    vector!NioDevice devices;
-    foreach(i, physicalDevice; physicalDevices) {
-        auto queueTable = physicalDevice.fetchQueues();
-        if (physicalDevice.isSupported(queueTable))
-            devices ~= nogc_new!NioVkDevice(physicalDevice, queueTable);
-    }
-    __nio_vk_devices = devices.take();
-    nu_freea(physicalDevices);
-}
-
 bool isSupported(VkPhysicalDevice device, NioVkQueueTable queueTable) @nogc {
     VkPhysicalDeviceProperties props;
     vkGetPhysicalDeviceProperties(device, &props);
@@ -460,7 +473,7 @@ struct NioVkQueueTable {
 struct NioVkQueueInfo {
     ptrdiff_t queueFamilyIndex = -1;
     uint queueCount = 0;
-    VkQueueFlags flags = 0;
+    VkQueueFlags flags;
 }
 
 /// Fetches a table of queues that should be used.
@@ -469,7 +482,7 @@ NioVkQueueTable fetchQueues(VkPhysicalDevice device) @nogc {
     VkQueueFamilyProperties[] props = device.getQueueProperties();
 
     uint maxQueueFlagCount = 0;
-    foreach(i, ref VkQueueFamilyProperties prop; props) {
+    foreach(i, VkQueueFamilyProperties prop; props) {
         uint flagCount = 0;
 
         if ((prop.queueFlags & VK_QUEUE_GRAPHICS_BIT) && (prop.queueFlags & VK_QUEUE_TRANSFER_BIT)) {
@@ -525,7 +538,7 @@ VkQueueFamilyProperties[] getQueueProperties(VkPhysicalDevice device) @nogc {
 
 pragma(crt_constructor)
 export extern(C) void __nio_crt_init() @nogc {
-    auto extensions =   getInstanceExtensions();
+    auto extensions = getInstanceExtensions();
     auto appInfo = VkApplicationInfo(
         apiVersion: VK_API_VERSION_1_3
     );
@@ -540,7 +553,6 @@ export extern(C) void __nio_crt_init() @nogc {
     nu_freea(extensions);
 
     __nio_vk_instance.loadProcs(__nio_vk_debug_utils);
-    enumerateVulkanDevices();
 }
 
 pragma(crt_destructor)
@@ -548,6 +560,7 @@ export extern(C) void __nio_crt_fini() @nogc {
     foreach(device; __nio_vk_devices) {
         device.release();
     }
+
     nu_freea(__nio_vk_devices);
     vkDestroyInstance(__nio_vk_instance, null);
 }
