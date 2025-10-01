@@ -7,6 +7,7 @@ license "BSL-1.0"
 subPackage "modules/metal"
 subPackage "modules/vulkan"
 
+targetName "niobium"
 targetPath "out/"
 
 configuration "metal" {
