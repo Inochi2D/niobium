@@ -1,5 +1,5 @@
 /**
-    Niobium Command Queues
+    Niobium Vulkan Command Queues
     
     Copyright:
         Copyright © 2025, Kitsunebi Games
@@ -9,35 +9,43 @@
     Authors:
         Luna Nielsen
 */
-module niobium.queue;
+module niobium.vk.queue;
 import niobium.device;
+import niobium.queue;
 import niobium.cmd;
+import vulkan.core;
+import numem;
+import nulib;
 
 /**
     Represents an individual queue for command submission on the device.
 */
-abstract
-class NioCommandQueue : NioDeviceObject {
-protected:
+class NioVkCommandQueue : NioCommandQueue {
+private:
 @nogc:
+    VkQueue handle_;
+
+public:
 
     /**
         Constructs a new queue.
 
         Params:
             device = The device that "owns" this queue.
+            handle = Vulkan handle 
     */
-    this(NioDevice device) {
+    this(NioDevice device, VkQueue handle) {
         super(device);
+        this.handle_ = handle;
     }
-
-public:
 
     /**
         Fetches a $(D NioCommandBuffer) from the queue,
         the queue may contain an internal pool of command buffers.
     */
-    abstract NioCommandBuffer fetch();
+    override NioCommandBuffer fetch() {
+        return null;
+    }
 
     /**
         Commits a single command buffer onto the queue.
@@ -45,7 +53,9 @@ public:
         Params:
             buffer = The buffer to enqueue.
     */
-    abstract void commit(NioCommandBuffer buffer);
+    override void commit(NioCommandBuffer buffer) {
+
+    }
 
     /**
         Commits a slice of command buffers into the queue.
@@ -53,49 +63,55 @@ public:
         Params:
             buffers = The buffers to enqueue.
     */
-    abstract void commit(NioCommandBuffer[] buffers);
+    override void commit(NioCommandBuffer[] buffers) {
+
+    }
 }
 
 /**
     A queue for encoding video.
 */
-abstract
-class NioVideoEncodeQueue : NioDeviceObject {
-protected:
+class NioVkVideoEncodeQueue : NioVideoEncodeQueue {
+private:
 @nogc:
+    VkQueue handle_;
+
+public:
 
     /**
         Constructs a new queue.
 
         Params:
             device = The device that "owns" this queue.
+            handle = Vulkan handle 
     */
-    this(NioDevice device) {
+    this(NioDevice device, VkQueue handle) {
         super(device);
+        this.handle_ = handle;
     }
-
-public:
 
 }
 
 /**
     A queue for decoding video.
 */
-abstract
-class NioVideoDecodeQueue : NioDeviceObject {
-protected:
+class NioVkVideoDecodeQueue : NioVideoDecodeQueue {
+private:
 @nogc:
+    VkQueue handle_;
+
+public:
 
     /**
         Constructs a new queue.
 
         Params:
             device = The device that "owns" this queue.
+            handle = Vulkan handle 
     */
-    this(NioDevice device) {
+    this(NioDevice device, VkQueue handle) {
         super(device);
+        this.handle_ = handle;
     }
-
-public:
-
+    
 }

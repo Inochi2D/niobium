@@ -15,6 +15,48 @@ import niobium.buffer;
 import niobium.heap;
 import numem;
 import nulib;
+import niobium.queue;
+
+/**
+    A feature list for a device.
+*/
+struct NioDeviceFeatures {
+
+    /**
+        Whether the device supports presentation to a surface.
+    */
+    bool presentation;
+
+    /**
+        Whether the device supports mesh shaders.
+    */
+    bool meshShaders;
+
+    /**
+        Whether the device supports geometry shaders.
+    */
+    bool geometryShaders;
+
+    /**
+        Whether the device supports tesselation shaders.
+    */
+    bool tesselationShaders;
+
+    /**
+        Whether the device supports video encoding.
+    */
+    bool videoEncode;
+
+    /**
+        Whether the device supports video decoding.
+    */
+    bool videoDecode;
+
+    /**
+        Whether the device supports blending with multiple sources.
+    */
+    bool dualSourceBlend;
+}
 
 /**
     A device which is capable of doing 3D rendering and/or
@@ -46,9 +88,43 @@ public:
     abstract @property string name();
 
     /**
+        Features list for the device.
+    */
+    abstract @property NioDeviceFeatures features();
+
+    /**
         Type of the device.
     */
     abstract @property NioDeviceType type();
+
+    /**
+        The amount of command queues that you can 
+        fetch from the device.
+    */
+    abstract @property uint queueCount();
+
+    /**
+        The video encode queue for the device, $(D null) if video
+        encoding is not supported.
+    */
+    abstract @property NioVideoEncodeQueue videoEncodeQueue();
+
+    /**
+        The video decode queue for the device, $(D null) if video
+        decoding is not supported.
+    */
+    abstract @property NioVideoDecodeQueue videoDecodeQueue();
+
+    /**
+        Gets a command queue from the device..
+
+        Params:
+            index = The index of the queue to get.
+        
+        Returns:
+            A $(D NioCommandQueue) or $(D null) on failure.
+    */
+    abstract NioCommandQueue getCommandQueue(uint index);
 
     /**
         Creates a new heap.
