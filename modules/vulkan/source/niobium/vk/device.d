@@ -10,6 +10,8 @@
         Luna Nielsen
 */
 module niobium.vk.device;
+import niobium.vk.texture;
+import niobium.vk.buffer;
 import niobium.vk.queue;
 import niobium.vk.heap;
 import niobium.resource;
@@ -23,8 +25,7 @@ import vulkan.core;
 import vulkan.eh;
 import numem;
 import nulib;
-import niobium.vk.texture;
-import niobium.vk.buffer;
+import nulib.math : min;
 
 /**
     A device which is capable of doing 3D rendering and/or
@@ -34,10 +35,10 @@ class NioVkDevice : NioDevice {
 private:
 @nogc:
     // Device related data
-    string deviceName_;
-    NioDeviceType deviceType_;
-    VkPhysicalDeviceLimits deviceLimits_;
-    NioDeviceFeatures deviceFeatures_;
+    string              deviceName_;
+    NioDeviceType       deviceType_;
+    NioDeviceFeatures   deviceFeatures_;
+    NioDeviceLimits     deviceLimits_;
 
     // Memory related data
     VkPhysicalDeviceMemoryProperties memoryProps_;
@@ -55,8 +56,6 @@ private:
     NioAllocator allocator_;
 
     void createDevice(NioVkQueueTable queueTable) {
-        import nulib.math : min;
-        import vulkan.khr.swapchain : VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 
         // Fetch temporaries.
         auto deviceExtensions = physicalDevice_.getDeviceExtensions();
@@ -91,6 +90,21 @@ private:
             deviceFeatures_.videoDecode = true;
         }
 
+        // Get memory properties.
+        VkPhysicalDeviceMemoryProperties memoryProperties;
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice_, &memoryProperties);
+
+        // Build Properties.
+        VkPhysicalDeviceVulkan13Properties vk13p = VkPhysicalDeviceVulkan13Properties();
+        VkPhysicalDeviceVulkan12Properties vk12p = VkPhysicalDeviceVulkan12Properties(pNext: &vk13p);
+        VkPhysicalDeviceVulkan11Properties vk11p = VkPhysicalDeviceVulkan11Properties(pNext: &vk12p);
+        VkPhysicalDeviceProperties2 vkp = VkPhysicalDeviceProperties2(pNext: &vk11p);
+        vkGetPhysicalDeviceProperties2(physicalDevice_, &vkp);
+        
+        // Device Info
+        this.deviceType_ = vkp.properties.deviceType.toNioDeviceType();
+        this.deviceName_ = nstring(vkp.properties.deviceName.ptr).take();
+
         // Build features
         VkPhysicalDeviceVulkan13Features vk13 = VkPhysicalDeviceVulkan13Features();
         VkPhysicalDeviceVulkan12Features vk12 = VkPhysicalDeviceVulkan12Features(pNext: &vk13);
@@ -102,9 +116,27 @@ private:
         this.deviceFeatures_.dualSourceBlend = cast(bool)vkf.features.dualSrcBlend;
         this.deviceFeatures_.geometryShaders = cast(bool)vkf.features.geometryShader;
         this.deviceFeatures_.tesselationShaders = cast(bool)vkf.features.tessellationShader;
+        this.deviceFeatures_.anisotropicFiltering = cast(bool)vkf.features.samplerAnisotropy;
+        this.deviceFeatures_.alphaToCoverage = cast(bool)vkf.features.alphaToOne;
         this.deviceFeatures_.presentation = deviceExtensions.hasExtension("VK_KHR_swapchain");
         this.deviceFeatures_.meshShaders  = deviceExtensions.hasExtension("VK_EXT_mesh_shader");
 
+        // Check device limits.
+        this.deviceLimits_.maxBufferSize = vk13p.maxBufferSize;
+        foreach_reverse(i; 0..7) {
+            if ((vkp.properties.limits.sampledImageColorSampleCounts >> i) & 0x01) {
+                this.deviceLimits_.maxSamples = 1 << i;
+                break;
+            }
+        }
+        foreach(i; 0..memoryProperties.memoryHeapCount) {
+            auto prop = memoryProperties.memoryHeaps[i];
+            if (prop.flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+                this.deviceLimits_.totalMemory += prop.size;
+            }
+        }
+
+        // Build extensions list.
         vector!(const(char)*) extensions;
         if (deviceFeatures_.presentation)
             extensions ~= nstring("VK_KHR_swapchain").take().ptr;
@@ -180,9 +212,14 @@ public:
     override @property string name() => deviceName_;
 
     /**
-        Features list for the device.
+        Features supported by the device.
     */
     override @property NioDeviceFeatures features() => deviceFeatures_;
+
+    /**
+        Limits of the device.
+    */
+    override @property NioDeviceLimits limits() => deviceLimits_;
 
     /**
         Type of the device.
@@ -240,14 +277,7 @@ public:
     this(VkPhysicalDevice physicalDevice, NioVkQueueTable queueTable) {
         this.physicalDevice_ = physicalDevice;
 
-        VkPhysicalDeviceProperties pdProps;
-        vkGetPhysicalDeviceProperties(physicalDevice, &pdProps);
-
-        this.deviceLimits_ = pdProps.limits;
-        this.deviceType_ = pdProps.deviceType.toNioDeviceType();
-        this.deviceName_ = nstring(pdProps.deviceName.ptr).take();
         this.createDevice(queueTable);
-
         this.allocator_ = nogc_new!NioPoolAllocator(physicalDevice_, handle_, NioPoolAllocatorDescriptor(
             size: 134_217_728, 
         ));
@@ -433,6 +463,7 @@ VkPhysicalDevice[] getPhysicalDevices() @nogc {
     vkEnumeratePhysicalDevices(__nio_vk_instance, &deviceCount, devices.ptr);
     return devices;
 }
+
 bool isSupported(VkPhysicalDevice device, NioVkQueueTable queueTable) @nogc {
     VkPhysicalDeviceProperties props;
     vkGetPhysicalDeviceProperties(device, &props);

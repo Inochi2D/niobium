@@ -18,12 +18,19 @@ import std.stdio;
 void main() {
 	writefln("Devices: %s", NioDevice.systemDevices().length);
 	foreach(i, device; NioDevice.systemDevices()) {
+		NioDeviceFeatures features = device.features;
+		NioDeviceLimits limits = device.limits;
+		
 		writefln("%s: (%s):", i, device.name);
 		writefln("  Type: %s", device.type);
 		writefln("  Queues: %s", device.queueCount);
 		writefln("  Features:");
 		static foreach(member; __traits(allMembers, NioDeviceFeatures)) {
-			writefln("    %s=%s", member, __traits(getMember, device.features, member));
+			writefln("    %s=%s", member, __traits(getMember, features, member));
+		}
+		writefln("  Limits:");
+		static foreach(member; __traits(allMembers, NioDeviceLimits)) {
+			writefln("    %s=%s", member, __traits(getMember, limits, member));
 		}
 	}
 }

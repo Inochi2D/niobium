@@ -56,6 +56,37 @@ struct NioDeviceFeatures {
         Whether the device supports blending with multiple sources.
     */
     bool dualSourceBlend;
+
+    /**
+        Whether the device supports anisotropic filtering.
+    */
+    bool anisotropicFiltering;
+
+    /**
+        Whether alpha-to-coverage is supported.
+    */
+    bool alphaToCoverage;
+}
+
+/**
+    Limits of the niobium device.
+*/
+struct NioDeviceLimits {
+    
+    /**
+        Maximum amount of samples when using multisampling.
+    */
+    int maxSamples;
+
+    /**
+        Maximum size of buffers in bytes.
+    */
+    ulong maxBufferSize;
+
+    /**
+        Total amount of memory available to the device.
+    */
+    ulong totalMemory;
 }
 
 /**
@@ -88,9 +119,14 @@ public:
     abstract @property string name();
 
     /**
-        Features list for the device.
+        Features supported by the device.
     */
     abstract @property NioDeviceFeatures features();
+
+    /**
+        Limits of the device.
+    */
+    abstract @property NioDeviceLimits limits();
 
     /**
         Type of the device.
