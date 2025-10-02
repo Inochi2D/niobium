@@ -9,9 +9,10 @@
     Authors:
         Luna Nielsen
 */
-module niobium.vk.cmd;
+module niobium.vk.cmd.buffer;
+import niobium.vk.cmd.queue;
 import niobium.vk.surface;
-import niobium.vk.queue;
+import niobium.vk.device;
 import niobium.cmd;
 import niobium.queue;
 import niobium.device;
@@ -33,20 +34,34 @@ import nulib;
 class NioVkCommandBuffer : NioCommandBuffer {
 private:
 @nogc:
-    VkCommandBuffer handle_;
 
     // State
-    bool isRecording = true;
+    bool isRecording_;
 
-    void setup(NioVkCommandQueue queue) {
-        this.queue_ = queue;
-        this.handle_ = queue_.allocateCmdBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+    // Handles
+    VkCommandBuffer handle_;
 
-        auto beginInfo = VkCommandBufferBeginInfo();
-        vkBeginCommandBuffer(handle_, &beginInfo);
+    /**
+        Resets this command buffer, allowing it to be reused.
+    */
+    void reset() {
+        if (isRecording_)
+            return;
+        
+        vkResetCommandBuffer(handle_, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+        if (drawable) {
+            drawable.reset();
+            drawable = null;
+        }
     }
 
 public:
+
+    /**
+        Whether the command buffer is currently in the
+        recording state.
+    */
+    @property bool isRecording() => isRecording_; 
 
     /**
         Handle of the command buffer.
@@ -54,22 +69,22 @@ public:
     @property VkCommandBuffer handle() => handle_;
 
     /**
-        Vector of drawables to present.
+        Completion fence.
     */
-    weak_vector!NioVkDrawable toPresent;
+    VkFence fence;
 
     /**
-        Completion fence, filled out during enqueue.
+        Completion semaphore.
     */
-    VkFence completionFence;
+    VkSemaphore semaphore;
 
     /**
-        Completion semaphore, filled out during enqueue.
+        Drawable to present after rendering the
+        command buffer.
     */
-    VkSemaphore completionSemaphore;
+    NioVkDrawable drawable;
 
     ~this() {
-        toPresent.clear();
     }
 
     /**
@@ -77,10 +92,11 @@ public:
 
         Params:
             device = The device that "owns" this command buffer.
+            buffer = The vulkan command buffer
     */
-    this(NioDevice device, NioVkCommandQueue queue) {
-        super(device, queue);
-        this.setup(queue);
+    this(NioVkCommandQueue queue, VkCommandBuffer buffer) {
+        super(queue.device, queue);
+        this.handle_ = buffer;
     }
 
     /**
@@ -91,7 +107,10 @@ public:
             drawable = The drawable to present.
     */
     override void present(NioDrawable drawable) {
-        if (!isRecording)
+        if (!isRecording_)
+            return;
+        
+        if (this.drawable)
             return;
 
         if (auto nvkDrawable = cast(NioVkDrawable)drawable) {
@@ -123,22 +142,9 @@ public:
             }
 
             // Add to queue.
-            nvkDrawable.queue = this.queue_;
-            this.toPresent ~= nvkDrawable;
+            nvkDrawable.queue = this.queue;
+            this.drawable = nvkDrawable;
         }
-    }
-
-    /**
-        Submits the command buffer to its queue.
-
-        After submitting a command buffer you cannot
-        modify it any further, nor submit it again.
-    */
-    override void submit() {
-        if (!isRecording)
-            return;
-        this.end();
-        queue.submit(this);
     }
 
     /**
@@ -146,9 +152,25 @@ public:
         execution.
     */
     override void await() {
-        if (completionFence) {
-            cast(void)vkWaitForFences(nvkDevice.vkDevice, 1, &completionFence, VK_TRUE, uint.max);
+        auto nvkDevice = cast(NioVkDevice)device;
+        if (fence) {
+            cast(void)vkWaitForFences(nvkDevice.vkDevice, 1, &fence, VK_TRUE, ulong.max);
         }
+    }
+
+    /**
+        Begins recording into the command buffer.
+    */
+    NioVkCommandBuffer begin() {
+        if (isRecording_)
+            return this;
+        
+        this.reset();
+
+        auto beginInfo = VkCommandBufferBeginInfo();
+        vkBeginCommandBuffer(handle_, &beginInfo);
+        this.isRecording_ = true;
+        return this;
     }
 
     /**
@@ -156,9 +178,10 @@ public:
         it immutable.
     */
     void end() {
-        if (isRecording) {
-            this.isRecording = false;
-            vkEndCommandBuffer(handle_);
-        }
+        if (!isRecording_)
+            return;
+        
+        vkEndCommandBuffer(handle_);
+        this.isRecording_ = false;
     }
 }

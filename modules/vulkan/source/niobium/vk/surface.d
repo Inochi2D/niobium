@@ -10,13 +10,9 @@
         Luna Nielsen
 */
 module niobium.vk.surface;
-import niobium.vk.texture;
+import niobium.vk.resource;
 import niobium.vk.device;
 import niobium.surface;
-import niobium.resource;
-import niobium.texture;
-import niobium.device;
-import niobium.types;
 import vulkan.khr.surface;
 import vulkan.khr.win32_surface;
 import vulkan.khr.wayland_surface;
@@ -26,6 +22,9 @@ import vulkan.loader;
 import vulkan.core;
 import vulkan.eh;
 import numem;
+
+
+public import niobium.surface;
 
 /**
     Represents a surface, whether it be a window, a full screen framebuffer,
@@ -58,8 +57,7 @@ private:
     NioVkDrawable[] drawables_;
 
     // Sync
-    uint currentSemaphoreIdx_;
-    VkSemaphore[] semaphores_;
+    VkFence fence_;
 
     void rebuild() {
         bool isReady_ = 
@@ -79,9 +77,8 @@ private:
         if (result == VK_SUCCESS) {
 
             // Recreate drawables.
-            this.createDrawables(this.getSwapchainImages(), drawables_, semaphores_);
+            this.createDrawables(this.getSwapchainImages(), drawables_);
             this.currentImageIdx_ = 0;
-            this.currentSemaphoreIdx_ = 0;
             this.needsRebuild = false;
             return;
         }
@@ -98,20 +95,20 @@ private:
     }
 
     /// (Re-)creates the drawables.
-    void createDrawables(VkImage[] images, ref NioVkDrawable[] drawables, ref VkSemaphore[] semaphores) {
+    void createDrawables(VkImage[] images, ref NioVkDrawable[] drawables) {
         if (drawables_.length > 0)
             this.destroyDrawables();
 
         // Resize arrays.
         drawables = nu_malloca!NioVkDrawable(images.length);
-        semaphores = nu_malloca!VkSemaphore(images.length);
         this.imageCount_ = cast(uint)images.length;
 
+        auto fenceCreateInfo = VkFenceCreateInfo();
+        vkCreateFence(device_.vkDevice, &fenceCreateInfo, null, &fence_);
+
         // Create new drawables.
-        auto semaphoreCreateInfo = VkSemaphoreCreateInfo();
         foreach(i; 0..images.length) {
             drawables[i] = nogc_new!NioVkDrawable(this, images[i], cast(uint)i);
-            vkCreateSemaphore(device_.vkDevice, &semaphoreCreateInfo, null, &semaphores[i]);
         }
         nu_freea(images);
     }
@@ -120,15 +117,8 @@ private:
     void destroyDrawables() {
 
         // Delete old objects.
-        if (drawables_.length > 0)
-            nogc_delete(drawables_[0..$]);
-        
-        foreach(i; 0..semaphores_.length) {
-            vkDestroySemaphore(device_.vkDevice, semaphores_[i], null);
-        }
-
+        nogc_delete(drawables_[0..$]);
         nu_freea(drawables_);
-        nu_freea(semaphores_);
     }
 
     void setup() {
@@ -232,6 +222,7 @@ public:
     override @property NioPresentMode presentMode() => presentMode_;
     override @property void presentMode(NioPresentMode value) {
         this.presentMode_ = value;
+        swapCreateInfo.presentMode = value.toVkPresentMode();
         this.needsRebuild = true;
     }
 
@@ -347,18 +338,41 @@ public:
         if (!isReady)
             return null;
 
-        auto result = swapFuncs.vkAcquireNextImageKHR(device_.vkDevice, swapchain_, 1000, semaphores_[currentSemaphoreIdx_], null, &currentImageIdx_);
-        if (result == VK_SUCCESS) {
-            drawables_[currentImageIdx_].semaphore = semaphores_[currentSemaphoreIdx_];
-            currentSemaphoreIdx_ = (currentSemaphoreIdx_ + 1) % semaphores_.length;
-            return drawables_[currentImageIdx_];
-        }
+        auto result = swapFuncs.vkAcquireNextImageKHR(device_.vkDevice, swapchain_, 1000, null, fence_, &currentImageIdx_);
+        switch(result) {
+            case VK_SUBOPTIMAL_KHR:
+                this.needsRebuild = true;
+                goto case;
+            
+            case VK_SUCCESS:
+                vkWaitForFences(device_.vkDevice, 1, &fence_, VK_TRUE, ulong.max);
+                vkResetFences(device_.vkDevice, 1, &fence_);
+                return drawables_[currentImageIdx_];
 
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-            this.needsRebuild = true;
-            return this.next();
+            case VK_ERROR_OUT_OF_DATE_KHR:
+                this.needsRebuild = true;
+                return this.next();
+
+            default:
+                return null;
         }
-        return null;
+    }
+}
+
+/**
+    Converts a $(D NioPresentMode) format to its $(D VkPresentModeKHR) equivalent.
+
+    Params:
+        format = The $(D NioPresentMode)
+    
+    Returns:
+        The $(D VkPresentModeKHR) equivalent.
+*/
+VkPresentModeKHR toVkPresentMode(NioPresentMode mode) @nogc {
+    final switch(mode) with (NioPresentMode) {
+        case immediate: return VK_PRESENT_MODE_IMMEDIATE_KHR;
+        case vsync:     return VK_PRESENT_MODE_FIFO_KHR;
+        case mailbox:   return VK_PRESENT_MODE_MAILBOX_KHR;
     }
 }
 
@@ -375,9 +389,9 @@ private:
 public:
 
     /// Helper that resets the drawable, called during submission.
-    void vkReset() {
+    override void reset() {
+        super.reset();
         texture_.layout = VK_IMAGE_LAYOUT_UNDEFINED;
-        this.reset();
     }
 
     /**
@@ -389,12 +403,6 @@ public:
         The swapchain index of the drawable.
     */
     @property uint index() => index_;
-
-    /**
-        Semaphore signalled when the drawable is ready
-        for use.
-    */
-    VkSemaphore semaphore;
 
     /// Destructor
     ~this() {

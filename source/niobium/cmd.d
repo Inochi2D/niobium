@@ -54,19 +54,14 @@ public:
         Enqueues a presentation to happen after this
         command buffer finishes execution.
 
+        You may only make one presentation request
+        per command buffer. Any extra present requests
+        will be ignored.
+
         Params:
             drawable = The drawable to present.
     */
     abstract void present(NioDrawable drawable);
-
-    /**
-        Submits the command buffer to its queue.
-
-        After submitting a command buffer you cannot
-        modify it any further, not upload it to any other
-        queues.
-    */
-    abstract void submit();
 
     /**
         Awaits the completion of the command buffer

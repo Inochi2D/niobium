@@ -47,26 +47,57 @@ protected:
 public:
 
     /**
-        Fetches a $(D NioCommandBuffer) from the queue,
-        the queue may contain an internal pool of command buffers.
+        The maximum amount of active command buffers you can
+        have.
+    */
+    abstract @property uint maxCommandBuffers();
+
+    /**
+        Fetches a command buffer from the queue, the amount of
+        command buffers is limited by the command buffer count
+        provided during queue initialization.
+
+        If there's no available command buffers in the queue this
+        function will block until a command buffer becomes available.
+
+        See_Also:
+            $(D maxCommandBuffers)
     */
     abstract NioCommandBuffer fetch();
 
     /**
-        Submit a single command buffer onto the queue.
+        Reserves space in the command queue for the given
+        buffer.
         
         Params:
             buffer = The buffer to enqueue.
     */
-    abstract void submit(NioCommandBuffer buffer);
+    abstract void enqueue(NioCommandBuffer buffer);
 
     /**
-        Submits a slice of command buffers into the queue.
+        Reserves space in the command queue for the given
+        buffer.
 
         Params:
             buffers = The buffers to enqueue.
     */
-    abstract void submit(NioCommandBuffer[] buffers);
+    abstract void enqueue(NioCommandBuffer[] buffers);
+
+    /**
+        Commits a single command buffer onto the queue.
+        
+        Params:
+            buffer = The buffer to commit.
+    */
+    abstract void commit(NioCommandBuffer buffer);
+
+    /**
+        Commits a slice of command buffers into the queue.
+
+        Params:
+            buffers = The buffers to commit.
+    */
+    abstract void commit(NioCommandBuffer[] buffers);
 }
 
 /**

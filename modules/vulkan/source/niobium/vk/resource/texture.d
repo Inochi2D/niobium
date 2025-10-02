@@ -9,15 +9,15 @@
     Authors:
         Luna Nielsen
 */
-module niobium.vk.texture;
+module niobium.vk.resource.texture;
 import niobium.vk.device;
 import niobium.vk.heap;
-import niobium.texture;
 import niobium.resource;
-import niobium.device;
 import vulkan.core;
 import vulkan.eh;
 import numem;
+
+public import niobium.texture;
 
 /**
     Vulkan Texture

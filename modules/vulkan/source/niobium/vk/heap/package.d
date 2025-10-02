@@ -11,8 +11,7 @@
 */
 module niobium.vk.heap;
 import niobium.vk.device;
-import niobium.vk.texture;
-import niobium.vk.buffer;
+import niobium.vk.resource;
 import niobium.resource;
 import niobium.texture;
 import niobium.heap;
@@ -22,6 +21,7 @@ import vulkan.core;
 import vulkan.eh;
 import numem;
 
+public import niobium.heap;
 public import niobium.vk.heap.allocator;
 public import niobium.vk.heap.memory;
 

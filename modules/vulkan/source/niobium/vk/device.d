@@ -10,22 +10,19 @@
         Luna Nielsen
 */
 module niobium.vk.device;
-import niobium.vk.texture;
-import niobium.vk.buffer;
-import niobium.vk.queue;
+import niobium.vk.resource;
+import niobium.vk.video;
 import niobium.vk.heap;
-import niobium.resource;
-import niobium.texture;
-import niobium.device;
-import niobium.buffer;
-import niobium.queue;
-import niobium.heap;
+import niobium.vk.cmd;
 import vulkan.loader;
 import vulkan.core;
 import vulkan.eh;
 import numem;
 import nulib;
 import nulib.math : min;
+
+public import niobium.device;
+public import niobium.types;
 
 /**
     A device which is capable of doing 3D rendering and/or
@@ -234,7 +231,6 @@ public:
     ~this() {
         
         // Free containers and handles.
-        nu_freea(mainQueues);
         nu_freea(deviceName_);
         nogc_delete(allocator_);
         vkDestroyDevice(handle_, null);
@@ -485,7 +481,7 @@ bool isSupported(VkPhysicalDevice device, NioVkQueueTable queueTable) @nogc {
         return false;
 
     // No graphics-transfer queues?
-    if (queueTable.mainQueueFamily.queueCount == 0)
+    if (queueTable.mainQueueFamily.queueFamilyIndex == -1)
         return false;
 
     VkPhysicalDeviceVulkan13Features vk13 = VkPhysicalDeviceVulkan13Features();

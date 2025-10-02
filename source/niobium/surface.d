@@ -191,7 +191,7 @@ protected:
         Resets the state of the drawable, allowing
         it to be reused.
     */
-    final void reset() {
+    void reset() {
         this.queue_ = null;
     }
 

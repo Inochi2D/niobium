@@ -9,15 +9,15 @@
     Authors:
         Luna Nielsen
 */
-module niobium.vk.buffer;
+module niobium.vk.resource.buffer;
 import niobium.vk.device;
 import niobium.vk.heap;
-import niobium.buffer;
 import niobium.resource;
-import niobium.device;
 import vulkan.core;
 import vulkan.eh;
 import numem;
+
+public import niobium.buffer;
 
 /**
     Vulkan Buffer
@@ -171,6 +171,7 @@ public:
         }
     }
 }
+
 
 /**
     Converts a $(D NioBufferUsage) bitmask to its $(D VkBufferUsageFlags) equivalent.
