@@ -85,6 +85,8 @@ struct NioDeviceLimits {
 
     /**
         Total amount of memory available to the device.
+
+        0 indicates that this is unknown.
     */
     ulong totalMemory;
 }

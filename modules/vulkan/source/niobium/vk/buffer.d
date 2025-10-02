@@ -1,5 +1,5 @@
 /**
-    Niobium Buffers
+    Niobium Vulkan Buffers
     
     Copyright:
         Copyright © 2025, Kitsunebi Games

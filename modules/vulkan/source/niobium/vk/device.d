@@ -370,6 +370,15 @@ public:
     override string toString() => name; // @suppress(dscanner.suspicious.object_const)
 }
 
+/**
+    Converts a $(D VkPhysicalDeviceType) bitmask to its $(D NioDeviceType) equivalent.
+
+    Params:
+        usage = The $(D VkPhysicalDeviceType)
+    
+    Returns:
+        The $(D NioDeviceType) equivalent.
+*/
 pragma(inline, true)
 NioDeviceType toNioDeviceType(VkPhysicalDeviceType type) @nogc {
     switch(type) {
@@ -434,6 +443,8 @@ bool hasExtension(const(char)*[] list, string ext) @nogc {
     }
     return false;
 }
+
+
 
 
 //

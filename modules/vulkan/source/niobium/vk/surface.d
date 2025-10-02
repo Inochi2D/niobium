@@ -1,5 +1,5 @@
 /**
-    Niobium Surface
+    Niobium Vulkan Surface
     
     Copyright:
         Copyright © 2025, Kitsunebi Games
@@ -554,17 +554,6 @@ export extern(C) static NioSurface nio_surface_create_for_wl_window(void* displa
 version(posix)
 export extern(C) static NioSurface nio_surface_create_for_x11_window(void* display, uint window) @nogc {
     return nogc_new!NioVkSurface(display, window);
-}
-
-/**
-    Creates a Niobium Surface from a Metal Drawable.
-    
-    Params:
-        drawable = The MTLDrawable to create the surface for.
-*/
-version(Darwin)
-export extern(C) static NioSurface nio_surface_create_for_mtl_drawable(void* drawable) @nogc {
-    return null;
 }
 
 //

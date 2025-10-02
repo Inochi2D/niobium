@@ -163,7 +163,7 @@ public:
     */
     version(Darwin)
     static NioSurface createForLayer(void* layer) @nogc {
-        return nio_surface_create_for_mtl_drawable(drawable);
+        return nio_surface_create_for_mtl_layer(layer);
     }
 }
 
@@ -172,7 +172,7 @@ public:
     obtained from a surface's internal swapchain.
 */
 abstract
-class NioDrawable : NuObject {
+class NioDrawable : NuRefCounted {
 private:
 @nogc:
     NioSurface surface_;

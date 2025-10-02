@@ -11,6 +11,8 @@ dependency "nulib" version="~>0.3"
 
 configuration "metal" {
     platforms "osx" "ios" "tvos" "watchos" "visionos"
+    lflags "-all_load"
+    
     targetType "staticLibrary"
 }
 
