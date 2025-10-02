@@ -136,12 +136,6 @@ public:
     abstract @property NioDeviceType type();
 
     /**
-        The amount of command queues that you can 
-        fetch from the device.
-    */
-    abstract @property uint queueCount();
-
-    /**
         Creates a new video encode queue from the device.
 
         Queues created this way may only be used by a single thread
@@ -164,19 +158,18 @@ public:
     abstract NioVideoDecodeQueue createVideoDecodeQueue();
 
     /**
-        Creates a new command queue from the device submitting to
-        the given logical device queue.
+        Creates a new command queue from the device.
 
         Queues created this way may only be used by a single thread
         at a time.
 
         Params:
-            index = The index of the queue to get.
+            desc = Descriptor for the queue.
         
         Returns:
             A $(D NioCommandQueue) or $(D null) on failure.
     */
-    abstract NioCommandQueue createQueue(uint index);
+    abstract NioCommandQueue createQueue(NioCommandQueueDescriptor desc);
 
     /**
         Creates a new heap.

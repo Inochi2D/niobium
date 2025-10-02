@@ -45,7 +45,7 @@ private:
 
     // Queue related data
     NioVkQueueTable queueTable;
-    VkQueue[] mainQueues;
+    VkQueue mainQueue;
     VkQueue encodeQueue;
     VkQueue decodeQueue;
 
@@ -66,27 +66,29 @@ private:
 
         // Build queues.
         vector!VkDeviceQueueCreateInfo queueCreateInfos;
-        queueCreateInfos ~= VkDeviceQueueCreateInfo(
-            queueFamilyIndex: cast(uint)queueTable.mainQueueFamily.queueFamilyIndex,
-            queueCount: queueTable.mainQueueFamily.queueCount,
-            pQueuePriorities: tmpQueuePriorities.ptr
-        );
+        if (queueTable.mainQueueFamily.queueFamilyIndex >= 0) {
+            queueCreateInfos ~= VkDeviceQueueCreateInfo(
+                queueFamilyIndex: cast(uint)queueTable.mainQueueFamily.queueFamilyIndex,
+                queueCount: 1,
+                pQueuePriorities: tmpQueuePriorities.ptr
+            );
+        }
 
         // Video encode queues.
-        if (queueTable.videoEncodeQueueFamily.queueCount > 0) {
+        if (queueTable.videoEncodeQueueFamily.queueFamilyIndex >= 0) {
             queueCreateInfos ~= VkDeviceQueueCreateInfo(
                 queueFamilyIndex: cast(uint)queueTable.videoEncodeQueueFamily.queueFamilyIndex,
-                queueCount: queueTable.videoEncodeQueueFamily.queueCount,
+                queueCount: 1,
                 pQueuePriorities: tmpQueuePriorities.ptr
             );
             deviceFeatures_.videoEncode = true;
         }
 
         // Video decode queues.
-        if (queueTable.videoDecodeQueueFamily.queueCount > 0) {
+        if (queueTable.videoDecodeQueueFamily.queueFamilyIndex >= 0) {
             queueCreateInfos ~= VkDeviceQueueCreateInfo(
                 queueFamilyIndex: cast(uint)queueTable.videoDecodeQueueFamily.queueFamilyIndex,
-                queueCount: queueTable.videoDecodeQueueFamily.queueCount,
+                queueCount: 1,
                 pQueuePriorities: tmpQueuePriorities.ptr
             );
             deviceFeatures_.videoDecode = true;
@@ -167,15 +169,15 @@ private:
     }
 
     void createQueues(NioVkQueueTable queueTable) {
-        this.mainQueues = nu_malloca!VkQueue(queueTable.mainQueueFamily.queueCount);
-        foreach(i; 0..queueTable.mainQueueFamily.queueCount)
-            this.mainQueues[i] = this.getQueue(cast(uint)queueTable.mainQueueFamily.queueFamilyIndex, cast(uint)i);
+        this.mainQueue = queueTable.mainQueueFamily.queueFamilyIndex >= 0 ? 
+            this.getQueue(cast(uint)queueTable.mainQueueFamily.queueFamilyIndex, 0) :
+            null;
 
-        this.encodeQueue = queueTable.videoEncodeQueueFamily.queueCount > 0 ? 
+        this.encodeQueue = queueTable.videoEncodeQueueFamily.queueFamilyIndex >= 0 ? 
             this.getQueue(cast(uint)queueTable.videoEncodeQueueFamily.queueFamilyIndex, 0) :
             null;
         
-        this.decodeQueue = queueTable.videoDecodeQueueFamily.queueCount > 0 ? 
+        this.decodeQueue = queueTable.videoDecodeQueueFamily.queueFamilyIndex >= 0 ? 
             this.getQueue(cast(uint)queueTable.videoDecodeQueueFamily.queueFamilyIndex, 0) :
             null;
     }
@@ -227,12 +229,6 @@ public:
         The device-owned memory allocator.
     */
     final @property NioAllocator allocator() => allocator_;
-
-    /**
-        The amount of command queues that you can 
-        fetch from the device.
-    */
-    override @property uint queueCount() => cast(uint)mainQueues.length;
 
     /// Destructor
     ~this() {
@@ -299,11 +295,8 @@ public:
         Returns:
             A $(D NioCommandQueue) or $(D null) on failure.
     */
-    override NioCommandQueue createQueue(uint index) {
-        auto queueFamily = cast(uint)queueTable.mainQueueFamily.queueFamilyIndex;
-        return index < mainQueues.length && queueFamily >= 0 ? 
-            nogc_new!NioVkCommandQueue(this, mainQueues[index], cast(uint)queueFamily) : 
-            null;
+    override NioCommandQueue createQueue(NioCommandQueueDescriptor desc) {
+        return nogc_new!NioVkCommandQueue(this, desc, mainQueue, cast(uint)queueTable.mainQueueFamily.queueFamilyIndex);
     }
 
     /**
@@ -522,7 +515,6 @@ struct NioVkQueueTable {
 }
 struct NioVkQueueInfo {
     ptrdiff_t queueFamilyIndex = -1;
-    uint queueCount = 0;
     VkQueueFlags flags;
 }
 
@@ -542,7 +534,6 @@ NioVkQueueTable fetchQueues(VkPhysicalDevice device) @nogc {
             if (flagCount > maxQueueFlagCount) {
                 table.mainQueueFamily = NioVkQueueInfo(
                     queueFamilyIndex: i, 
-                    queueCount: prop.queueCount, 
                     flags: prop.queueFlags
                 );
                 maxQueueFlagCount = flagCount;
@@ -552,7 +543,6 @@ NioVkQueueTable fetchQueues(VkPhysicalDevice device) @nogc {
         if (prop.queueFlags & VK_QUEUE_VIDEO_ENCODE_BIT_KHR) {
             table.videoEncodeQueueFamily = NioVkQueueInfo(
                 queueFamilyIndex: i, 
-                queueCount: 1, 
                 flags: prop.queueFlags
             );
         }
@@ -560,7 +550,6 @@ NioVkQueueTable fetchQueues(VkPhysicalDevice device) @nogc {
         if (prop.queueFlags & VK_QUEUE_VIDEO_DECODE_BIT_KHR) {
             table.videoDecodeQueueFamily = NioVkQueueInfo(
                 queueFamilyIndex: i, 
-                queueCount: 1, 
                 flags: prop.queueFlags
             );
         }

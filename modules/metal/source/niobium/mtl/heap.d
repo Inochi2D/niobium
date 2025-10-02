@@ -23,8 +23,6 @@ import metal.device;
 import metal.heap;
 import foundation;
 
-
-
 /**
     A heap which can suballocate resources from itself.
 */

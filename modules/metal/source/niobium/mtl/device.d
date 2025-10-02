@@ -10,6 +10,10 @@
         Luna Nielsen
 */
 module niobium.mtl.device;
+import niobium.mtl.texture;
+import niobium.mtl.buffer;
+import niobium.mtl.queue;
+import niobium.mtl.heap;
 import niobium.resource;
 import niobium.texture;
 import niobium.device;
@@ -20,7 +24,6 @@ import foundation;
 import metal.device;
 import numem;
 import nulib;
-import niobium.mtl.texture;
 
 class NioMTLDevice : NioDevice {
 private:
@@ -145,7 +148,7 @@ public:
             A $(D NioCommandQueue) or $(D null) on failure.
     */
     override NioCommandQueue createQueue(uint index) {
-        return null;
+        return index == 0 ? nogc_new!NioMTLCommandQueue(this) : null;
     }
 
     /**
@@ -158,7 +161,7 @@ public:
             A new $(D NioHeap) or $(D null) on failure.
     */
     override NioHeap createHeap(NioHeapDescriptor desc) {
-        return null;
+        return nogc_new!NioMTLHeap(this, desc);
     }
 
     /**
@@ -205,12 +208,11 @@ public:
             A new $(D NioBuffer) or $(D null) on failure.
     */
     override NioBuffer createBuffer(NioBufferDescriptor desc) {
-        return null;
+        return nogc_new!NioMTLBuffer(this, desc);
     }
 
     /// Stringification override
     override string toString() => name; // @suppress(dscanner.suspicious.object_const)
-
 }
 
 /**

@@ -26,8 +26,11 @@ import niobium.surface;
 */
 abstract
 class NioCommandBuffer : NioDeviceObject {
-protected:
+private:
 @nogc:
+    NioCommandQueue queue_;
+
+protected:
 
     /**
         Constructs a new command buffer.
@@ -35,11 +38,17 @@ protected:
         Params:
             device = The device that "owns" this command buffer.
     */
-    this(NioDevice device) {
+    this(NioDevice device, NioCommandQueue queue) {
         super(device);
+        this.queue_ = queue;
     }
 
 public:
+
+    /**
+        The queue the buffer belongs to.
+    */
+    final @property NioCommandQueue queue() => queue_;
 
     /**
         Enqueues a presentation to happen after this
@@ -58,4 +67,10 @@ public:
         queues.
     */
     abstract void submit();
+
+    /**
+        Awaits the completion of the command buffer
+        execution.
+    */
+    abstract void await();
 }

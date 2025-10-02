@@ -15,6 +15,18 @@ import niobium.device;
 import niobium.cmd;
 
 /**
+    Information needed to create a command queue.
+*/
+struct NioCommandQueueDescriptor {
+    
+    /**
+        The maximum amount of command buffers that can be "alive"
+        at a time.
+    */
+    uint maxCommandBuffers = 64;
+}
+
+/**
     Represents an individual queue for command submission on the device.
 */
 abstract

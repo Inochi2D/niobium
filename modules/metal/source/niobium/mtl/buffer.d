@@ -67,9 +67,19 @@ public:
     final @property MTLBuffer handle() => handle_;
 
     /**
+        Size of the resource in bytes.
+    */
+    override @property uint size() => cast(uint)handle_.allocatedSize;
+
+    /**
         The usage flags of the buffer.
     */
     override @property NioBufferUsage usage() => desc_.usage;
+
+    /**
+        Storage mode of the resource.
+    */
+    override @property NioStorageMode storageMode() => desc_.storage;
 
     /// Destructor
     ~this() {

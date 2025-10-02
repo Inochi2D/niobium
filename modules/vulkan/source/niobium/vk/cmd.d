@@ -33,7 +33,6 @@ import nulib;
 class NioVkCommandBuffer : NioCommandBuffer {
 private:
 @nogc:
-    NioVkCommandQueue queue_;
     VkCommandBuffer handle_;
 
     // State
@@ -80,7 +79,7 @@ public:
             device = The device that "owns" this command buffer.
     */
     this(NioDevice device, NioVkCommandQueue queue) {
-        super(device);
+        super(device, queue);
         this.setup(queue);
     }
 
@@ -139,7 +138,17 @@ public:
         if (!isRecording)
             return;
         this.end();
-        queue_.submit(this);
+        queue.submit(this);
+    }
+
+    /**
+        Awaits the completion of the command buffer
+        execution.
+    */
+    override void await() {
+        if (completionFence) {
+            cast(void)vkWaitForFences(nvkDevice.vkDevice, 1, &completionFence, VK_TRUE, uint.max);
+        }
     }
 
     /**

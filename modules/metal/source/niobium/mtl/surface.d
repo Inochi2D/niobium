@@ -89,9 +89,9 @@ public:
     */
     override @property uint framesInFlight() => framesInFlight_;
     override @property void framesInFlight(uint value) {
-        import nulib.math : min;
+        import nulib.math : clamp;
 
-        this.framesInFlight_ = min(2, value);
+        this.framesInFlight_ = clamp(value, 2, 3);
         this.handle_.maximumDrawableCount = framesInFlight_;
     }
 

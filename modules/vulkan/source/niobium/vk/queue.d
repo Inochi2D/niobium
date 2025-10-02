@@ -32,24 +32,28 @@ import nulib.threading.atomic;
 class NioVkCommandQueue : NioCommandQueue {
 private:
 @nogc:
-    VkQueue handle_;
-    VkCommandPool pool_;
-    VK_KHR_swapchain swapFuncs;
+    // State
+    NioCommandQueueDescriptor   desc_;
+    VK_KHR_swapchain            swapFuncs;
     
-    /// Submission
+    // Submission
     VkSwapchainKHR[]            submitSwapchains;
     uint[]                      submitSwapchainImages;
     VkSemaphoreSubmitInfo[]     submitWaitSemaphores;
     Mutex                       submitMutex;
 
-    /// Command Buffers
+    // Command Buffers
     Mutex                   bufferQueueMutex;
     Atomic!uint             activeBufferCount;
     NioVkCommandBuffer[]    cmdBuffers;
     VkSemaphore[]           cmdSemaphores;
     VkFence[]               cmdFences;
 
-    void createPool(VkQueue handle, uint familyIndex) {
+    // Handles
+    VkQueue handle_;
+    VkCommandPool pool_;
+
+    void createPool(NioCommandQueueDescriptor desc, VkQueue handle, uint familyIndex) {
         auto nvkDevice = (cast(NioVkDevice)device);
         this.handle_ = handle;
 
@@ -58,6 +62,10 @@ private:
         );
         vkEnforce(vkCreateCommandPool(nvkDevice.vkDevice, &createInfo, null, &pool_));
         nvkDevice.vkDevice.loadProcs(swapFuncs);
+
+        this.cmdBuffers = nu_malloca!NioVkCommandBuffer(desc.maxCommandBuffers);
+        this.cmdSemaphores = nu_malloca!VkSemaphore(desc.maxCommandBuffers);
+        this.cmdFences = nu_malloca!VkFence(desc.maxCommandBuffers);
     }
 
     void cleanup() {
@@ -229,15 +237,16 @@ public:
 
         Params:
             device =        The device that "owns" this queue.
+            desc =          Descriptor
             handle =        Vulkan handle 
             familyIndex =   The queue family index.
     */
-    this(NioDevice device, VkQueue handle, uint familyIndex) {
+    this(NioDevice device, NioCommandQueueDescriptor desc, VkQueue handle, uint familyIndex) {
         super(device);
         this.bufferQueueMutex = nogc_new!Mutex();
         this.submitMutex = nogc_new!Mutex();
 
-        this.createPool(handle, familyIndex);
+        this.createPool(desc, handle, familyIndex);
     }
 
     /**
