@@ -120,7 +120,6 @@ public:
             // Transition texture to presentable layout.
             auto nvkDrawTexture = cast(NioVkDrawableTexture)nvkDrawable.texture;
             if (nvkDrawTexture.layout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
-                nvkDrawTexture.layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
                 auto imageBarrier = VkImageMemoryBarrier2(
                     srcStageMask: VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
                     srcAccessMask: VK_ACCESS_2_MEMORY_WRITE_BIT,
@@ -139,6 +138,9 @@ public:
                     handle_,
                     &depInfo
                 );
+
+                // Layout has been transitioned now.
+                nvkDrawTexture.layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
             }
 
             // Add to queue.
