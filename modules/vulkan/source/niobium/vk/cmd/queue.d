@@ -66,30 +66,41 @@ private:
         
         if (buffer.isRecording)
             buffer.end();
-
+        
         auto cmdBufferInfo = VkCommandBufferSubmitInfo(
             commandBuffer: buffer.handle,
             deviceMask: 0
         );
 
-        auto cmdSigInfo = VkSemaphoreSubmitInfo(
-            semaphore: buffer.semaphore,
-            value: 1,
-            stageMask: VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-            deviceIndex: 0
-        );
-
-        auto submitInfo = VkSubmitInfo2(
-            commandBufferInfoCount: 1,
-            pCommandBufferInfos: &cmdBufferInfo,
-            signalSemaphoreInfoCount: 1,
-            pSignalSemaphoreInfos: &cmdSigInfo
-        );
-        vkQueueSubmit2(handle_, 1, &submitInfo, buffer.fence);
-
+        // Present-submit.
         if (buffer.drawable) {
+            auto semaphore = buffer.drawable.semaphore;
             auto swapchain = buffer.drawable.swapchain;
             auto index =     buffer.drawable.index;
+
+            auto cmdSigInfo = VkSemaphoreSubmitInfo(
+                semaphore: buffer.semaphore,
+                value: 1,
+                stageMask: VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+                deviceIndex: 0
+            );
+
+            auto cmdWaitInfo = VkSemaphoreSubmitInfo(
+                semaphore: semaphore,
+                value: 1,
+                stageMask: VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+                deviceIndex: 0
+            );
+
+            auto submitInfo = VkSubmitInfo2(
+                signalSemaphoreInfoCount: 1,
+                pSignalSemaphoreInfos: &cmdSigInfo,
+                waitSemaphoreInfoCount: 1,
+                pWaitSemaphoreInfos: &cmdWaitInfo,
+                commandBufferInfoCount: 1,
+                pCommandBufferInfos: &cmdBufferInfo,
+            );
+            vkQueueSubmit2(handle_, 1, &submitInfo, buffer.fence);
 
             auto presentInfo = VkPresentInfoKHR(
                 waitSemaphoreCount: 1,
@@ -100,7 +111,23 @@ private:
                 pResults: null
             );
             swapFuncs.vkQueuePresentKHR(handle_, &presentInfo);
+            return;
         }
+
+        // Only-submit.
+        auto cmdSigInfo = VkSemaphoreSubmitInfo(
+            semaphore: buffer.semaphore,
+            value: 1,
+            stageMask: VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+            deviceIndex: 0
+        );
+        auto submitInfo = VkSubmitInfo2(
+            signalSemaphoreInfoCount: 1,
+            pSignalSemaphoreInfos: &cmdSigInfo,
+            commandBufferInfoCount: 1,
+            pCommandBufferInfos: &cmdBufferInfo,
+        );
+        vkQueueSubmit2(handle_, 1, &submitInfo, buffer.fence);
     }
 
     void commitImpl() {
@@ -160,9 +187,9 @@ public:
 
     /// Destructor
     ~this() {
-        vkQueueWaitIdle(handle_);
-
         nogc_delete(pool_);
+
+        vkQueueWaitIdle(handle_);
         nogc_delete(submitMutex);
     }
 
@@ -334,7 +361,6 @@ public:
             vkDestroySemaphore(device_.vkDevice, semaphores_[i], null);
         }
 
-        nogc_delete(instances_[0..$]);
         nu_freea(instances_);
         nu_freea(fences_);
         nu_freea(semaphores_);

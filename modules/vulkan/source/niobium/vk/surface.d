@@ -58,8 +58,10 @@ private:
 
     // Sync
     VkFence fence_;
+    VkSemaphore semaphore_;
 
     void rebuild() {
+
         bool isReady_ = 
             needsRebuild &
             (device_ !is null) & 
@@ -70,14 +72,35 @@ private:
         if (!isReady_)
             return;
 
-        import std.stdio : writeln;
+
+        // Get surface capabilities.
+        __nio_surface_procs.procs.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+            device_.vkPhysicalDevice, 
+            handle_, 
+            &surfaceCaps
+        );
+        if (surfaceCaps.currentExtent.width != 0xFFFFFFFF) {
+            import nulib.math : clamp;
+
+            this.size_.width =  clamp(size_.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
+            this.size_.height = clamp(size_.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);
+            this.swapCreateInfo.imageExtent = VkExtent2D(
+                size_.width,
+                size_.height,
+            );
+        }
+
+        // Clear old images, if needed.
+        if (swapCreateInfo.oldSwapchain) {
+            swapFuncs.vkDestroySwapchainKHR(device_.vkDevice, swapCreateInfo.oldSwapchain, null);
+        }
 
         swapCreateInfo.oldSwapchain = swapchain_;
         auto result = swapFuncs.vkCreateSwapchainKHR(device_.vkDevice, &swapCreateInfo, null, &swapchain_);
         if (result == VK_SUCCESS) {
 
             // Recreate drawables.
-            this.createDrawables(this.getSwapchainImages(), drawables_);
+            this.createDrawables(this.getSwapchainImages());
             this.currentImageIdx_ = 0;
             this.needsRebuild = false;
             return;
@@ -95,29 +118,37 @@ private:
     }
 
     /// (Re-)creates the drawables.
-    void createDrawables(VkImage[] images, ref NioVkDrawable[] drawables) {
+    void createDrawables(VkImage[] images) {
         if (drawables_.length > 0)
             this.destroyDrawables();
 
         // Resize arrays.
-        drawables = nu_malloca!NioVkDrawable(images.length);
         this.imageCount_ = cast(uint)images.length;
+        this.drawables_ = nu_malloca!NioVkDrawable(images.length);
 
         auto fenceCreateInfo = VkFenceCreateInfo();
         vkCreateFence(device_.vkDevice, &fenceCreateInfo, null, &fence_);
 
+        auto semapCreateInfo = VkSemaphoreCreateInfo();
+        vkCreateSemaphore(device_.vkDevice, &semapCreateInfo, null, &semaphore_);
+
         // Create new drawables.
         foreach(i; 0..images.length) {
-            drawables[i] = nogc_new!NioVkDrawable(this, images[i], cast(uint)i);
+            this.drawables_[i] = nogc_new!NioVkDrawable(this, images[i], cast(uint)i);
         }
         nu_freea(images);
     }
 
     /// Destroys the drawables.
     void destroyDrawables() {
+        
+        if (fence_)
+            vkDestroyFence(device_.vkDevice, fence_, null);
+        
+        if (semaphore_)
+            vkDestroySemaphore(device_.vkDevice, semaphore_, null);
 
         // Delete old objects.
-        nogc_delete(drawables_[0..$]);
         nu_freea(drawables_);
     }
 
@@ -142,6 +173,11 @@ private:
     }
 
 public:
+
+    /**
+        Semaphore
+    */
+    final @property VkSemaphore semaphore() => semaphore_;
 
     /**
         Vulkan surface handle
@@ -234,12 +270,14 @@ public:
     /// Destructor
     ~this() {
         VK_KHR_surface procs = __nio_surface_procs.get().procs;
-
         this.destroyDrawables();
 
         if (supportedFormats_)
             nu_freea(supportedFormats_);
         
+        if (swapCreateInfo.oldSwapchain)
+            swapFuncs.vkDestroySwapchainKHR(device_.vkDevice, swapCreateInfo.oldSwapchain, null);
+
         if (swapchain_)
             swapFuncs.vkDestroySwapchainKHR(device_.vkDevice, swapchain_, null);
         
@@ -338,7 +376,7 @@ public:
         if (!isReady)
             return null;
 
-        auto result = swapFuncs.vkAcquireNextImageKHR(device_.vkDevice, swapchain_, 1000, null, fence_, &currentImageIdx_);
+        auto result = swapFuncs.vkAcquireNextImageKHR(device_.vkDevice, swapchain_, 1000, semaphore_, fence_, &currentImageIdx_);
         switch(result) {
             case VK_SUBOPTIMAL_KHR:
                 this.needsRebuild = true;
@@ -398,6 +436,11 @@ public:
         The swapchain of the drawable.
     */
     @property VkSwapchainKHR swapchain() => surface_.swapchain_;
+
+    /**
+        The swapchain's semaphore.
+    */
+    @property VkSemaphore semaphore() => surface_.semaphore;
 
     /**
         The swapchain index of the drawable.
