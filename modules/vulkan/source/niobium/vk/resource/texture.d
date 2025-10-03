@@ -38,7 +38,6 @@ private:
     NioTextureDescriptor    desc_;
     VkImageCreateInfo       vkdesc_;
     VkImageViewCreateInfo   vkviewdesc_;
-    VkImageLayout           layout_;
 
     void createImage(NioTextureDescriptor desc) {
         auto nvkDevice = (cast(NioVkDevice)device);
@@ -57,7 +56,7 @@ private:
             initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
         );
         vkEnforce(vkCreateImage(nvkDevice.vkDevice, &vkdesc_, null, &image_));
-        this.layout_ = vkdesc_.initialLayout;
+        this.layout = vkdesc_.initialLayout;
 
         // Allocate memory for our texture.
         VkMemoryRequirements vkmemreq_;
@@ -95,9 +94,9 @@ private:
         this.parent_ = texture.retained();
         this.desc_ = desc;
         this.vkdesc_ = parent_.vkdesc_;
-        this.image_ = parent_.image;
+        this.image_ = parent_.handle;
         this.vkviewdesc_ = VkImageViewCreateInfo(
-            image: parent_.image,
+            image: parent_.handle,
             viewType: desc.type.toVkImageViewType(),
             format: desc.format.toVkFormat(),
             components: VkComponentMapping(VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY),
@@ -125,9 +124,14 @@ protected:
 public:
 
     /**
-        Underlying Vulkan Image.
+        Underlying Vulkan Image Layout.
     */
-    final @property VkImage image() => image_;
+    VkImageLayout layout;
+
+    /**
+        Underlying Vulkan handle.
+    */
+    final @property VkImage handle() => image_;
 
     /**
         Underlying Vulkan Image View.

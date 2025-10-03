@@ -24,12 +24,12 @@ class NioVkFence : NioFence {
 private:
 @nogc:
     // Handles
-    VkSemaphore handle_;
+    VkEvent handle_;
 
     void setup() {
         auto nvkDevice = cast(NioVkDevice)device;
-        auto createInfo = VkSemaphoreCreateInfo();
-        vkCreateSemaphore(nvkDevice.vkDevice, &createInfo, null, &handle_);
+        auto createInfo = VkEventCreateInfo();
+        vkCreateEvent(nvkDevice.vkDevice, &createInfo, null, &handle_);
     }
 
 protected:
@@ -45,7 +45,7 @@ protected:
         auto vkDevice = (cast(NioVkDevice)device).vkDevice;
 
         import niobium.vk.device : setDebugName;
-        vkDevice.setDebugName(VK_OBJECT_TYPE_SEMAPHORE, handle_, label);
+        vkDevice.setDebugName(VK_OBJECT_TYPE_EVENT, handle_, label);
     }
 
 public:
@@ -53,12 +53,12 @@ public:
     /**
         The native vulkan handle.
     */
-    @property VkSemaphore handle() => handle_;
+    @property VkEvent handle() => handle_;
 
     /// Destructor
     ~this() {
         auto nvkDevice = cast(NioVkDevice)device;
-        vkDestroySemaphore(nvkDevice.vkDevice, handle_, null);
+        vkDestroyEvent(nvkDevice.vkDevice, handle_, null);
     }
 
     /**

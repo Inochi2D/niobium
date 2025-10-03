@@ -22,6 +22,10 @@ import vulkan.core;
 import vulkan.eh;
 import numem;
 import nulib;
+import nulib.threading.mutex;
+
+public import niobium.cmd;
+public import niobium.vk.cmd.txrencoder;
 
 /**
     A buffer of commands which can be sent to the GPU
@@ -40,6 +44,7 @@ private:
 
     // Handles
     VkCommandBuffer handle_;
+    Mutex encoderMutex_;
 
     /**
         Resets this command buffer, allowing it to be reused.
@@ -85,6 +90,7 @@ public:
     NioVkDrawable drawable;
 
     ~this() {
+        nogc_delete(encoderMutex_);
     }
 
     /**
@@ -97,6 +103,7 @@ public:
     this(NioVkCommandQueue queue, VkCommandBuffer buffer) {
         super(queue.device, queue);
         this.handle_ = buffer;
+        this.encoderMutex_ = nogc_new!Mutex();
     }
 
     /**
@@ -111,7 +118,34 @@ public:
             $(D null) on failure.
     */
     override NioRenderCommandEncoder beginRenderPass() {
+        encoderMutex_.lock();
+        if (this.activeEncoder)
+            return null;
+        
+        encoderMutex_.unlock();
         return null;
+    }
+
+    /**
+        Begins a new transfer pass.
+
+        Note:
+            Only one pass can be active at a time,
+            attempting to create new passes will fail.
+        
+        Returns:
+            A short lived $(D NioTransferCommandEncoder) on success,
+            $(D null) on failure.
+    */
+    override NioTransferCommandEncoder beginTransferPass() {
+        encoderMutex_.lock();
+        if (this.activeEncoder)
+            return null;
+        
+        this.activeEncoder = nogc_new!NioVkTransferCommandEncoder(this);
+        encoderMutex_.unlock();
+
+        return cast(NioTransferCommandEncoder)activeEncoder;
     }
 
     /**
@@ -200,5 +234,45 @@ public:
         
         vkEndCommandBuffer(handle_);
         this.isRecording_ = false;
+    }
+}
+
+/*
+    Mixin template inserted into the different command encoders
+    to make them conform to the NioCommandEncoder class interface.
+*/
+mixin template VkCommandEncoderFunctions() {
+    import niobium.vk.device : pushDebugGroup, popDebugGroup;
+
+    /**
+        Vulkan command buffer.
+    */
+    protected @property VkCommandBuffer vkcmdbuffer() => (cast(NioVkCommandBuffer)commandBuffer).handle;
+
+    /**
+        Pushes a debug group.
+
+        Params:
+            name = The name of the debug group
+            color = The color of the debug group (optional)
+    */
+    override void pushDebugGroup(string name, float[4] color) {
+        vkcmdbuffer.pushDebugGroup(name, color);
+    }
+
+    /**
+        Pops the top debug group from the debug
+        group stack.
+    */
+    override void popDebugGroup() {
+        vkcmdbuffer.popDebugGroup();
+    }
+
+    /**
+        Ends the encoding pass, allowing a new pass to be
+        begun from the parent command buffer.
+    */
+    override void endEncoding() {
+        this.finishEncoding();
     }
 }

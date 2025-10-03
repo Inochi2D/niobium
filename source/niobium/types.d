@@ -18,3 +18,29 @@ struct NioExtent2D {
     uint width;
     uint height;
 }
+
+/**
+    2D Origin
+*/
+struct NioOrigin2D {
+    uint x;
+    uint y;
+}
+
+/**
+    3D Extents
+*/
+struct NioExtent3D {
+    uint width;
+    uint height;
+    uint depth;
+}
+
+/**
+    3D Origin
+*/
+struct NioOrigin3D {
+    uint x;
+    uint y;
+    uint z;
+}

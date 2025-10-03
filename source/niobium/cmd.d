@@ -14,6 +14,9 @@ import niobium.queue;
 import niobium.device;
 import niobium.surface;
 import niobium.texture;
+import niobium.buffer;
+import niobium.sync;
+import niobium.types;
 import numem;
 
 /**
@@ -31,14 +34,13 @@ class NioCommandBuffer : NioDeviceObject {
 private:
 @nogc:
     NioCommandQueue queue_;
-    NioCommandEncoder encoder_;
 
 protected:
 
     /**
         The currently active command encoder.
     */
-    final @property NioCommandEncoder activeEncoder() => encoder_;
+    NioCommandEncoder activeEncoder;
 
     /**
         Constructs a new command buffer.
@@ -70,6 +72,19 @@ public:
             $(D null) on failure.
     */
     abstract NioRenderCommandEncoder beginRenderPass();
+
+    /**
+        Begins a new transfer pass.
+
+        Note:
+            Only one pass can be active at a time,
+            attempting to create new passes will fail.
+        
+        Returns:
+            A short lived $(D NioTransferCommandEncoder) on success,
+            $(D null) on failure.
+    */
+    abstract NioTransferCommandEncoder beginTransferPass();
 
     /**
         Enqueues a presentation to happen after this
@@ -113,12 +128,38 @@ protected:
         this.cmdbuffer_ = buffer;
     }
 
+    /**
+        Helper internal function to allow ending the command
+        encoder.
+    */
+    final void finishEncoding() {
+        if (cmdbuffer_.activeEncoder) {
+            nogc_delete(cmdbuffer_.activeEncoder);
+            cmdbuffer_.activeEncoder = null;
+        }
+    }
+
 public:
 
     /**
         The command buffer the encoder is recording to.
     */
     final @property NioCommandBuffer commandBuffer() => cmdbuffer_;
+
+    /**
+        Pushes a debug group.
+
+        Params:
+            name = The name of the debug group
+            color = The color of the debug group (optional)
+    */
+    abstract void pushDebugGroup(string name, float[4] color = [0, 0, 0, 1]);
+
+    /**
+        Pops the top debug group from the debug
+        group stack.
+    */
+    abstract void popDebugGroup();
 
     /**
         Ends the encoding pass, allowing a new pass to be
@@ -153,6 +194,47 @@ public:
 }
 
 /**
+    Descriptor for a buffer-to-image copy operation.
+*/
+struct NioBufferSrcInfo {
+    NioBuffer buffer;
+    ulong offset = 0;
+    ulong length;
+    ulong bytesPerRow;
+    NioExtent3D size = NioExtent3D(0, 0, 0);
+}
+
+/**
+    Descriptor for a image-to-buffer copy operation.
+*/
+struct NioBufferDstInfo {
+    NioBuffer buffer;
+    ulong offset = 0;
+    ulong bytesPerRow;
+}
+
+/**
+    Descriptor for a texture copy operation.
+*/
+struct NioTextureSrcInfo {
+    NioTexture texture;
+    uint slice = 0;
+    uint level = 0;
+    NioOrigin3D origin = NioOrigin3D(0, 0, 0);
+    NioExtent3D size;
+}
+
+/**
+    Descriptor for a texture copy operation.
+*/
+struct NioTextureDstInfo {
+    NioTexture texture;
+    uint slice = 0;
+    uint level = 0;
+    NioOrigin3D origin = NioOrigin3D(0, 0, 0);
+}
+
+/**
     A short-lived object which encodes transfer commands 
     into a $(D NioCommandBuffer).
     Only one $(D NioCommandEncoder) can be active at a time 
@@ -175,20 +257,96 @@ protected:
 public:
 
     /**
-        Generates mipmaps for the given texture.
+        Encodes a command which instructs the GPU
+        to wait for the fence to be signalled before
+        proceeding.
 
         Params:
-            texture = The texture to generate mipmaps for.
+            fence = The fence to wait for.
     */
-    void generateMipmaps(NioTexture texture);
+    abstract void waitForFence(NioFence fence);
+
+    /**
+        Encodes a command which instructs the GPU
+        to signal the fence.
+
+        Params:
+            fence = The fence to signal.
+    */
+    abstract void signalFence(NioFence fence);
+
+    /**
+        Fills the given buffer with the given value.
+
+        Params:
+            dst =       The desination buffer.
+            value =     The value to write to the buffer.
+    */
+    abstract void fillBuffer(NioBuffer dst, uint value);
+
+    /**
+        Fills the given buffer with the given value.
+
+        Notes:
+            The region defined will be clamped to the memory
+            region of the buffer.
+
+        Params:
+            dst =       The desination buffer.
+            offset =    The offset to start filling at, in bytes.
+            length =    The length of the region to fill, in bytes.
+            value =     The value to write to the buffer.
+    */
+    abstract void fillBuffer(NioBuffer dst, ulong offset, ulong length, uint value);
+
+    /**
+        Copies data from one buffer to another.
+
+        Params:
+            src =       The source buffer descriptor.
+            dst =       The destination buffer descriptor.
+    */
+    abstract void copy(NioBufferSrcInfo src, NioBufferDstInfo dst);
+
+    /**
+        Copies the data from a buffer to a texture.
+
+        Params:
+            src =       The source buffer descriptor.
+            dst =       The destination texture descriptor.
+    */
+    abstract void copy(NioBufferSrcInfo src, NioTextureDstInfo dst);
+
+    /**
+        Copies the data from a texture to a buffer.
+
+        Params:
+            src =       The source texture descriptor.
+            dst =       The destination buffer descriptor.
+    */
+    abstract void copy(NioTextureSrcInfo src, NioBufferDstInfo dst);
 
     /**
         Copies the contents of the source texture
         into the destination texture.
 
         Params:
-            src = The source texture.
-            dst = The desination texture.
+            src =       The source texture descriptor.
+            dst =       The destination texture descriptor.
     */
-    void copy(NioTexture src, NioTexture dst);
+    abstract void copy(NioTextureSrcInfo src, NioTextureDstInfo dst);
+
+    /**
+        Copies the contents of the source texture
+        into the destination texture.
+
+        Note:
+            The smallest intersection between the 2 textures
+            will be written to.
+
+        Params:
+            src = The source texture descriptor.
+            dst = The desination descriptor.
+    */
+    abstract void copy(NioTexture src, NioTexture dst);
 }

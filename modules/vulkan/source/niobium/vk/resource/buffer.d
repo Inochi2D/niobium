@@ -84,6 +84,11 @@ protected:
 
 public:
 
+    /**
+        Underlying Vulkan handle.
+    */
+    final @property VkBuffer handle() => handle_;
+
     /// Destructor
     ~this() {
         auto vkDevice = (cast(NioVkDevice)device).vkDevice;

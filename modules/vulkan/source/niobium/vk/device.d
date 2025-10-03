@@ -417,6 +417,30 @@ void setDebugName(VkDevice device, VkObjectType objectType, void* handle, string
 }
 
 /**
+    Pushes a debug group to a command buffer.
+*/
+void pushDebugGroup(VkCommandBuffer buffer, string label, float[4] color) @nogc {
+    if (__nio_vk_debug_utils.vkCmdBeginDebugUtilsLabelEXT) {
+        auto createInfo = VkDebugUtilsLabelEXT(
+            pLabelName: nstring(label).take.ptr,
+            color: color
+        );
+    
+        __nio_vk_debug_utils.vkCmdBeginDebugUtilsLabelEXT(buffer, &createInfo);
+        nu_free(cast(void*)createInfo.pLabelName);
+    }
+}
+
+/**
+    Pops a debug group from a command buffer.
+*/
+void popDebugGroup(VkCommandBuffer buffer) @nogc {
+    if (__nio_vk_debug_utils.vkCmdEndDebugUtilsLabelEXT) {
+        __nio_vk_debug_utils.vkCmdEndDebugUtilsLabelEXT(buffer);
+    }
+}
+
+/**
     Global Vulkan Instance.
 */
 package(niobium.vk)
@@ -651,6 +675,13 @@ struct VkDebugUtilsObjectNameInfoEXT {
     VkObjectType       objectType;
     ulong              objectHandle;
     const(char)*       pObjectName;
+}
+
+struct VkDebugUtilsLabelEXT {
+    VkStructureType    sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+    const(void)*       pNext;
+    const(char)*       pLabelName;
+    float[4]           color;
 } 
 
 struct VK_EXT_debug_utils {
@@ -658,4 +689,10 @@ extern(System) @nogc nothrow:
 
     @VkProcName("vkSetDebugUtilsObjectNameEXT")
     VkResult function(VkDevice, const(VkDebugUtilsObjectNameInfoEXT)*) vkSetDebugUtilsObjectNameEXT;
+    
+    @VkProcName("vkCmdBeginDebugUtilsLabelEXT")
+    void function (VkCommandBuffer, const(VkDebugUtilsLabelEXT)*) vkCmdBeginDebugUtilsLabelEXT;
+    
+    @VkProcName("vkCmdEndDebugUtilsLabelEXT")
+    void function (VkCommandBuffer) vkCmdEndDebugUtilsLabelEXT;
 }
