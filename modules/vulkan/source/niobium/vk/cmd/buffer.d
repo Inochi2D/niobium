@@ -100,6 +100,21 @@ public:
     }
 
     /**
+        Begins a new render pass.
+
+        Note:
+            Only one pass can be active at a time,
+            attempting to create new passes will fail.
+        
+        Returns:
+            A short lived $(D NioRenderCommandEncoder) on success,
+            $(D null) on failure.
+    */
+    override NioRenderCommandEncoder beginRenderPass() {
+        return null;
+    }
+
+    /**
         Enqueues a presentation to happen after this
         command buffer finishes execution.
 

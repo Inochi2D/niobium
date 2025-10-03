@@ -12,10 +12,11 @@
 module niobium.device;
 import niobium.texture;
 import niobium.buffer;
+import niobium.queue;
 import niobium.heap;
+import niobium.sync;
 import numem;
 import nulib;
-import niobium.queue;
 
 /**
     A feature list for a device.
@@ -170,6 +171,22 @@ public:
             A $(D NioCommandQueue) or $(D null) on failure.
     */
     abstract NioCommandQueue createQueue(NioCommandQueueDescriptor desc);
+
+    /**
+        Creates a new fence.
+        
+        Returns:
+            A new $(D NioFence) or $(D null) on failure.
+    */
+    abstract NioFence createFence();
+
+    /**
+        Creates a new semaphore.
+        
+        Returns:
+            A new $(D NioFence) or $(D null) on failure.
+    */
+    abstract NioSemaphore createSemaphore();
 
     /**
         Creates a new heap.

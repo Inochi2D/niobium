@@ -208,8 +208,15 @@ public:
     }
 
     /**
-        Fetches a $(D NioCommandBuffer) from the queue,
-        the queue may contain an internal pool of command buffers.
+        Fetches a command buffer from the queue, the amount of
+        command buffers is limited by the command buffer count
+        provided during queue initialization.
+
+        If there's no available command buffers in the queue this
+        function will block until a command buffer becomes available.
+
+        See_Also:
+            $(D maxCommandBuffers)
     */
     override NioCommandBuffer fetch() {
         return this.pool_.fetch();
@@ -391,7 +398,7 @@ public:
             return null;
         this.mutex_.unlock();
         
-        return instances_[freeBuffer].begin();
+        return instances_[freeBuffer].retained().begin();
     }
 }
 

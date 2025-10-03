@@ -28,11 +28,21 @@ enum NioShaderStage : uint {
         Fragment shader stage
     */
     fragment =          0x00000001U,
+
+    /**
+        Mesh task shader stage
+    */
+    task =              0x00000002U,
+
+    /**
+        Mesh shader stage
+    */
+    mesh =              0x00000004U,
     
     /**
         Compute kernel shader stage
     */
-    kernel =            0x00000002U,
+    kernel =            0x00000008U,
 }
 
 /**

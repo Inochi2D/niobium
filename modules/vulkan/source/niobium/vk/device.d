@@ -13,6 +13,7 @@ module niobium.vk.device;
 import niobium.vk.resource;
 import niobium.vk.video;
 import niobium.vk.heap;
+import niobium.vk.sync;
 import niobium.vk.cmd;
 import vulkan.loader;
 import vulkan.core;
@@ -293,6 +294,26 @@ public:
     */
     override NioCommandQueue createQueue(NioCommandQueueDescriptor desc) {
         return nogc_new!NioVkCommandQueue(this, desc, mainQueue, cast(uint)queueTable.mainQueueFamily.queueFamilyIndex);
+    }
+
+    /**
+        Creates a new fence.
+        
+        Returns:
+            A new $(D NioFence) or $(D null) on failure.
+    */
+    override NioFence createFence() {
+        return nogc_new!NioVkFence(this);
+    }
+
+    /**
+        Creates a new semaphore.
+        
+        Returns:
+            A new $(D NioFence) or $(D null) on failure.
+    */
+    override NioSemaphore createSemaphore() {
+        return nogc_new!NioVkSemaphore(this);
     }
 
     /**
