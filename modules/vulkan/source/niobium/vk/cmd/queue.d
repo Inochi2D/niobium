@@ -74,10 +74,16 @@ private:
 
         // Present-submit.
         if (buffer.drawable) {
-            auto semaphore = buffer.drawable.semaphore;
             auto swapchain = buffer.drawable.swapchain;
             auto index =     buffer.drawable.index;
 
+            auto cmdWaitInfo = VkSemaphoreSubmitInfo(
+                semaphore: buffer.drawable.semaphore,
+                value: 1,
+                stageMask: VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,
+                deviceIndex: 0
+            );
+            
             auto cmdSigInfo = VkSemaphoreSubmitInfo(
                 semaphore: buffer.semaphore,
                 value: 1,
@@ -85,19 +91,12 @@ private:
                 deviceIndex: 0
             );
 
-            auto cmdWaitInfo = VkSemaphoreSubmitInfo(
-                semaphore: semaphore,
-                value: 1,
-                stageMask: VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-                deviceIndex: 0
-            );
-
             auto submitInfo = VkSubmitInfo2(
                 signalSemaphoreInfoCount: 1,
-                pSignalSemaphoreInfos: &cmdSigInfo,
                 waitSemaphoreInfoCount: 1,
-                pWaitSemaphoreInfos: &cmdWaitInfo,
                 commandBufferInfoCount: 1,
+                pSignalSemaphoreInfos: &cmdSigInfo,
+                pWaitSemaphoreInfos: &cmdWaitInfo,
                 pCommandBufferInfos: &cmdBufferInfo,
             );
             vkQueueSubmit2(handle_, 1, &submitInfo, buffer.fence);
@@ -172,6 +171,11 @@ protected:
     }
 
 public:
+
+    /**
+        Underlying vulkan handle
+    */
+    final @property VkQueue handle() => handle_;
 
     /**
         The maximum amount of active command buffers you can
@@ -293,6 +297,7 @@ private:
     VkCommandBuffer[]       buffers_;
     VkSemaphore[]           semaphores_;
     VkFence[]               fences_;
+    size_t                  idx_ = 0;
 
     // Handles
     VkCommandPool           handle_;
@@ -342,10 +347,23 @@ private:
 
     /// Awaits a command buffer being free for use.
     ptrdiff_t awaitFreeBuffer() {
+        import nulib.math : min;
+
+        // Special case; only 1 buffer.
+        if (instances_.length == 1) {
+            if (vkWaitForFences(device_.vkDevice, cast(uint)fences_.length, fences_.ptr, VK_FALSE, ulong.max) == VK_SUCCESS) {
+                vkResetFences(device_.vkDevice, 1, &fences_[0]);
+                return 0;
+            }
+            return -1;
+        }
+
         if (vkWaitForFences(device_.vkDevice, cast(uint)fences_.length, fences_.ptr, VK_FALSE, ulong.max) == VK_SUCCESS) {
-            foreach(i; 0..instances_.length) {
+            foreach(offset; 0..instances_.length) {
+                size_t i = idx_ % instances_.length;
                 if (vkGetFenceStatus(device_.vkDevice, fences_[i]) == VK_SUCCESS) {
                     vkResetFences(device_.vkDevice, 1, &fences_[i]);
+                    idx_++;
                     return i;
                 }
             }
@@ -363,6 +381,7 @@ public:
     /// Destructor
     ~this() {
         this.awaitAllFences(ulong.max);
+        vkQueueWaitIdle(queue_.handle);
         foreach(i; 0..buffers_.length) {
             vkDestroyFence(device_.vkDevice, fences_[i], null);
             vkDestroySemaphore(device_.vkDevice, semaphores_[i], null);

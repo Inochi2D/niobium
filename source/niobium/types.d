@@ -44,6 +44,7 @@ struct NioOrigin3D {
     uint y;
     uint z;
 }
+
 /**
     3D Region
 */
@@ -60,4 +61,78 @@ union NioRegion3D {
         NioOrigin3D origin;
         NioExtent3D extent;
     }
+}
+
+/**
+    An RGBA color value.
+*/
+struct NioColor {
+    float r;
+    float g;
+    float b;
+    float a;
+}
+
+/**
+    A viewport
+*/
+struct NioViewport {
+
+    /**
+        The X coordinate of upper-left corner of the viewport.
+    */
+    float originX;
+
+    /**
+        The Y coordinate of upper-left corner of the viewport.
+    */
+    float originY;
+
+    /**
+        The width of the viewport, in pixels.
+    */
+    float width;
+
+    /**
+        The height of the viewport, in pixels.
+    */
+    float height;
+
+    /**
+        The near-plane of the viewport.
+    */
+    float near;
+
+    /**
+        The far-plane of the viewport.
+    */
+    float far;
+}
+
+/**
+    A scissor rectangle
+*/
+struct NioScissorRect {
+
+    /**
+        The X coordinate of upper-left corner of the 
+        scissor rectangle.
+    */
+    float x;
+
+    /**
+        The Y coordinate of upper-left corner of the 
+        scissor rectangle.
+    */
+    float y;
+
+    /**
+        The width of the viewport, in pixels.
+    */
+    float width;
+
+    /**
+        The height of the viewport, in pixels.
+    */
+    float height;
 }

@@ -14,6 +14,7 @@ import niobium.queue;
 import niobium.device;
 import niobium.surface;
 import niobium.texture;
+import niobium.resource;
 import niobium.buffer;
 import niobium.sync;
 import niobium.types;
@@ -72,11 +73,14 @@ public:
             Only one pass can be active at a time,
             attempting to create new passes will fail.
         
+        Params:
+            desc = Descriptor used to start the render pass
+
         Returns:
             A short lived $(D NioRenderCommandEncoder) on success,
             $(D null) on failure.
     */
-    abstract NioRenderCommandEncoder beginRenderPass();
+    abstract NioRenderCommandEncoder beginRenderPass(NioRenderPassDescriptor desc);
 
     /**
         Begins a new transfer pass.
@@ -175,6 +179,330 @@ public:
 }
 
 /**
+    The different face culling modes.
+*/
+enum NioCulling : uint {
+
+    /**
+        Disables face culling.
+    */
+    none =      0x00000000U,
+
+    /**
+        Enables front face culling.
+    */
+    front =     0x00000001U,
+
+    /**
+        Enables back face culling.
+    */
+    back =      0x00000002U,
+}
+
+/**
+    The different face windings.
+*/
+enum NioFaceWinding : uint {
+
+    /**
+        Front faces are wound clockwise.
+    */
+    clockwise =         0x00000001U,
+
+    /**
+        Front faces are wound counter-clockwise.
+    */
+    counterClockwise =  0x00000002U,
+}
+
+/**
+    Types of primitives.
+*/
+enum NioPrimitive : uint {
+
+    /**
+        Vertex primitives are a series of points.
+    */
+    points =        0x00000001U,
+
+    /**
+        Vertex primitives are a series of lines.
+    */
+    lines =         0x00000002U,
+
+    /**
+        Vertex primitives are strip of lines,
+        with each line connecting to the previous one.
+    */
+    lineStrip =     0x00000003U,
+
+    /**
+        Vertex primitives are a series of triangles.
+    */
+    triangles =     0x00000004U,
+
+    /**
+        Vertex primitives strip of triangles,
+        with each vertex creating a new triangle from
+        the previous 2 vertices.
+    */
+    triangleStrip = 0x00000005U,
+}
+
+/**
+    Action top perform when an attachment is loaded
+    in a render pass.
+*/
+enum NioLoadAction : uint {
+
+    /**
+        Let the implementation decide.
+    */
+    dontCare =  0x00000001U,
+
+    /**
+        Load the contents of the texture attachment.
+    */
+    load =      0x00000002U,
+
+    /**
+        Clear the contents of the texture attachment.
+    */
+    clear =     0x00000003U,
+}
+
+/**
+    Action top perform when an attachment is loaded
+    in a render pass.
+*/
+enum NioStoreAction : uint {
+
+    /**
+        Let the implementation decide.
+    */
+    dontCare =          0x00000001U,
+
+    /**
+        Store the result of the pass into the attachment.
+    */
+    store =             0x00000002U,
+
+    /**
+        Perform a multisample resolution pass.
+    */
+    resolve =           0x00000003U,
+
+    /**
+        Perform a multisample resolution pass.
+    */
+    resolveAndStore =   0x00000004U,
+}
+
+/**
+    Describes a single color texture attachment for a render pass.
+*/
+struct NioColorAttachmentDescriptor {
+
+    /**
+        The attached texture.
+    */
+    NioTexture texture;
+
+    /**
+        Texture mipmap level to render to.
+    */
+    uint level = 0;
+
+    /**
+        Texture array slice to render to.
+    */
+    uint slice = 0;
+
+    /**
+        Texture depth plane to render to.
+    */
+    uint depth = 0;
+
+    /**
+        Action to perform on attachment load.
+    */
+    NioLoadAction loadAction;
+
+    /**
+        Action to perform on attachment store.
+    */
+    NioStoreAction storeAction;
+    
+    /**
+        The clear color to use for the attachment.
+    */
+    NioColor clearColor;
+
+    /**
+        Texture to use for multisample resolve.
+    */
+    NioTexture resolveTexture = null;
+
+    /**
+        Mipmap level to use for multisample resolve.
+    */
+    uint resolveLevel = 0;
+
+    /**
+        Array slice to use for multisample resolve.
+    */
+    uint resolveSlice = 0;
+
+    /**
+        Texture depth to use for multisample resolve.
+    */
+    uint resolveDepth = 0;
+}
+
+/**
+    Describes a single depth texture attachment for a render pass.
+*/
+struct NioDepthAttachmentDescriptor {
+
+    /**
+        The attached texture.
+    */
+    NioTexture texture;
+
+    /**
+        Texture mipmap level to render to.
+    */
+    uint level = 0;
+
+    /**
+        Texture array slice to render to.
+    */
+    uint slice = 0;
+
+    /**
+        Texture depth plane to render to.
+    */
+    uint depth = 0;
+
+    /**
+        Action to perform on attachment load.
+    */
+    NioLoadAction loadAction;
+
+    /**
+        Action to perform on attachment store.
+    */
+    NioStoreAction storeAction;
+
+    /**
+        Value to clear the depth buffer to
+    */
+    float clearDepth;
+
+    /**
+        Texture to use for multisample resolve.
+    */
+    NioTexture resolveTexture = null;
+
+    /**
+        Mipmap level to use for multisample resolve.
+    */
+    uint resolveLevel = 0;
+
+    /**
+        Array slice to use for multisample resolve.
+    */
+    uint resolveSlice = 0;
+
+    /**
+        Texture depth to use for multisample resolve.
+    */
+    uint resolveDepth = 0;
+}
+
+/**
+    Describes a single depth texture attachment for a render pass.
+*/
+struct NioStencilAttachmentDescriptor {
+
+    /**
+        The attached texture.
+    */
+    NioTexture texture;
+
+    /**
+        Texture mipmap level to render to.
+    */
+    uint level = 0;
+
+    /**
+        Texture array slice to render to.
+    */
+    uint slice = 0;
+
+    /**
+        Texture depth plane to render to.
+    */
+    uint depth = 0;
+
+    /**
+        Action to perform on attachment load.
+    */
+    NioLoadAction loadAction;
+
+    /**
+        Action to perform on attachment store.
+    */
+    NioStoreAction storeAction;
+
+    /**
+        Value to clear the stencil buffer to
+    */
+    uint clearStencil;
+
+    /**
+        Texture to use for multisample resolve.
+    */
+    NioTexture resolveTexture = null;
+
+    /**
+        Mipmap level to use for multisample resolve.
+    */
+    uint resolveLevel = 0;
+
+    /**
+        Array slice to use for multisample resolve.
+    */
+    uint resolveSlice = 0;
+
+    /**
+        Texture depth to use for multisample resolve.
+    */
+    uint resolveDepth = 0;
+}
+
+/**
+    Describes the settings needed for a render pass.
+*/
+struct NioRenderPassDescriptor {
+
+    /**
+        Color attachments.
+    */
+    NioColorAttachmentDescriptor[] colorAttachments;
+
+    /**
+        Depth attachment, optional.
+    */
+    NioDepthAttachmentDescriptor depthAttachment;
+
+    /**
+        Stencil attachment, optional.
+    */
+    NioDepthAttachmentDescriptor stencilAttachment;
+}
+
+/**
     A short-lived object which encodes rendering commands 
     into a $(D NioCommandBuffer).
     Only one $(D NioCommandEncoder) can be active at a time 
@@ -196,7 +524,146 @@ protected:
 
 public:
 
+    /**
+        Encodes a command which instructs the GPU
+        to wait for the fence to be signalled before
+        proceeding.
 
+        Params:
+            fence =         The fence to wait for.
+            afterStages =   Which stages will be waiting.
+    */
+    abstract void waitForFence(NioFence fence, NioRenderStage beforeStages);
+
+    /**
+        Encodes a command which instructs the GPU
+        to signal the fence.
+
+        Params:
+            fence =         The fence to signal.
+            afterStages =   When in the pipeline to signal.
+    */
+    abstract void signalFence(NioFence fence, NioRenderStage afterStages);
+
+    /**
+        Inserts a memory barrier into the command stream.
+
+        Params:
+            resource =  The resource to set a barrier for.
+            after =     The render stages of previous commands that modify the resource.
+            before =    The render stages of subsequent commands that modify the resource.
+    */
+    abstract void memoryBarrier(NioResource resource, NioRenderStage after, NioRenderStage before);
+
+    /**
+        Sets the primary viewport of the render pass.
+
+        Params:
+            viewport = The viewport.
+    */
+    abstract void setViewport(NioViewport viewport);
+
+    /**
+        Sets the primary scissor rectangle of the render pass.
+
+        Params:
+            scissor = The scissor rectangle.
+    */
+    abstract void setScissor(NioScissorRect scissor);
+
+    /**
+        Sets the active culling mode for the render pass.
+
+        Params:
+            culling = The culling mode.
+    */
+    abstract void setCulling(NioCulling culling);
+
+    /**
+        Sets the active front-face winding for the render pass.
+
+        Params:
+            winding = The front-face winding.
+    */
+    abstract void setFaceWinding(NioFaceWinding winding);
+
+    /**
+        Enocodes a draw command using the bound vertex buffers.
+
+        Params:
+            prim =          The primitive topology to draw with.
+            firstVertex =   Offset to the first vertex.
+            vertexCount =   The amount of vertices to draw.
+    */
+    abstract void draw(NioPrimitive prim, uint firstVertex, uint vertexCount);
+
+    /**
+        Enocodes a draw command using the bound vertex buffers.
+
+        Params:
+            prim =          The primitive topology to draw with.
+            firstVertex =   Offset to the first vertex.
+            vertexCount =   The amount of vertices to draw.
+            instanceCount = The amount of instances to draw.
+    */
+    abstract void draw(NioPrimitive prim, uint firstVertex, uint vertexCount, uint instanceCount);
+
+    /**
+        Enocodes a draw command using the bound vertex buffers.
+
+        Params:
+            prim =          The primitive topology to draw with.
+            firstVertex =   Offset to the first vertex.
+            vertexCount =   The amount of vertices to draw.
+            firstInstance = Index of the first instance to draw.
+            instanceCount = The amount of instances to draw.
+    */
+    abstract void draw(NioPrimitive prim, uint firstVertex, uint vertexCount, uint firstInstance, uint instanceCount);
+
+    /**
+        Enocodes a draw command using the bound vertex buffers and
+        the given index buffer.
+
+        Params:
+            prim =          The primitive topology to draw with.
+            indexBuffer =   The index buffer to use.
+            indexCount =    The amount of indices to draw.
+            indexType =     The type of the index values.
+            indexCount =    The amount of indices to draw.
+            indexOffset =   Offset into the index buffer to begin at.
+    */
+    abstract void drawIndexed(NioPrimitive prim, NioBuffer indexBuffer, NioIndexType indexType, uint indexCount, uint indexOffset = 0);
+
+    /**
+        Enocodes a draw command using the bound vertex buffers and
+        the given index buffer.
+
+        Params:
+            prim =          The primitive topology to draw with.
+            indexBuffer =   The index buffer to use.
+            indexCount =    The amount of indices to draw.
+            indexType =     The type of the index values.
+            indexCount =    The amount of indices to draw.
+            indexOffset =   Offset into the index buffer to begin at.
+            instanceCount = The amount of instances to draw.
+    */
+    abstract void drawIndexed(NioPrimitive prim, NioBuffer indexBuffer, NioIndexType indexType, uint indexCount, uint indexOffset, uint instanceCount);
+
+    /**
+        Enocodes a draw command using the bound vertex buffers and
+        the given index buffer.
+
+        Params:
+            prim =          The primitive topology to draw with.
+            indexBuffer =   The index buffer to use.
+            indexCount =    The amount of indices to draw.
+            indexType =     The type of the index values.
+            indexCount =    The amount of indices to draw.
+            indexOffset =   Offset into the index buffer to begin at.
+            baseVertex =    Constant value to add to all of the indices.
+            instanceCount = The amount of instances to draw.
+    */
+    abstract void drawIndexed(NioPrimitive prim, NioBuffer indexBuffer, NioIndexType indexType, uint indexCount, uint indexOffset, int baseVertex, uint instanceCount);
 }
 
 /**

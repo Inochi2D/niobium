@@ -27,6 +27,7 @@ import nulib.threading.mutex;
 
 public import niobium.cmd;
 public import niobium.vk.cmd.txrencoder;
+public import niobium.vk.cmd.renderencoder;
 
 /**
     A buffer of commands which can be sent to the GPU
@@ -125,18 +126,22 @@ public:
             Only one pass can be active at a time,
             attempting to create new passes will fail.
         
+        Params:
+            desc = Descriptor used to start the render pass
+
         Returns:
             A short lived $(D NioRenderCommandEncoder) on success,
             $(D null) on failure.
     */
-    override NioRenderCommandEncoder beginRenderPass() {
+    override NioRenderCommandEncoder beginRenderPass(NioRenderPassDescriptor desc) {
         encoderMutex_.lock();
         if (this.activeEncoder)
             return null;
         
+        this.activeEncoder = nogc_new!NioVkRenderCommandEncoder(this, desc);
         encoderMutex_.unlock();
         handle_.pushDebugGroup("Render Pass", __invisibleColor);
-        return null;
+        return cast(NioRenderCommandEncoder)activeEncoder;
     }
 
     /**
@@ -257,6 +262,34 @@ public:
 */
 mixin template VkCommandEncoderFunctions() {
     import niobium.vk.device : pushDebugGroup, popDebugGroup;
+
+    /**
+        Helper which transitions textures into the requested layout.
+    */
+    protected
+    final void transitionTextureTo(NioVkTexture texture, VkImageLayout layout) {
+        if (texture.layout != layout) {
+            auto imageBarrier = VkImageMemoryBarrier2(
+                srcStageMask: VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                srcAccessMask: VK_ACCESS_2_MEMORY_WRITE_BIT,
+                dstStageMask: VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                dstAccessMask: VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+                oldLayout: texture.layout,
+                newLayout: layout,
+                subresourceRange: VkImageSubresourceRange(texture.format.toVkAspect, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS),
+                image: texture.handle,
+            );
+            auto depInfo = VkDependencyInfo(
+                imageMemoryBarrierCount: 1,
+                pImageMemoryBarriers: &imageBarrier
+            );
+            vkCmdPipelineBarrier2(
+                vkcmdbuffer,
+                &depInfo
+            );
+            texture.layout = layout;
+        }
+    }
 
     /**
         Vulkan command buffer.

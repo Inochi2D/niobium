@@ -13,16 +13,11 @@ module niobium.vk.cmd.txrencoder;
 import niobium.vk.cmd.buffer;
 import niobium.vk.sync;
 import niobium.vk.resource;
+import niobium.cmd;
 import vulkan.core;
 import vulkan.eh;
 import nulib.math : min, max;
 import numem;
-
-public import niobium.cmd : 
-    NioBufferSrcInfo, NioBufferDstInfo, 
-    NioTextureSrcInfo, NioTextureDstInfo,
-    NioTransferCommandEncoder, NioCommandBuffer;
-    import niobium.vk.resource.texture;
 
 /**
     A short-lived object which encodes transfer commands 
@@ -33,33 +28,8 @@ public import niobium.cmd :
     To end encoding call $(D endEncoding).
 */
 class NioVkTransferCommandEncoder : NioTransferCommandEncoder {
-private:
-@nogc:
-    void transitionTextureTo(NioVkTexture texture, VkImageLayout layout) {
-        if (texture.layout != layout) {
-            auto imageBarrier = VkImageMemoryBarrier2(
-                srcStageMask: VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                srcAccessMask: VK_ACCESS_2_MEMORY_WRITE_BIT,
-                dstStageMask: VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                dstAccessMask: VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
-                oldLayout: texture.layout,
-                newLayout: layout,
-                subresourceRange: VkImageSubresourceRange(texture.format.toVkAspect, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS),
-                image: texture.handle,
-            );
-            auto depInfo = VkDependencyInfo(
-                imageMemoryBarrierCount: 1,
-                pImageMemoryBarriers: &imageBarrier
-            );
-            vkCmdPipelineBarrier2(
-                vkcmdbuffer,
-                &depInfo
-            );
-            texture.layout = layout;
-        }
-    }
-
 public:
+@nogc:
 
     /**
         Constructs a new command encoder.

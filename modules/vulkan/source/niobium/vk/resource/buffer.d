@@ -178,6 +178,22 @@ public:
     }
 }
 
+/**
+    Converts a $(D NioIndexType) type to its $(D VkIndexType) equivalent.
+
+    Params:
+        value = The $(D NioIndexType)
+    
+    Returns:
+        The $(D VkIndexType) equivalent.
+*/
+pragma(inline, true)
+VkIndexType toVkIndexType(NioIndexType value) @nogc {
+    final switch(value) with(NioIndexType) {
+        case u16:  return VK_FRONT_FACE_CLOCKWISE;
+        case u32:  return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    }
+}
 
 /**
     Converts a $(D NioBufferUsage) bitmask to its $(D VkBufferUsageFlags) equivalent.

@@ -93,6 +93,22 @@ public:
 }
 
 /**
+    The type of value stored in an index buffer.
+*/
+enum NioIndexType : uint {
+
+    /**
+        Indices are 16-bit unsigned integers.
+    */
+    u16,
+
+    /**
+        Indices are 32-bit unsigned integers.
+    */
+    u32
+}
+
+/**
     Usage flags of a buffer.
 */
 enum NioBufferUsage : uint {

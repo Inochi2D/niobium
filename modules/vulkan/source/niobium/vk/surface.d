@@ -58,7 +58,8 @@ private:
 
     // Sync
     VkFence fence_;
-    VkSemaphore semaphore_;
+    uint currentFrame_;
+    VkSemaphore[] semaphores_;
 
     void rebuild() {
 
@@ -71,7 +72,6 @@ private:
         
         if (!isReady_)
             return;
-
 
         // Get surface capabilities.
         __nio_surface_procs.procs.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
@@ -102,6 +102,7 @@ private:
             // Recreate drawables.
             this.createDrawables(this.getSwapchainImages());
             this.currentImageIdx_ = 0;
+            this.currentFrame_ = 0;
             this.needsRebuild = false;
             return;
         }
@@ -125,12 +126,14 @@ private:
         // Resize arrays.
         this.imageCount_ = cast(uint)images.length;
         this.drawables_ = nu_malloca!NioVkDrawable(images.length);
+        this.semaphores_ = semaphores_.nu_resize(images.length);
 
         auto fenceCreateInfo = VkFenceCreateInfo();
         vkCreateFence(device_.vkDevice, &fenceCreateInfo, null, &fence_);
 
-        auto semapCreateInfo = VkSemaphoreCreateInfo();
-        vkCreateSemaphore(device_.vkDevice, &semapCreateInfo, null, &semaphore_);
+        auto semaCreateInfo = VkSemaphoreCreateInfo();
+        foreach(ref semaphore; semaphores_)
+            vkCreateSemaphore(device_.vkDevice, &semaCreateInfo, null, &semaphore);
 
         // Create new drawables.
         foreach(i; 0..images.length) {
@@ -145,8 +148,8 @@ private:
         if (fence_)
             vkDestroyFence(device_.vkDevice, fence_, null);
         
-        if (semaphore_)
-            vkDestroySemaphore(device_.vkDevice, semaphore_, null);
+        foreach(semaphore; semaphores_)
+            vkDestroySemaphore(device_.vkDevice, semaphore, null);
 
         // Delete old objects.
         nu_freea(drawables_);
@@ -175,14 +178,9 @@ private:
 public:
 
     /**
-        Semaphore
-    */
-    final @property VkSemaphore semaphore() => semaphore_;
-
-    /**
         Vulkan surface handle
     */
-    final @property VkSurfaceKHR vkSurface() => handle_;
+    final @property VkSurfaceKHR handle() => handle_;
 
     /**
         The device the surface is attached to.
@@ -376,7 +374,7 @@ public:
         if (!isReady)
             return null;
 
-        auto result = swapFuncs.vkAcquireNextImageKHR(device_.vkDevice, swapchain_, 1000, semaphore_, fence_, &currentImageIdx_);
+        auto result = swapFuncs.vkAcquireNextImageKHR(device_.vkDevice, swapchain_, 1000, semaphores_[currentFrame_], fence_, &currentImageIdx_);
         switch(result) {
             case VK_SUBOPTIMAL_KHR:
                 this.needsRebuild = true;
@@ -385,7 +383,12 @@ public:
             case VK_SUCCESS:
                 vkWaitForFences(device_.vkDevice, 1, &fence_, VK_TRUE, ulong.max);
                 vkResetFences(device_.vkDevice, 1, &fence_);
-                return drawables_[currentImageIdx_];
+
+                auto drawable = drawables_[currentImageIdx_];
+                drawable.semaphore = semaphores_[currentFrame_];
+
+                currentFrame_ = (currentFrame_ + 1) % framesInFlight_;
+                return drawable;
 
             case VK_ERROR_OUT_OF_DATE_KHR:
                 this.needsRebuild = true;
@@ -426,6 +429,11 @@ private:
 
 public:
 
+    /**
+        The drawable's current semaphore.
+    */
+    VkSemaphore semaphore;
+
     /// Helper that resets the drawable, called during submission.
     override void reset() {
         super.reset();
@@ -436,11 +444,6 @@ public:
         The swapchain of the drawable.
     */
     @property VkSwapchainKHR swapchain() => surface_.swapchain_;
-
-    /**
-        The swapchain's semaphore.
-    */
-    @property VkSemaphore semaphore() => surface_.semaphore;
 
     /**
         The swapchain index of the drawable.
