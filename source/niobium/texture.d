@@ -12,6 +12,7 @@
 module niobium.texture;
 import niobium.resource;
 import niobium.device;
+import niobium.types;
 
 /**
     Used to construct a $(D NioTexture) from a device,
@@ -86,6 +87,11 @@ protected:
 public:
 
     /**
+        Extent of the texture in pixels.
+    */
+    final @property NioExtent3D extent() => NioExtent3D(width, height, depth); 
+
+    /**
         The pixel format of the texture.
     */
     abstract @property NioPixelFormat format();
@@ -124,6 +130,25 @@ public:
         Mip level count of the texture.
     */
     abstract @property uint levels();
+
+    /**
+        Uploads data to the texture using a device-internal
+        transfer queue.
+
+        This is overall a slow operation, uploading via
+        a $(D NioTransferCommandEncoder) is recommended.
+
+        Params:
+            region =    The region of the texture to upload to.
+            level =     The mipmap level of the texture to upload to.
+            slice =     The array slice of the texture to upload to, for non-array textures, set to 0.
+            data =      The data to upload.
+            rowStride = The stride of a single row of pixels.
+    
+        Returns:
+            The calling texture, allowing chaining.
+    */
+    abstract NioTexture upload(NioRegion3D region, uint level, uint slice, void[] data, uint rowStride);
 }
 
 /**

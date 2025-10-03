@@ -11,6 +11,7 @@
 */
 module niobium.vk.cmd.buffer;
 import niobium.vk.cmd.queue;
+import niobium.vk.resource;
 import niobium.vk.surface;
 import niobium.vk.device;
 import niobium.cmd;
@@ -38,6 +39,7 @@ public import niobium.vk.cmd.txrencoder;
 class NioVkCommandBuffer : NioCommandBuffer {
 private:
 @nogc:
+    __gshared float[4] __invisibleColor;
 
     // State
     bool isRecording_;
@@ -58,6 +60,16 @@ private:
             drawable.reset();
             drawable = null;
         }
+    }
+
+protected:
+
+    /**
+        Called by command encoders when encoding ends.
+    */
+    override
+    void onEncodingEnd() {
+        handle_.popDebugGroup();
     }
 
 public:
@@ -123,6 +135,7 @@ public:
             return null;
         
         encoderMutex_.unlock();
+        handle_.pushDebugGroup("Render Pass", __invisibleColor);
         return null;
     }
 
@@ -145,6 +158,7 @@ public:
         this.activeEncoder = nogc_new!NioVkTransferCommandEncoder(this);
         encoderMutex_.unlock();
 
+        handle_.pushDebugGroup("Transfer Pass", __invisibleColor);
         return cast(NioTransferCommandEncoder)activeEncoder;
     }
 
@@ -167,7 +181,7 @@ public:
                 return;
 
             // Transition texture to presentable layout.
-            auto nvkDrawTexture = cast(NioVkDrawableTexture)nvkDrawable.texture;
+            auto nvkDrawTexture = cast(NioVkTexture)nvkDrawable.texture;
             if (nvkDrawTexture.layout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
                 auto imageBarrier = VkImageMemoryBarrier2(
                     srcStageMask: VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
@@ -177,7 +191,7 @@ public:
                     oldLayout: nvkDrawTexture.layout,
                     newLayout: VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                     subresourceRange: VkImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS),
-                    image: nvkDrawTexture.vkImage,
+                    image: nvkDrawTexture.handle,
                 );
                 auto depInfo = VkDependencyInfo(
                     imageMemoryBarrierCount: 1,

@@ -44,3 +44,20 @@ struct NioOrigin3D {
     uint y;
     uint z;
 }
+/**
+    3D Region
+*/
+union NioRegion3D {
+    struct {
+        uint x;
+        uint y;
+        uint z;
+        uint width;
+        uint height;
+        uint depth;
+    }
+    struct {
+        NioOrigin3D origin;
+        NioExtent3D extent;
+    }
+}

@@ -422,7 +422,7 @@ private:
 @nogc:
     uint index_;
     NioVkSurface surface_;
-    NioVkDrawableTexture texture_;
+    NioVkTexture texture_;
 
 public:
 
@@ -460,115 +460,25 @@ public:
 
         this.surface_ = surface;
         this.index_ = index;
-        this.texture_ = nogc_new!NioVkDrawableTexture(surface.device, this, image);
+
+        auto surfaceSize = surface.size;
+        this.texture_ = nogc_new!NioVkTexture(surface.device, image, NioTextureDescriptor(
+            type: NioTextureType.type2D,
+            format: surface.format,
+            storage: NioStorageMode.privateStorage,
+            usage: NioTextureUsage.transfer | NioTextureUsage.sampled | NioTextureUsage.attachment,
+            width: surfaceSize.width,
+            height: surfaceSize.height,
+            depth: 1,
+            levels: 1,
+            layers: 1,
+        ));
     }
 
     /**
         The texture view of this drawable.
     */
     override @property NioTexture texture() => texture_;
-}
-
-/**
-    A drawable texture.
-*/
-class NioVkDrawableTexture : NioTexture {
-private:
-@nogc:
-    NioPixelFormat format_;
-    VkSwapchainCreateInfoKHR swapCreateInfo_;
-    NioVkDrawable drawable_;
-    VkImage image_;
-    VkImageView view_;
-
-public:
-
-    /**
-        Image layout of the drawable texture for state tracking.
-    */
-    VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-    /**
-        Storage mode of the texture view.
-    */
-    override @property NioStorageMode storageMode() => NioStorageMode.privateStorage;
-
-    /**
-        Handle to underlying vulkan image.
-    */
-    final @property VkImage vkImage() => image_;
-
-    /**
-        The pixel format of the texture.
-    */
-    override @property NioPixelFormat format() => format_;
-
-    /**
-        The type of the texture.
-    */
-    override @property NioTextureType type() => NioTextureType.type2D;
-    
-    /**
-        The usage flags of the texture.
-    */
-    override @property NioTextureUsage usage() => NioTextureUsage.attachment | NioTextureUsage.sampled;
-
-    /**
-        Width of the texture in pixels.
-    */
-    override @property uint width() => swapCreateInfo_.imageExtent.width;
-
-    /**
-        Height of the texture in pixels.
-    */
-    override @property uint height() => swapCreateInfo_.imageExtent.height;
-
-    /**
-        Depth of the texture in pixels.
-    */
-    override @property uint depth() => 1;
-
-    /**
-        Array layer count of the texture.
-    */
-    override @property uint layers() => 1;
-
-    /**
-        Mip level count of the texture.
-    */
-    override @property uint levels() => 1;
-
-    /**
-        Size of the resource in bytes.
-    */
-    override @property uint size() => 0;
-
-    /// Destructor
-    ~this() {
-        auto nvkDevice = cast(NioVkDevice)device;
-        vkDestroyImageView(nvkDevice.vkDevice, view_, null);
-    }
-
-    /**
-        Constructs a new drawable texture.
-    */
-    this(NioDevice device, NioVkDrawable drawable, VkImage image) {
-        super(device);
-
-        this.drawable_ = drawable;
-        this.image_ = image;
-        this.swapCreateInfo_ = (cast(NioVkSurface)drawable.surface).swapCreateInfo;
-        this.format_ = drawable.surface.format;
-
-        auto createInfo = VkImageViewCreateInfo(
-            image: image,
-            viewType: VK_IMAGE_VIEW_TYPE_2D,
-            format: swapCreateInfo_.imageFormat,
-            components: VkComponentMapping(VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A),
-            subresourceRange: VkImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS)
-        );
-        vkEnforce(vkCreateImageView((cast(NioVkDevice)device).vkDevice, &createInfo, null, &view_));
-    }
 }
 
 /**

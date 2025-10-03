@@ -15,12 +15,14 @@ import niobium.vk.sync;
 import niobium.vk.resource;
 import vulkan.core;
 import vulkan.eh;
-import nulib.math : min;
+import nulib.math : min, max;
+import numem;
 
 public import niobium.cmd : 
     NioBufferSrcInfo, NioBufferDstInfo, 
     NioTextureSrcInfo, NioTextureDstInfo,
     NioTransferCommandEncoder, NioCommandBuffer;
+    import niobium.vk.resource.texture;
 
 /**
     A short-lived object which encodes transfer commands 
@@ -31,8 +33,33 @@ public import niobium.cmd :
     To end encoding call $(D endEncoding).
 */
 class NioVkTransferCommandEncoder : NioTransferCommandEncoder {
-public:
+private:
 @nogc:
+    void transitionTextureTo(NioVkTexture texture, VkImageLayout layout) {
+        if (texture.layout != layout) {
+            auto imageBarrier = VkImageMemoryBarrier2(
+                srcStageMask: VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                srcAccessMask: VK_ACCESS_2_MEMORY_WRITE_BIT,
+                dstStageMask: VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                dstAccessMask: VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+                oldLayout: texture.layout,
+                newLayout: layout,
+                subresourceRange: VkImageSubresourceRange(texture.format.toVkAspect, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS),
+                image: texture.handle,
+            );
+            auto depInfo = VkDependencyInfo(
+                imageMemoryBarrierCount: 1,
+                pImageMemoryBarriers: &imageBarrier
+            );
+            vkCmdPipelineBarrier2(
+                vkcmdbuffer,
+                &depInfo
+            );
+            texture.layout = layout;
+        }
+    }
+
+public:
 
     /**
         Constructs a new command encoder.
@@ -95,6 +122,48 @@ public:
             vkevent,
             &depInfo
         );
+    }
+
+    /**
+        Generates mipmaps for the destination texture,
+        given that it's a color texture with mipmaps allocated.
+    */
+    override void generateMipmapsFor(NioTexture dst) {
+        if (dst.levels < 1)
+            return;
+        
+        if (dst.format.toVkAspect() != VK_IMAGE_ASPECT_COLOR_BIT)
+            return;
+        
+        auto nvkTexture = cast(NioVkTexture)dst;
+        auto aspect = nvkTexture.format.toVkAspect;
+        auto layers = dst.layers;
+        this.transitionTextureTo(nvkTexture, VK_IMAGE_LAYOUT_GENERAL);
+
+        VkOffset3D[2] srcOffsets = [VkOffset3D(0, 0, 0), VkOffset3D(dst.width, dst.height, dst.depth)];
+        VkOffset3D[2] dstOffsets = [VkOffset3D(0, 0, 0), VkOffset3D(max(1, dst.width/2), max(1, dst.height/2), max(1, dst.depth/2))];
+        VkImageBlit[] blits = nu_malloca!VkImageBlit(dst.levels-1);
+        foreach(level, ref blit; blits) {
+            blit = VkImageBlit(
+                srcSubresource: VkImageSubresourceLayers(aspect, 0, 0, layers),
+                srcOffsets: srcOffsets,
+                dstSubresource: VkImageSubresourceLayers(aspect, cast(uint)level+1, 0, layers),
+                dstOffsets: dstOffsets,
+            );
+            dstOffsets[1].x = max(1, dstOffsets[1].x/2);
+            dstOffsets[1].y = max(1, dstOffsets[1].y/2);
+            dstOffsets[1].z = max(1, dstOffsets[1].z/2);
+        }
+
+        vkCmdBlitImage(
+            vkcmdbuffer, 
+            nvkTexture.handle, VK_IMAGE_LAYOUT_GENERAL, 
+            nvkTexture.handle, VK_IMAGE_LAYOUT_GENERAL,
+            cast(uint)blits.length,
+            blits.ptr,
+            VK_FILTER_LINEAR
+        );
+        nu_freea(blits);
     }
 
     /**
@@ -175,11 +244,13 @@ public:
         auto vkBufferSrc = (cast(NioVkBuffer)src.buffer);
         auto vkImageDst = (cast(NioVkTexture)dst.texture);
 
+        this.transitionTextureTo(vkImageDst, VK_IMAGE_LAYOUT_GENERAL);
+
         auto bufferImageInfo = VkBufferImageCopy2(
             bufferOffset: src.offset,
-            bufferRowLength: cast(uint)src.bytesPerRow,
+            bufferRowLength: cast(uint)src.rowLength,
             imageSubresource: VkImageSubresourceLayers(vkImageDst.format.toVkAspect(), dst.level, dst.slice, 1),
-            imageExtent: VkExtent3D(src.size.width, src.size.height, src.size.depth)
+            imageExtent: VkExtent3D(src.extent.width, src.extent.height, src.extent.depth)
         );
         auto copyInfo = VkCopyBufferToImageInfo2(
             srcBuffer: vkBufferSrc.handle,
@@ -204,9 +275,9 @@ public:
 
         auto bufferImageInfo = VkBufferImageCopy2(
             bufferOffset: dst.offset,
-            bufferRowLength: cast(uint)dst.bytesPerRow,
+            bufferRowLength: cast(uint)dst.rowLength,
             imageSubresource: VkImageSubresourceLayers(vkImageSrc.format.toVkAspect(), src.level, src.slice, 1),
-            imageExtent: VkExtent3D(src.size.width, src.size.height, src.size.depth)
+            imageExtent: VkExtent3D(src.extent.width, src.extent.height, src.extent.depth)
         );
         auto copyInfo = VkCopyImageToBufferInfo2(
             srcImage: vkImageSrc.handle,
@@ -235,7 +306,7 @@ public:
             srcOffset: VkOffset3D(src.origin.x, src.origin.y, src.origin.z),
             dstSubresource: VkImageSubresourceLayers(vkImageDst.format.toVkAspect(), dst.level, dst.slice, 1),
             dstOffset: VkOffset3D(dst.origin.x, dst.origin.y, dst.origin.z),
-            extent: VkExtent3D(src.size.width, src.size.height, src.size.depth)
+            extent: VkExtent3D(src.extent.width, src.extent.height, src.extent.depth)
         );
         auto copyInfo = VkCopyImageInfo2(
             srcImage: vkImageSrc.handle, 

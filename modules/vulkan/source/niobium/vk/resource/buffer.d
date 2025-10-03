@@ -137,8 +137,8 @@ public:
             The mapped buffer or $(D null) on failure.
     */
     override void[] map() {
-        if (allocation_.memory)
-            return allocation_.memory.map(allocation_.size, allocation_.offset);
+        if (allocation_.memory && allocation_.memory.isMappable)
+            return allocation_.memory.map(allocation_.offset, allocation_.size);
         return null;
     }
 
@@ -148,8 +148,8 @@ public:
         reference count.
     */
     override void unmap() {
-        if (allocation_.memory)
-            return allocation_.memory.unmap();
+        if (allocation_.memory && allocation_.memory.isMappable)
+            allocation_.memory.unmap();
     }
 
     /**
@@ -166,12 +166,13 @@ public:
     override void upload(void[] data, size_t offset) {
         import nulib.math : min;
 
-        if (allocation_.memory && allocation_.memory.isMappable) {
-            void[] mapped = this.map();
-                size_t start = min(offset, mapped.length);
-                size_t end = min(offset+data.length, mapped.length);
-                size_t srcEnd = mapped.length-end;
-                mapped[start..end] = data[0..srcEnd];
+        if (void[] mapped = this.map()) {
+            size_t start = min(offset, mapped.length);
+            size_t end = min(offset+data.length, mapped.length);
+            size_t srcEnd = min(data.length, end-start);
+            
+            mapped[start..end] = data[0..srcEnd];
+
             this.unmap();
         }
     }

@@ -53,6 +53,11 @@ protected:
         this.queue_ = queue;
     }
 
+    /**
+        Called by command encoders when encoding ends.
+    */
+    void onEncodingEnd() { }
+
 public:
 
     /**
@@ -136,6 +141,7 @@ protected:
         if (cmdbuffer_.activeEncoder) {
             nogc_delete(cmdbuffer_.activeEncoder);
             cmdbuffer_.activeEncoder = null;
+            cmdbuffer_.onEncodingEnd();
         }
     }
 
@@ -200,8 +206,8 @@ struct NioBufferSrcInfo {
     NioBuffer buffer;
     ulong offset = 0;
     ulong length;
-    ulong bytesPerRow;
-    NioExtent3D size = NioExtent3D(0, 0, 0);
+    ulong rowLength;
+    NioExtent3D extent = NioExtent3D(0, 0, 0);
 }
 
 /**
@@ -210,7 +216,7 @@ struct NioBufferSrcInfo {
 struct NioBufferDstInfo {
     NioBuffer buffer;
     ulong offset = 0;
-    ulong bytesPerRow;
+    ulong rowLength;
 }
 
 /**
@@ -221,7 +227,7 @@ struct NioTextureSrcInfo {
     uint slice = 0;
     uint level = 0;
     NioOrigin3D origin = NioOrigin3D(0, 0, 0);
-    NioExtent3D size;
+    NioExtent3D extent;
 }
 
 /**
@@ -274,6 +280,12 @@ public:
             fence = The fence to signal.
     */
     abstract void signalFence(NioFence fence);
+
+    /**
+        Generates mipmaps for the destination texture,
+        given that it's a color texture with mipmaps allocated.
+    */
+    abstract void generateMipmapsFor(NioTexture dst);
 
     /**
         Fills the given buffer with the given value.

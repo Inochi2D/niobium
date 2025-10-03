@@ -54,6 +54,10 @@ private:
     // Memory
     NioAllocator allocator_;
 
+    // Internal immediate upload queue
+    NioCommandQueue uploadQueue;
+    NioBuffer uploadStagingBuffer;
+
     void createDevice(NioVkQueueTable queueTable) {
         this.queueTable = queueTable;
 
@@ -164,6 +168,9 @@ private:
 
         // Create queues
         this.createQueues(queueTable);
+
+        // Internal upload queue.
+        this.uploadQueue = this.createQueue(NioCommandQueueDescriptor(maxCommandBuffers: 1));
     }
 
     void createQueues(NioVkQueueTable queueTable) {
@@ -230,7 +237,11 @@ public:
 
     /// Destructor
     ~this() {
-        
+        vkDeviceWaitIdle(handle_);
+
+        uploadQueue.release();
+        uploadStagingBuffer.release();
+
         // Free containers and handles.
         nu_freea(deviceName_);
         nogc_delete(allocator_);
@@ -374,6 +385,56 @@ public:
     */
     override NioBuffer createBuffer(NioBufferDescriptor desc) {
         return nogc_new!NioVkBuffer(this, desc);
+    }
+    
+    /**
+        Uploads data to the texture using a device-internal
+        transfer queue.
+
+        Params:
+            texture =   Target texture
+            region =    The region of the texture to upload to.
+            level =     The mipmap level of the texture to upload to.
+            slice =     The array slice of the texture to upload to, for non-array textures, set to 0.
+            data =      The data to upload.
+            rowStride = The stride of a single row of pixels.
+    */
+    void uploadDataToTexture(NioTexture texture, NioRegion3D region, uint level, uint slice, void[] data, uint rowStride) {
+        if (!uploadStagingBuffer || texture.size > uploadStagingBuffer.size) {
+            
+            if (uploadStagingBuffer)
+                uploadStagingBuffer.release();
+            
+            uploadStagingBuffer = this.createBuffer(NioBufferDescriptor(
+                usage: NioBufferUsage.transfer,
+                storage: NioStorageMode.sharedStorage,
+                size: texture.size
+            ));
+        }
+
+        uploadStagingBuffer.upload(data, 0);
+        if (auto cmdbuffer = uploadQueue.fetch()) {
+            auto transferPass = cmdbuffer.beginTransferPass();
+                transferPass.copy(
+                    NioBufferSrcInfo(
+                        buffer: uploadStagingBuffer, 
+                        offset: 0, 
+                        rowLength: rowStride,
+                        extent: region.extent
+                    ), 
+                    NioTextureDstInfo(
+                        texture: texture,
+                        slice: slice,
+                        level: level,
+                        origin: region.origin
+                    )
+                );
+            transferPass.endEncoding();
+
+            uploadQueue.commit(cmdbuffer);
+            cmdbuffer.await();
+            cmdbuffer.release();
+        }
     }
 
     /// Stringification override

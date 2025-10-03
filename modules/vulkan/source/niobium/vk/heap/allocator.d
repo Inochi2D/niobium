@@ -135,8 +135,17 @@ public:
             mask =  The VkMemoryRequirements type mask.
     */
     final ptrdiff_t getTypeForMasked(VkMemoryAllocateFlags flags, uint mask) {
+
+        // Pass 1: Exact match
         foreach(i; 0..memoryProperties.memoryTypeCount) {
-            if (((mask >> i) & 1) && memoryProperties.memoryTypes[i].propertyFlags & flags) {
+            if (((mask >> i) & 1) && (memoryProperties.memoryTypes[i].propertyFlags & flags) == flags) {
+                return i;
+            }
+        }
+
+        // Pass 2: Partial match
+        foreach(i; 0..memoryProperties.memoryTypeCount) {
+            if (((mask >> i) & 1) && (memoryProperties.memoryTypes[i].propertyFlags & flags)) {
                 return i;
             }
         }
@@ -280,8 +289,8 @@ private:
         // Allocate new block.
         auto newBlock = MemoryBlock(
             memory: nogc_new!NioDeviceMemory(device, NioDeviceMemoryDescriptor(
-                max(size * 2, blockMinSize),
-                type,
+                size: max(size * 2, blockMinSize),
+                type: type,
                 memoryProperties.memoryTypes[type].propertyFlags
             )),
             layout: nu_malloca!Span(1)

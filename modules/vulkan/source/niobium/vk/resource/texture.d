@@ -16,6 +16,7 @@ import niobium.resource;
 import vulkan.core;
 import vulkan.eh;
 import numem;
+import nulib;
 
 public import niobium.texture;
 
@@ -30,11 +31,11 @@ private:
     NioAllocation   allocation_;
     
     // Handles
-    NioVkTexture    parent_;
     VkImage         image_;
     VkImageView     view_;
     
     // State
+    bool                    isView_;
     NioTextureDescriptor    desc_;
     VkImageCreateInfo       vkdesc_;
     VkImageViewCreateInfo   vkviewdesc_;
@@ -43,6 +44,7 @@ private:
         auto nvkDevice = (cast(NioVkDevice)device);
         
         this.desc_ = desc;
+        this.isView_ = false;
         this.vkdesc_ = VkImageCreateInfo(
             imageType: desc_.type.toVkImageType(),
             format: desc_.format.toVkFormat(),
@@ -87,16 +89,45 @@ private:
         vkEnforce(vkCreateImageView(nvkDevice.vkDevice, &vkviewdesc_, null, &view_));
     }
 
-    void createImageView(NioVkTexture texture, NioTextureDescriptor desc) {
+    void createImageView(NioVkTexture parent, NioTextureDescriptor desc) {
         auto nvkDevice = (cast(NioVkDevice)device);
 
         // Create View
-        this.parent_ = texture.retained();
+        this.isView_ = true;
         this.desc_ = desc;
-        this.vkdesc_ = parent_.vkdesc_;
-        this.image_ = parent_.handle;
+        this.vkdesc_ = parent.vkdesc_;
+        this.image_ = parent.handle;
         this.vkviewdesc_ = VkImageViewCreateInfo(
-            image: parent_.handle,
+            image: parent.handle,
+            viewType: desc.type.toVkImageViewType(),
+            format: desc.format.toVkFormat(),
+            components: VkComponentMapping(VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY),
+            subresourceRange: VkImageSubresourceRange(desc.format.toVkAspect(), 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS)
+        );
+        vkEnforce(vkCreateImageView(nvkDevice.vkDevice, &vkviewdesc_, null, &view_));
+    }
+
+    void createImageView(VkImage image, NioTextureDescriptor desc) {
+        auto nvkDevice = (cast(NioVkDevice)device);
+
+        // Create View
+        this.isView_ = true;
+        this.desc_ = desc;
+        this.vkdesc_ = VkImageCreateInfo(
+            imageType: desc_.type.toVkImageType(),
+            format: desc_.format.toVkFormat(),
+            extent: VkExtent3D(desc.width, desc.height, desc.depth),
+            mipLevels: desc.levels,
+            arrayLayers: desc.layers,
+            samples: VK_SAMPLE_COUNT_1_BIT,
+            tiling: VK_IMAGE_TILING_OPTIMAL,
+            usage: desc.usage.toVkImageUsage(),
+            sharingMode: VK_SHARING_MODE_EXCLUSIVE,
+            initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
+        );
+        this.image_ = image;
+        this.vkviewdesc_ = VkImageViewCreateInfo(
+            image: image,
             viewType: desc.type.toVkImageViewType(),
             format: desc.format.toVkFormat(),
             components: VkComponentMapping(VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY),
@@ -117,9 +148,10 @@ protected:
     void onLabelChanged(string label) {
         auto vkDevice = (cast(NioVkDevice)device).vkDevice;
 
+        // Differentiate view and image view.
         import niobium.vk.device : setDebugName;
         vkDevice.setDebugName(VK_OBJECT_TYPE_IMAGE, image_, label);
-        vkDevice.setDebugName(VK_OBJECT_TYPE_IMAGE_VIEW, view_, label);
+        vkDevice.setDebugName(VK_OBJECT_TYPE_IMAGE_VIEW, view_, (nstring(label) ~ " (View)"));
     }
 public:
 
@@ -143,9 +175,8 @@ public:
         auto vkDevice = (cast(NioVkDevice)device).vkDevice;
         
         // Image-view Mode
-        if (parent_) {
+        if (isView_) {
             vkDestroyImageView(vkDevice, view_, null);
-            parent_.release();
             return;
         }
 
@@ -184,6 +215,20 @@ public:
         super(device);
 
         this.createImageView(cast(NioVkTexture)texture, desc);
+    }
+
+    /**
+        Constructs a new $(D NioVkTexture) as a view of a vulkan handle.
+
+        Params:
+            device =    The device to create the texture on.
+            handle =    Vulkan handle to create a view of.
+            desc =      Descriptor used to create the texture.
+    */
+    this(NioDevice device, VkImage handle, NioTextureDescriptor desc) {
+        super(device);
+
+        this.createImageView(handle, desc);
     }
 
     /**
@@ -235,6 +280,25 @@ public:
         Mip level count of the texture.
     */
     override @property uint levels() => desc_.levels;
+
+    /**
+        Uploads data to the texture using a device-internal
+        transfer queue.
+
+        This is overall a slow operation, uploading via
+        a $(D NioTransferCommandEncoder) is recommended.
+
+        Params:
+            region =    The region of the texture to upload to.
+            level =     The mipmap level of the texture to upload to.
+            slice =     The array slice of the texture to upload to, for non-array textures, set to 0.
+            data =      The data to upload.
+            rowStride = The stride of a single row of pixels.
+    */
+    override NioTexture upload(NioRegion3D region, uint level, uint slice, void[] data, uint rowStride) {
+        (cast(NioVkDevice)device).uploadDataToTexture(this, region, level, slice, data, rowStride);
+        return this;
+    }
 }
 
 /**
