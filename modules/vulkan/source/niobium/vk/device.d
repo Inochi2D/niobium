@@ -59,7 +59,7 @@ private:
 
     // Internal immediate upload queue
     NioCommandQueue uploadQueue;
-    NioBuffer uploadStagingBuffer;
+    NioBuffer stagingBuffer;
 
     void createDevice(NioVkQueueTable queueTable) {
         this.queueTable = queueTable;
@@ -196,6 +196,23 @@ private:
         return queue_;
     }
 
+    /// Updates the staging buffer to fit a new size if it's greater
+    /// than its current size.
+    void updateStagingBuffer(uint size) {
+        if (!stagingBuffer || size > stagingBuffer.size) {
+            if (stagingBuffer) {
+                stagingBuffer.release();
+                stagingBuffer = null;
+            }
+
+            stagingBuffer = this.createBuffer(NioBufferDescriptor(
+                usage: NioBufferUsage.transfer,
+                storage: NioStorageMode.sharedStorage,
+                size: size
+            ));
+        }
+    }
+
 public:
 
     /**
@@ -240,8 +257,10 @@ public:
 
     /// Destructor
     ~this() {
+        if (stagingBuffer)
+            stagingBuffer.release();
+        
         uploadQueue.release();
-        uploadStagingBuffer.release();
 
         // Free containers and handles.
         nu_freea(deviceName_);
@@ -429,24 +448,14 @@ public:
             rowStride = The stride of a single row of pixels.
     */
     void uploadDataToTexture(NioTexture texture, NioRegion3D region, uint level, uint slice, void[] data, uint rowStride) {
-        if (!uploadStagingBuffer || texture.size > uploadStagingBuffer.size) {
-            
-            if (uploadStagingBuffer)
-                uploadStagingBuffer.release();
-            
-            uploadStagingBuffer = this.createBuffer(NioBufferDescriptor(
-                usage: NioBufferUsage.transfer,
-                storage: NioStorageMode.sharedStorage,
-                size: texture.size
-            ));
-        }
+        this.updateStagingBuffer(texture.size);
 
-        uploadStagingBuffer.upload(data, 0);
+        stagingBuffer.upload(data, 0);
         if (auto cmdbuffer = uploadQueue.fetch()) {
             auto transferPass = cmdbuffer.beginTransferPass();
                 transferPass.copy(
                     NioBufferSrcInfo(
-                        buffer: uploadStagingBuffer, 
+                        buffer: stagingBuffer, 
                         offset: 0, 
                         rowLength: rowStride,
                         extent: region.extent
@@ -464,6 +473,131 @@ public:
             cmdbuffer.await();
             cmdbuffer.release();
         }
+    }
+    
+    /**
+        Downloads data from the texture using a device-internal
+        transfer queue.
+
+        Params:
+            texture =   Source texture
+            region =    The region of the texture to upload to.
+            level =     The mipmap level of the texture to upload to.
+            slice =     The array slice of the texture to upload to, for non-array textures, set to 0.
+            rowStride = The stride of a single row of pixels.
+    
+        Returns:
+            A nogc slice of the data from the texture,
+            or $(D null) on failure.
+    */
+    void[] downloadDataFromTexture(NioTexture texture, NioRegion3D region, uint level, uint slice, uint rowStride) {
+        void[] result;
+        this.updateStagingBuffer(texture.size);
+
+        if (auto cmdbuffer = uploadQueue.fetch()) {
+            auto transferPass = cmdbuffer.beginTransferPass();
+                transferPass.copy(
+                    NioTextureSrcInfo(
+                        texture: texture,
+                        slice: slice,
+                        level: level,
+                        origin: region.origin,
+                        extent: region.extent
+                    ), 
+                    NioBufferDstInfo(
+                        buffer: stagingBuffer,
+                        offset: 0,
+                        rowLength: rowStride
+                    )
+                );
+            transferPass.endEncoding();
+
+            uploadQueue.commit(cmdbuffer);
+            cmdbuffer.await();
+            cmdbuffer.release();
+
+            result = nu_malloc(texture.size)[0..texture.size];
+            result[0..$] = stagingBuffer.map()[0..result.length];
+        }
+
+        return result;
+    }
+    
+    /**
+        Uploads data to the buffer using a device-internal
+        transfer queue.
+
+        Params:
+            buffer =    Target buffer
+            offset =    Offset into buffer to write to
+            data =      The data to write.
+    */
+    void uploadDataToBuffer(NioBuffer buffer, size_t offset, void[] data) {
+        this.updateStagingBuffer(buffer.size);
+
+        stagingBuffer.upload(data, 0);
+        if (auto cmdbuffer = uploadQueue.fetch()) {
+            auto transferPass = cmdbuffer.beginTransferPass();
+                transferPass.copy(
+                    NioBufferSrcInfo(
+                        buffer: stagingBuffer, 
+                        offset: 0,
+                        length: cast(uint)data.length
+                    ), 
+                    NioBufferDstInfo(
+                        buffer: buffer,
+                        offset: offset,
+                    )
+                );
+            transferPass.endEncoding();
+
+            uploadQueue.commit(cmdbuffer);
+            cmdbuffer.await();
+            cmdbuffer.release();
+        }
+    }
+    
+    /**
+        Uploads data to the texture using a device-internal
+        transfer queue.
+
+        Params:
+            buffer =    Source buffer
+            offset =    Offset into the buffer to download.
+            length =    Length of the data to download, in bytes.
+    
+        Returns:
+            A nogc slice of the data from the buffer,
+            or $(D null) on failure.
+    */
+    void[] downloadDataFromBuffer(NioBuffer buffer, size_t offset, size_t length) {
+        void[] result;
+        this.updateStagingBuffer(buffer.size);
+
+        if (auto cmdbuffer = uploadQueue.fetch()) {
+            auto transferPass = cmdbuffer.beginTransferPass();
+                transferPass.copy(
+                    NioBufferSrcInfo(
+                        buffer: buffer,
+                        offset: offset,
+                        length: length
+                    ), 
+                    NioBufferDstInfo(
+                        buffer: stagingBuffer,
+                        offset: 0,
+                    )
+                );
+            transferPass.endEncoding();
+
+            uploadQueue.commit(cmdbuffer);
+            cmdbuffer.await();
+            cmdbuffer.release();
+
+            result = nu_malloc(buffer.size)[0..buffer.size];
+            result[0..$] = stagingBuffer.map()[0..result.length];
+        }
+
+        return result;
     }
 
     /// Stringification override
