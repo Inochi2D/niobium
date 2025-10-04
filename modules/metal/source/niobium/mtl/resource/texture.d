@@ -227,7 +227,10 @@ public:
             The calling texture, allowing chaining.
     */
     override NioTexture upload(NioRegion3D region, uint level, uint slice, void[] data, uint rowStride) {
-        auto mtlregion = *(cast(MTLRegion*)&region);
+        auto mtlregion = MTLRegion(
+            MTLOrigin(region.x, region.y, region.z),
+            MTLSize(region.width, region.height, region.depth),
+        );
         this.handle_.replace(
             mtlregion,
             level,
