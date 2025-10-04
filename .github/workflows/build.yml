@@ -70,7 +70,7 @@ jobs:
       uses: humbletim/setup-vulkan-sdk@v1.2.1
       with:
         vulkan-query-version: 1.4.304.1
-        vulkan-components: Vulkan-Headers, Vulkan-Loader
+        vulkan-components: Vulkan-Loader
         vulkan-use-cache: true
     
     # Clone linrarues
@@ -82,22 +82,26 @@ jobs:
     # Build Library
     - name: 'Build niobium (library, ${{ runner.os }}-${{ matrix.arch }})...'
       if: ${{ inputs.build_library }}
+      shell: bash
       run: |
         if [[ "${{ runner.os }}" == "macOS" ]]; then
-          redub -build-universal --config=metal-dynamic --build=${{ inputs.build_type }}
+          redub build-universal --config=metal-dynamic --build=${{ inputs.build_type }}
         else
+          set LIBRARY_PATH="$VULKAN_SDK/Lib:$LIBRARY_PATH"
           redub build --config=vulkan-dynamic --build=${{ inputs.build_type }}
         fi
     
     # Build Tools
     - name: 'Build niobium (tools, ${{ runner.os }}-${{ matrix.arch }})...'
       if: ${{ inputs.build_tools }}
+      shell: bash
       run: |
         for _file in tools/*; do
           if [ -d "$_file" ]; then
             if [[ "${{ runner.os }}" == "macOS" ]]; then
               redub build-universal --root=$_file --build=${{ inputs.build_type }}
             else
+              set LIBRARY_PATH="$VULKAN_SDK/Lib:$LIBRARY_PATH"
               redub build --root=$_file --build=${{ inputs.build_type }}
             fi
             cp $_file/out/* out/
