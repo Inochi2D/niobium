@@ -63,7 +63,13 @@ jobs:
       with:
         compiler: ldc-latest
         redub: 1.25.2
-    
+
+    # Clone nuvk
+    - name: 'Cloning nuvk...'
+      if: ${{ inputs.build_library && runner.os != 'macOS' }}
+      run: |
+        git clone https://github.com/Inochi2D/nuvk ../nuvk
+      
     # Build Library
     - name: 'Build niobium (library, ${{ runner.os }}-${{ matrix.arch }})...'
       if: ${{ inputs.build_library && runner.os == 'macOS' }}
