@@ -11,6 +11,7 @@
 */
 module niobium.vk.device;
 import niobium.vk.resource;
+import niobium.vk.sampler;
 import niobium.vk.video;
 import niobium.vk.heap;
 import niobium.vk.sync;
@@ -21,6 +22,8 @@ import vulkan.eh;
 import numem;
 import nulib;
 import nulib.math : min;
+
+import niobium.pipeline;
 
 public import niobium.device;
 public import niobium.types;
@@ -198,7 +201,7 @@ public:
     /**
         Low level handle for the device.
     */
-    final @property VkDevice vkDevice() => handle_;
+    final @property VkDevice handle() => handle_;
 
     /**
         Low level handle for the physical device.
@@ -385,6 +388,34 @@ public:
     */
     override NioBuffer createBuffer(NioBufferDescriptor desc) {
         return nogc_new!NioVkBuffer(this, desc);
+    }
+
+    /**
+        Creates a new render pipeline object.
+
+        Params:
+            desc = Descriptor for the pipeline.
+        
+        Returns:
+            A new $(D NioRenderPipeline) on success,
+            $(D null) otherwise.
+    */
+    override NioRenderPipeline createRenderPipeline(NioRenderPipelineDescriptor desc) {
+        return null;
+    }
+
+    /**
+        Creates a new sampler.
+
+        Params:
+            desc = Descriptor for the sampler.
+        
+        Returns:
+            A new $(D NioSampler) on success,
+            $(D null) otherwise.
+    */
+    override NioSampler createSampler(NioSamplerDescriptor desc) {
+        return nogc_new!NioVkSampler(this, desc);
     }
     
     /**

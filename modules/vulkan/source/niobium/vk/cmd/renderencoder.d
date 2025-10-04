@@ -11,6 +11,7 @@
 */
 module niobium.vk.cmd.renderencoder;
 import niobium.vk.cmd.buffer;
+import niobium.vk.sampler;
 import niobium.vk.resource;
 import niobium.vk.sync;
 import niobium.types;
@@ -20,6 +21,8 @@ import vulkan.eh;
 import nulib.math : min, max;
 import numem;
 
+// TODO: remove this
+import niobium.pipeline;
 
 /**
     A short-lived object which encodes rendering commands 
@@ -246,6 +249,101 @@ public:
     */
     override void setFaceWinding(NioFaceWinding winding) {
         vkCmdSetFrontFace(vkcmdbuffer, winding.toVkFrontFace());
+    }
+
+    /**
+        Sets the active constant blending color for the render pass.
+
+        Params:
+            color = The constant blending color.
+    */
+    override void setBlendColor(NioColor color) {
+        float[4] values = *(cast(float[4]*)&color);
+        vkCmdSetBlendConstants(vkcmdbuffer, values);
+    }
+
+    /**
+        Sets the active render pipeline for the render pass.
+
+        Params:
+            pipeline =  The pipeline.
+    */
+    override void setPipeline(NioRenderPipeline pipeline) {
+
+    }
+
+    /**
+        Sets the given buffer as the active buffer at the given
+        slot in the vertex shader argument table.
+
+        Params:
+            buffer =    The buffer to set.
+            offset =    The offset into the buffer, in bytes.
+            slot =      The slot in the argument table to set.
+    */
+    override void setVertexBuffer(NioBuffer buffer, ulong offset, uint slot) {
+
+    }
+
+    /**
+        Sets the given texture as the active texture at the given
+        slot in the vertex shader argument table.
+
+        Params:
+            texture =   The texture to set.
+            slot =      The slot in the argument table to set.
+    */
+    override void setVertexTexture(NioTexture texture, uint slot) {
+
+    }
+
+    /**
+        Sets the given sampler as the active sampler at the given
+        slot in the vertex shader argument table.
+
+        Params:
+            sampler =   The sampler to set.
+            slot =      The slot in the argument table to set.
+    */
+    override void setVertexSampler(NioSampler sampler, uint slot) {
+
+    }
+
+    /**
+        Sets the given buffer as the active buffer at the given
+        slot in the fragment shader argument table.
+
+        Params:
+            buffer =    The buffer to set.
+            offset =    The offset into the buffer, in bytes.
+            slot =      The slot in the argument table to set.
+    */
+    override void setFragmentBuffer(NioBuffer buffer, ulong offset, uint slot) {
+
+    }
+
+    /**
+        Sets the given texture as the active texture at the given
+        slot in the fragment shader argument table.
+
+        Params:
+            texture =   The texture to set.
+            slot =      The slot in the argument table to set.
+    */
+    override void setFragmentTexture(NioTexture texture, uint slot) {
+
+    }
+
+    /**
+        Sets the given sampler as the active sampler at the given
+        slot in the fragment shader argument table.
+
+        Params:
+            sampler =   The sampler to set.
+            slot =      The slot in the argument table to set.
+    */
+    override void setFragmentSampler(NioSampler sampler, uint slot) {
+        
     }
 
     /**

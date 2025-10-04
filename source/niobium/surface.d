@@ -10,6 +10,7 @@
         Luna Nielsen
 */
 module niobium.surface;
+import niobium.pixelformat;
 import niobium.texture;
 import niobium.device;
 import niobium.queue;

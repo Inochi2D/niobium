@@ -92,11 +92,11 @@ private:
 
         // Clear old images, if needed.
         if (swapCreateInfo.oldSwapchain) {
-            swapFuncs.vkDestroySwapchainKHR(device_.vkDevice, swapCreateInfo.oldSwapchain, null);
+            swapFuncs.vkDestroySwapchainKHR(device_.handle, swapCreateInfo.oldSwapchain, null);
         }
 
         swapCreateInfo.oldSwapchain = swapchain_;
-        auto result = swapFuncs.vkCreateSwapchainKHR(device_.vkDevice, &swapCreateInfo, null, &swapchain_);
+        auto result = swapFuncs.vkCreateSwapchainKHR(device_.handle, &swapCreateInfo, null, &swapchain_);
         if (result == VK_SUCCESS) {
 
             // Recreate drawables.
@@ -111,10 +111,10 @@ private:
     /// Gets swapchain images.
     VkImage[] getSwapchainImages() {
         uint pCount;
-        swapFuncs.vkGetSwapchainImagesKHR(device_.vkDevice, swapchain_, &pCount, null);
+        swapFuncs.vkGetSwapchainImagesKHR(device_.handle, swapchain_, &pCount, null);
         VkImage[] images = nu_malloca!VkImage(pCount);
 
-        swapFuncs.vkGetSwapchainImagesKHR(device_.vkDevice, swapchain_, &pCount, images.ptr);
+        swapFuncs.vkGetSwapchainImagesKHR(device_.handle, swapchain_, &pCount, images.ptr);
         return images;
     }
 
@@ -129,11 +129,11 @@ private:
         this.semaphores_ = semaphores_.nu_resize(images.length);
 
         auto fenceCreateInfo = VkFenceCreateInfo();
-        vkCreateFence(device_.vkDevice, &fenceCreateInfo, null, &fence_);
+        vkCreateFence(device_.handle, &fenceCreateInfo, null, &fence_);
 
         auto semaCreateInfo = VkSemaphoreCreateInfo();
         foreach(ref semaphore; semaphores_)
-            vkCreateSemaphore(device_.vkDevice, &semaCreateInfo, null, &semaphore);
+            vkCreateSemaphore(device_.handle, &semaCreateInfo, null, &semaphore);
 
         // Create new drawables.
         foreach(i; 0..images.length) {
@@ -146,10 +146,10 @@ private:
     void destroyDrawables() {
         
         if (fence_)
-            vkDestroyFence(device_.vkDevice, fence_, null);
+            vkDestroyFence(device_.handle, fence_, null);
         
         foreach(semaphore; semaphores_)
-            vkDestroySemaphore(device_.vkDevice, semaphore, null);
+            vkDestroySemaphore(device_.handle, semaphore, null);
 
         // Delete old objects.
         nu_freea(drawables_);
@@ -160,7 +160,7 @@ private:
             surface: handle_,
             clipped: false,
             imageArrayLayers: 1,
-            imageUsage: VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            imageUsage: VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
             imageSharingMode: VK_SHARING_MODE_EXCLUSIVE,
             compositeAlpha: VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             preTransform: VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
@@ -188,10 +188,10 @@ public:
     override @property NioDevice device() => device_;
     override @property void device(NioDevice value) {
         if (auto nvkDevice = cast(NioVkDevice)value) {
-            if (!(nvkDevice.vkDevice && nvkDevice.vkPhysicalDevice))
+            if (!(nvkDevice.handle && nvkDevice.vkPhysicalDevice))
                 return;
 
-            nvkDevice.vkDevice.loadProcs!VK_KHR_swapchain(swapFuncs);
+            nvkDevice.handle.loadProcs!VK_KHR_swapchain(swapFuncs);
             this.device_ = nvkDevice;
             this.needsRebuild = true;
 
@@ -274,10 +274,10 @@ public:
             nu_freea(supportedFormats_);
         
         if (swapCreateInfo.oldSwapchain)
-            swapFuncs.vkDestroySwapchainKHR(device_.vkDevice, swapCreateInfo.oldSwapchain, null);
+            swapFuncs.vkDestroySwapchainKHR(device_.handle, swapCreateInfo.oldSwapchain, null);
 
         if (swapchain_)
-            swapFuncs.vkDestroySwapchainKHR(device_.vkDevice, swapchain_, null);
+            swapFuncs.vkDestroySwapchainKHR(device_.handle, swapchain_, null);
         
         if (handle_)
             procs.vkDestroySurfaceKHR(__nio_vk_instance, handle_, null);
@@ -374,15 +374,15 @@ public:
         if (!isReady)
             return null;
 
-        auto result = swapFuncs.vkAcquireNextImageKHR(device_.vkDevice, swapchain_, 1000, semaphores_[currentFrame_], fence_, &currentImageIdx_);
+        auto result = swapFuncs.vkAcquireNextImageKHR(device_.handle, swapchain_, 1000, semaphores_[currentFrame_], fence_, &currentImageIdx_);
         switch(result) {
             case VK_SUBOPTIMAL_KHR:
                 this.needsRebuild = true;
                 goto case;
             
             case VK_SUCCESS:
-                vkWaitForFences(device_.vkDevice, 1, &fence_, VK_TRUE, ulong.max);
-                vkResetFences(device_.vkDevice, 1, &fence_);
+                vkWaitForFences(device_.handle, 1, &fence_, VK_TRUE, ulong.max);
+                vkResetFences(device_.handle, 1, &fence_);
 
                 auto drawable = drawables_[currentImageIdx_];
                 drawable.semaphore = semaphores_[currentFrame_];

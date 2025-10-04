@@ -35,7 +35,7 @@ private:
         auto createInfo = VkSemaphoreCreateInfo(
             pNext: &semaphoreInfo
         );
-        vkCreateSemaphore(nvkDevice.vkDevice, &createInfo, null, &handle_);
+        vkCreateSemaphore(nvkDevice.handle, &createInfo, null, &handle_);
     }
 
     pragma(inline, true)
@@ -43,7 +43,7 @@ private:
         auto nvkDevice = cast(NioVkDevice)device;
         ulong v;
 
-        vkGetSemaphoreCounterValue(nvkDevice.vkDevice, handle_, &v);
+        vkGetSemaphoreCounterValue(nvkDevice.handle, handle_, &v);
         return v;
     }
 
@@ -57,7 +57,7 @@ protected:
     */
     override
     void onLabelChanged(string label) {
-        auto vkDevice = (cast(NioVkDevice)device).vkDevice;
+        auto vkDevice = (cast(NioVkDevice)device).handle;
 
         import niobium.vk.device : setDebugName;
         vkDevice.setDebugName(VK_OBJECT_TYPE_SEMAPHORE, handle_, label);
@@ -78,7 +78,7 @@ public:
     /// Destructor
     ~this() {
         auto nvkDevice = cast(NioVkDevice)device;
-        vkDestroySemaphore(nvkDevice.vkDevice, handle_, null);
+        vkDestroySemaphore(nvkDevice.handle, handle_, null);
     }
 
     /**
@@ -108,6 +108,6 @@ public:
             pSemaphores: &handle_,
             pValues: &value
         );
-        return vkWaitSemaphores(nvkDevice.vkDevice, &waitInfo, timeout) == VK_SUCCESS;
+        return vkWaitSemaphores(nvkDevice.handle, &waitInfo, timeout) == VK_SUCCESS;
     }
 }

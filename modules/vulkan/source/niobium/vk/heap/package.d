@@ -65,7 +65,7 @@ public:
         this.desc_ = desc;
         this.allocator = nogc_new!NioPoolAllocator(
             nvkDevice.vkPhysicalDevice, 
-            nvkDevice.vkDevice, 
+            nvkDevice.handle, 
             NioPoolAllocatorDescriptor(
                 size: desc.size,
                 pageSize: desc.pageSize

@@ -47,7 +47,7 @@ private:
 
     void setup(NioCommandQueueDescriptor desc, VkQueue handle, uint queueFamily) {
         auto nvkDevice = (cast(NioVkDevice)device);
-        nvkDevice.vkDevice.loadProcs(swapFuncs);
+        nvkDevice.handle.loadProcs(swapFuncs);
 
         this.desc_ = desc;
         this.handle_ = handle;
@@ -163,7 +163,7 @@ protected:
             label = The new label of the device.
     */
     override void onLabelChanged(string label) {
-        auto vkDevice = (cast(NioVkDevice)device).vkDevice;
+        auto vkDevice = (cast(NioVkDevice)device).handle;
 
         import niobium.vk.device : setDebugName;
         vkDevice.setDebugName(VK_OBJECT_TYPE_QUEUE, handle_, label);
@@ -309,7 +309,7 @@ private:
             flags: VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
             queueFamilyIndex: queue_.queueFamily
         );
-        vkEnforce(vkCreateCommandPool(device_.vkDevice, &createInfo, null, &handle_));
+        vkEnforce(vkCreateCommandPool(device_.handle, &createInfo, null, &handle_));
 
         // Allocate
         this.buffers_ =     nu_malloca!VkCommandBuffer(poolSize);
@@ -323,15 +323,15 @@ private:
             level: VK_COMMAND_BUFFER_LEVEL_PRIMARY,
             commandBufferCount: poolSize,
         );
-        vkEnforce(vkAllocateCommandBuffers(device_.vkDevice, &allocInfo, buffers_.ptr));
+        vkEnforce(vkAllocateCommandBuffers(device_.handle, &allocInfo, buffers_.ptr));
 
         // Fill sync primitives and instances
         foreach(i; 0..poolSize) {
             auto fenceCreateInfo = VkFenceCreateInfo(flags: VK_FENCE_CREATE_SIGNALED_BIT);
-            vkCreateFence(device_.vkDevice, &fenceCreateInfo, null, &fences_[i]);
+            vkCreateFence(device_.handle, &fenceCreateInfo, null, &fences_[i]);
 
             auto semapCreateInfo = VkSemaphoreCreateInfo();
-            vkCreateSemaphore(device_.vkDevice, &semapCreateInfo, null, &semaphores_[i]);
+            vkCreateSemaphore(device_.handle, &semapCreateInfo, null, &semaphores_[i]);
 
             // Fill out instances.
             this.instances_[i] =            nogc_new!NioVkCommandBuffer(queue_, buffers_[i]);
@@ -342,7 +342,7 @@ private:
 
     /// Awaits all completion fences.
     bool awaitAllFences(ulong timeout) {
-        return vkWaitForFences(device_.vkDevice, cast(uint)fences_.length, fences_.ptr, VK_TRUE, timeout) == VK_SUCCESS;
+        return vkWaitForFences(device_.handle, cast(uint)fences_.length, fences_.ptr, VK_TRUE, timeout) == VK_SUCCESS;
     }
 
     /// Awaits a command buffer being free for use.
@@ -351,18 +351,18 @@ private:
 
         // Special case; only 1 buffer.
         if (instances_.length == 1) {
-            if (vkWaitForFences(device_.vkDevice, cast(uint)fences_.length, fences_.ptr, VK_FALSE, ulong.max) == VK_SUCCESS) {
-                vkResetFences(device_.vkDevice, 1, &fences_[0]);
+            if (vkWaitForFences(device_.handle, cast(uint)fences_.length, fences_.ptr, VK_FALSE, ulong.max) == VK_SUCCESS) {
+                vkResetFences(device_.handle, 1, &fences_[0]);
                 return 0;
             }
             return -1;
         }
 
-        if (vkWaitForFences(device_.vkDevice, cast(uint)fences_.length, fences_.ptr, VK_FALSE, ulong.max) == VK_SUCCESS) {
+        if (vkWaitForFences(device_.handle, cast(uint)fences_.length, fences_.ptr, VK_FALSE, ulong.max) == VK_SUCCESS) {
             foreach(offset; 0..instances_.length) {
                 size_t i = idx_ % instances_.length;
-                if (vkGetFenceStatus(device_.vkDevice, fences_[i]) == VK_SUCCESS) {
-                    vkResetFences(device_.vkDevice, 1, &fences_[i]);
+                if (vkGetFenceStatus(device_.handle, fences_[i]) == VK_SUCCESS) {
+                    vkResetFences(device_.handle, 1, &fences_[i]);
                     idx_++;
                     return i;
                 }
@@ -383,14 +383,14 @@ public:
         this.awaitAllFences(ulong.max);
         vkQueueWaitIdle(queue_.handle);
         foreach(i; 0..buffers_.length) {
-            vkDestroyFence(device_.vkDevice, fences_[i], null);
-            vkDestroySemaphore(device_.vkDevice, semaphores_[i], null);
+            vkDestroyFence(device_.handle, fences_[i], null);
+            vkDestroySemaphore(device_.handle, semaphores_[i], null);
         }
 
         nu_freea(instances_);
         nu_freea(fences_);
         nu_freea(semaphores_);
-        vkDestroyCommandPool(device_.vkDevice, handle_, null);
+        vkDestroyCommandPool(device_.handle, handle_, null);
     }
 
     /**

@@ -242,6 +242,7 @@ public:
     override void copy(NioTextureSrcInfo src, NioBufferDstInfo dst) {
         auto vkImageSrc = (cast(NioVkTexture)src.texture);
         auto vkBufferDst = (cast(NioVkBuffer)dst.buffer);
+        this.transitionTextureTo(vkImageSrc, VK_IMAGE_LAYOUT_GENERAL);
 
         auto bufferImageInfo = VkBufferImageCopy2(
             bufferOffset: dst.offset,
@@ -270,6 +271,8 @@ public:
     override void copy(NioTextureSrcInfo src, NioTextureDstInfo dst) {
         auto vkImageSrc = (cast(NioVkTexture)src.texture);
         auto vkImageDst = (cast(NioVkTexture)dst.texture);
+        this.transitionTextureTo(vkImageSrc, VK_IMAGE_LAYOUT_GENERAL);
+        this.transitionTextureTo(vkImageDst, VK_IMAGE_LAYOUT_GENERAL);
 
         auto imageInfo = VkImageCopy2(
             srcSubresource: VkImageSubresourceLayers(vkImageSrc.format.toVkAspect(), src.level, src.slice, 1),

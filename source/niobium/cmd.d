@@ -15,6 +15,8 @@ import niobium.device;
 import niobium.surface;
 import niobium.texture;
 import niobium.resource;
+import niobium.pipeline;
+import niobium.sampler;
 import niobium.buffer;
 import niobium.sync;
 import niobium.types;
@@ -586,6 +588,84 @@ public:
             winding = The front-face winding.
     */
     abstract void setFaceWinding(NioFaceWinding winding);
+
+    /**
+        Sets the active constant blending color for the render pass.
+
+        Params:
+            color = The constant blending color.
+    */
+    abstract void setBlendColor(NioColor color);
+
+    /**
+        Sets the active render pipeline for the render pass.
+
+        Params:
+            pipeline =  The pipeline.
+    */
+    abstract void setPipeline(NioRenderPipeline pipeline);
+
+    /**
+        Sets the given buffer as the active buffer at the given
+        slot in the vertex shader argument table.
+
+        Params:
+            buffer =    The buffer to set.
+            offset =    The offset into the buffer, in bytes.
+            slot =      The slot in the argument table to set.
+    */
+    abstract void setVertexBuffer(NioBuffer buffer, ulong offset, uint slot);
+
+    /**
+        Sets the given texture as the active texture at the given
+        slot in the vertex shader argument table.
+
+        Params:
+            texture =   The texture to set.
+            slot =      The slot in the argument table to set.
+    */
+    abstract void setVertexTexture(NioTexture texture, uint slot);
+
+    /**
+        Sets the given sampler as the active sampler at the given
+        slot in the vertex shader argument table.
+
+        Params:
+            sampler =   The sampler to set.
+            slot =      The slot in the argument table to set.
+    */
+    abstract void setVertexSampler(NioSampler sampler, uint slot);
+
+    /**
+        Sets the given buffer as the active buffer at the given
+        slot in the fragment shader argument table.
+
+        Params:
+            buffer =    The buffer to set.
+            offset =    The offset into the buffer, in bytes.
+            slot =      The slot in the argument table to set.
+    */
+    abstract void setFragmentBuffer(NioBuffer buffer, ulong offset, uint slot);
+
+    /**
+        Sets the given texture as the active texture at the given
+        slot in the fragment shader argument table.
+
+        Params:
+            texture =   The texture to set.
+            slot =      The slot in the argument table to set.
+    */
+    abstract void setFragmentTexture(NioTexture texture, uint slot);
+
+    /**
+        Sets the given sampler as the active sampler at the given
+        slot in the fragment shader argument table.
+
+        Params:
+            sampler =   The sampler to set.
+            slot =      The slot in the argument table to set.
+    */
+    abstract void setFragmentSampler(NioSampler sampler, uint slot);
 
     /**
         Enocodes a draw command using the bound vertex buffers.

@@ -18,6 +18,7 @@ import vulkan.eh;
 import numem;
 
 public import niobium.buffer;
+public import niobium.vertexformat;
 
 /**
     Vulkan Buffer
@@ -45,11 +46,11 @@ private:
             usage: desc.usage.toVkBufferUsage(),
             sharingMode: VK_SHARING_MODE_EXCLUSIVE
         );
-        vkEnforce(vkCreateBuffer(nvkDevice.vkDevice, &vkdesc_, null, &handle_));
+        vkEnforce(vkCreateBuffer(nvkDevice.handle, &vkdesc_, null, &handle_));
 
         // Allocate memory for our texture.
         VkMemoryRequirements vkmemreq_;
-        vkGetBufferMemoryRequirements(nvkDevice.vkDevice, handle_, &vkmemreq_);
+        vkGetBufferMemoryRequirements(nvkDevice.handle, handle_, &vkmemreq_);
 
         VkMemoryAllocateFlags flags = desc.storage.toVkMemoryProperties();
         ptrdiff_t type = allocator_.getTypeForMasked(flags, vkmemreq_.memoryTypeBits);
@@ -57,7 +58,7 @@ private:
             allocation_ = allocator_.malloc(vkmemreq_.size, cast(uint)type);
             if (allocation_.memory) {
                 vkBindBufferMemory(
-                    nvkDevice.vkDevice, 
+                    nvkDevice.handle, 
                     handle_, 
                     allocation_.memory.handle,
                     allocation_.offset 
@@ -76,9 +77,7 @@ protected:
     */
     override
     void onLabelChanged(string label) {
-        auto vkDevice = (cast(NioVkDevice)device).vkDevice;
-
-        import niobium.vk.device : setDebugName;
+        auto vkDevice = (cast(NioVkDevice)device).handle;
         vkDevice.setDebugName(VK_OBJECT_TYPE_BUFFER, handle_, label);
     }
 
@@ -91,7 +90,7 @@ public:
 
     /// Destructor
     ~this() {
-        auto vkDevice = (cast(NioVkDevice)device).vkDevice;
+        auto vkDevice = (cast(NioVkDevice)device).handle;
         if (allocation_.memory)
             allocator_.free(allocation_);
         

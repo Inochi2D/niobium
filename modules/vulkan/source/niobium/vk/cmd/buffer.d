@@ -224,7 +224,7 @@ public:
     override void await() {
         auto nvkDevice = cast(NioVkDevice)device;
         if (fence) {
-            cast(void)vkWaitForFences(nvkDevice.vkDevice, 1, &fence, VK_TRUE, ulong.max);
+            cast(void)vkWaitForFences(nvkDevice.handle, 1, &fence, VK_TRUE, ulong.max);
         }
     }
 

@@ -10,6 +10,8 @@
         Luna Nielsen
 */
 module niobium.device;
+import niobium.pipeline;
+import niobium.sampler;
 import niobium.texture;
 import niobium.buffer;
 import niobium.queue;
@@ -143,7 +145,8 @@ public:
         at a time.
         
         Returns:
-            A $(D NioVideoEncodeQueue) or $(D null) on failure.
+            A new $(D NioVideoEncodeQueue) on success,
+            $(D null) otherwise.
     */
     abstract NioVideoEncodeQueue createVideoEncodeQueue();
 
@@ -154,7 +157,8 @@ public:
         at a time.
         
         Returns:
-            A $(D NioVideoDecodeQueue) or $(D null) on failure.
+            A new $(D NioVideoDecodeQueue) on success,
+            $(D null) otherwise.
     */
     abstract NioVideoDecodeQueue createVideoDecodeQueue();
 
@@ -168,7 +172,8 @@ public:
             desc = Descriptor for the queue.
         
         Returns:
-            A $(D NioCommandQueue) or $(D null) on failure.
+            A new $(D NioCommandQueue) on success,
+            $(D null) otherwise.
     */
     abstract NioCommandQueue createQueue(NioCommandQueueDescriptor desc);
 
@@ -176,7 +181,8 @@ public:
         Creates a new fence.
         
         Returns:
-            A new $(D NioFence) or $(D null) on failure.
+            A new $(D NioFence) on success,
+            $(D null) otherwise.
     */
     abstract NioFence createFence();
 
@@ -184,7 +190,8 @@ public:
         Creates a new semaphore.
         
         Returns:
-            A new $(D NioFence) or $(D null) on failure.
+            A new $(D NioSemaphore) on success,
+            $(D null) otherwise.
     */
     abstract NioSemaphore createSemaphore();
 
@@ -195,7 +202,8 @@ public:
             desc = Descriptor for the heap.
         
         Returns:
-            A new $(D NioHeap) or $(D null) on failure.
+            A new $(D NioHeap) on success,
+            $(D null) otherwise.
     */
     abstract NioHeap createHeap(NioHeapDescriptor desc);
 
@@ -209,7 +217,8 @@ public:
             desc = Descriptor for the texture.
         
         Returns:
-            A new $(D NioTexture) or $(D null) on failure.
+            A new $(D NioTexture) on success,
+            $(D null) otherwise.
     */
     abstract NioTexture createTexture(NioTextureDescriptor desc);
 
@@ -222,7 +231,8 @@ public:
             desc =      Descriptor for the texture.
         
         Returns:
-            A new $(D NioTexture) or $(D null) on failure.
+            A new $(D NioTexture) on success,
+            $(D null) otherwise.
     */
     abstract NioTexture createTextureView(NioTexture texture, NioTextureDescriptor desc);
 
@@ -236,9 +246,34 @@ public:
             desc = Descriptor for the buffer.
         
         Returns:
-            A new $(D NioBuffer) or $(D null) on failure.
+            A new $(D NioBuffer) on success,
+            $(D null) otherwise.
     */
     abstract NioBuffer createBuffer(NioBufferDescriptor desc);
+
+    /**
+        Creates a new render pipeline object.
+
+        Params:
+            desc = Descriptor for the pipeline.
+        
+        Returns:
+            A new $(D NioRenderPipeline) on success,
+            $(D null) otherwise.
+    */
+    abstract NioRenderPipeline createRenderPipeline(NioRenderPipelineDescriptor desc);
+
+    /**
+        Creates a new sampler.
+
+        Params:
+            desc = Descriptor for the sampler.
+        
+        Returns:
+            A new $(D NioSampler) on success,
+            $(D null) otherwise.
+    */
+    abstract NioSampler createSampler(NioSamplerDescriptor desc);
 }
 
 /**

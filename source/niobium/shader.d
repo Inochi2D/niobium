@@ -14,6 +14,70 @@ import niobium.resource;
 import niobium.device;
 
 /**
+    A shader
+*/
+abstract
+class NioShader : NioResource {
+protected:
+@nogc:
+
+    /**
+        Constructs a new shader.
+
+        Params:
+            device = The device that "owns" this shader.
+    */
+    this(NioDevice device) {
+        super(device);
+    }
+
+public:
+
+    /**
+        Gets a named function from the shader.
+
+        Params:
+            name = The name of the function.
+        
+        Returns:
+            A $(D NioShaderFunction) on success,
+            $(D null) otherwise.
+    */
+    abstract NioShaderFunction getFunction(string name);
+}
+
+/**
+    A shader function.
+*/
+abstract
+class NioShaderFunction : NioResource {
+protected:
+@nogc:
+
+    /**
+        Constructs a new shader.
+
+        Params:
+            device = The device that "owns" this shader.
+    */
+    this(NioDevice device) {
+        super(device);
+    }
+
+public:
+
+    /**
+        Name of the function
+    */
+    abstract @property string name();
+
+    /**
+        The shader stage this shader conforms to.
+    */
+    abstract @property NioShaderStage stage();
+}
+
+/**
     The different kinds of shader stages that a shader
     can apply to.
 */
@@ -43,31 +107,4 @@ enum NioShaderStage : uint {
         Compute kernel shader stage
     */
     kernel =            0x00000008U,
-}
-
-/**
-    A shader
-*/
-abstract
-class NioShader : NioResource {
-protected:
-@nogc:
-
-    /**
-        Constructs a new shader.
-
-        Params:
-            device = The device that "owns" this shader.
-    */
-    this(NioDevice device) {
-        super(device);
-    }
-
-public:
-
-    /**
-        The shader stage this shader conforms to.
-    */
-    abstract @property NioShaderStage stage();
-
 }

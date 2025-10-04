@@ -29,7 +29,7 @@ private:
     void setup() {
         auto nvkDevice = cast(NioVkDevice)device;
         auto createInfo = VkEventCreateInfo();
-        vkCreateEvent(nvkDevice.vkDevice, &createInfo, null, &handle_);
+        vkCreateEvent(nvkDevice.handle, &createInfo, null, &handle_);
     }
 
 protected:
@@ -42,7 +42,7 @@ protected:
     */
     override
     void onLabelChanged(string label) {
-        auto vkDevice = (cast(NioVkDevice)device).vkDevice;
+        auto vkDevice = (cast(NioVkDevice)device).handle;
 
         import niobium.vk.device : setDebugName;
         vkDevice.setDebugName(VK_OBJECT_TYPE_EVENT, handle_, label);
@@ -58,7 +58,7 @@ public:
     /// Destructor
     ~this() {
         auto nvkDevice = cast(NioVkDevice)device;
-        vkDestroyEvent(nvkDevice.vkDevice, handle_, null);
+        vkDestroyEvent(nvkDevice.handle, handle_, null);
     }
 
     /**

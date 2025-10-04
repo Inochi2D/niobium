@@ -19,6 +19,7 @@ import numem;
 import nulib;
 
 public import niobium.texture;
+public import niobium.pixelformat;
 
 /**
     Vulkan Texture
@@ -57,12 +58,12 @@ private:
             sharingMode: VK_SHARING_MODE_EXCLUSIVE,
             initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
         );
-        vkEnforce(vkCreateImage(nvkDevice.vkDevice, &vkdesc_, null, &image_));
+        vkEnforce(vkCreateImage(nvkDevice.handle, &vkdesc_, null, &image_));
         this.layout = vkdesc_.initialLayout;
 
         // Allocate memory for our texture.
         VkMemoryRequirements vkmemreq_;
-        vkGetImageMemoryRequirements(nvkDevice.vkDevice, image_, &vkmemreq_);
+        vkGetImageMemoryRequirements(nvkDevice.handle, image_, &vkmemreq_);
 
         VkMemoryAllocateFlags flags = desc.storage.toVkMemoryProperties();
         ptrdiff_t type = allocator_.getTypeForMasked(flags, vkmemreq_.memoryTypeBits);
@@ -70,7 +71,7 @@ private:
             allocation_ = allocator_.malloc(vkmemreq_.size, cast(uint)type);
             if (allocation_.memory) {
                 vkBindImageMemory(
-                    nvkDevice.vkDevice, 
+                    nvkDevice.handle, 
                     image_, 
                     allocation_.memory.handle,
                     allocation_.offset 
@@ -86,7 +87,7 @@ private:
             components: VkComponentMapping(VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY),
             subresourceRange: VkImageSubresourceRange(desc.format.toVkAspect(), 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS)
         );
-        vkEnforce(vkCreateImageView(nvkDevice.vkDevice, &vkviewdesc_, null, &view_));
+        vkEnforce(vkCreateImageView(nvkDevice.handle, &vkviewdesc_, null, &view_));
     }
 
     void createImageView(NioVkTexture parent, NioTextureDescriptor desc) {
@@ -104,7 +105,7 @@ private:
             components: VkComponentMapping(VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY),
             subresourceRange: VkImageSubresourceRange(desc.format.toVkAspect(), 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS)
         );
-        vkEnforce(vkCreateImageView(nvkDevice.vkDevice, &vkviewdesc_, null, &view_));
+        vkEnforce(vkCreateImageView(nvkDevice.handle, &vkviewdesc_, null, &view_));
     }
 
     void createImageView(VkImage image, NioTextureDescriptor desc) {
@@ -133,7 +134,7 @@ private:
             components: VkComponentMapping(VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY),
             subresourceRange: VkImageSubresourceRange(desc.format.toVkAspect(), 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS)
         );
-        vkEnforce(vkCreateImageView(nvkDevice.vkDevice, &vkviewdesc_, null, &view_));
+        vkEnforce(vkCreateImageView(nvkDevice.handle, &vkviewdesc_, null, &view_));
     }
 
 protected:
@@ -146,10 +147,9 @@ protected:
     */
     override
     void onLabelChanged(string label) {
-        auto vkDevice = (cast(NioVkDevice)device).vkDevice;
+        auto vkDevice = (cast(NioVkDevice)device).handle;
 
         // Differentiate view and image view.
-        import niobium.vk.device : setDebugName;
         vkDevice.setDebugName(VK_OBJECT_TYPE_IMAGE, image_, label);
         vkDevice.setDebugName(VK_OBJECT_TYPE_IMAGE_VIEW, view_, (nstring(label) ~ " (View)"));
     }
@@ -172,7 +172,7 @@ public:
 
     /// Destructor
     ~this() {
-        auto vkDevice = (cast(NioVkDevice)device).vkDevice;
+        auto vkDevice = (cast(NioVkDevice)device).handle;
         
         // Image-view Mode
         if (isView_) {
