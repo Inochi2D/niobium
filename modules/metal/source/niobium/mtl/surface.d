@@ -46,6 +46,7 @@ private:
     NioMTLDevice                        device_;
     NioExtent2D                         size_;
     Mutex                               mutex_;
+    CGSize                              lastSize_;
 
     // Handles
     CAMetalLayer                        handle_;
@@ -68,7 +69,8 @@ public:
     override @property NioExtent2D size() => size_;
     override @property void size(NioExtent2D size) {
         this.size_ = size;
-        this.handle_.drawableSize = CGSize(size.width, size.height);
+        this.lastSize_ = CGSize(size.width, size.height);
+        this.handle_.drawableSize = lastSize_;
     }
 
     /**
@@ -153,6 +155,12 @@ public:
     override NioDrawable next() {
         if (!isReady)
             return null;
+
+        auto currSize = handle_.drawableSize;
+        if (currSize.width != lastSize_.width || currSize.height != lastSize_.height) {
+            this.lastSize_ = handle_.drawableSize;
+            this.size_ = NioExtent2D(cast(uint)lastSize_.width, cast(uint)lastSize_.height);
+        }
 
         mutex_.lock();
         scope(exit) mutex_.unlock();
