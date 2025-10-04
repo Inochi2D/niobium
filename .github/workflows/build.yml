@@ -99,7 +99,7 @@ jobs:
         else
           redub build --config=vulkan-dynamic --build=${{ inputs.build_type }}
         fi
-        rm out/*.o out/*.obj
+        rm -f out/*.o out/*.obj || true
     
     # Build Tools
     - name: 'Build niobium (tools, ${{ runner.os }}-${{ matrix.arch }})...'
@@ -116,7 +116,7 @@ jobs:
             fi
           fi
         done
-        rm out/tools/*.o out/tools/*.obj
+        rm -f out/tools/*.o out/tools/*.obj || true
     
     - name: 'Archive'
       id: archive
