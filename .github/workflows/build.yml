@@ -57,12 +57,11 @@ jobs:
     - uses: actions/checkout@v4
       with:
         ref: '${{ inputs.target_ref }}'
-    
-    # Setup redub
-    - uses: MrcSnm/setup-dlang@v2
+        
+    # Setup D Compiler
+    - uses: dlang-community/setup-dlang@v1.4.0
       with:
         compiler: ldc-latest
-        redub: 1.25.2
 
     # Get dependencies
     - name: 'Install Vulkan SDK...'
@@ -81,32 +80,25 @@ jobs:
       
     # Build Library
     - name: 'Build niobium (library, ${{ runner.os }}-${{ matrix.arch }})...'
-      if: ${{ inputs.build_library && runner.os == 'macOS' }}
+      if: ${{ inputs.build_library }}
       run: |
-        redub build-universal --config=metal-dynamic --build=${{ inputs.build_type }}
-    
-    - name: 'Build niobium (library, ${{ runner.os }}-${{ matrix.arch }})...'
-      if: ${{ inputs.build_library && runner.os != 'macOS' }}
-      run: |
-        redub build --config=vulkan-dynamic --build=${{ inputs.build_type }}
+        if [[ "${{ runner.os }}" == "macOS" ]]; then
+          dub run redub -y -- build-universal --config=metal-dynamic --build=${{ inputs.build_type }}
+        else
+          dub run redub -y -- build --config=vulkan-dynamic --build=${{ inputs.build_type }}
+        fi
     
     # Build Tools
     - name: 'Build niobium (tools, ${{ runner.os }}-${{ matrix.arch }})...'
-      if: ${{ inputs.build_tools && runner.os == 'macOS' }}
+      if: ${{ inputs.build_tools }}
       run: |
         for _file in tools/*; do
           if [ -d "$_file" ]; then
-            redub build-universal --root=$_file --build=${{ inputs.build_type }}
-            cp $_file/out/* out/
-          fi
-        done
-    
-    - name: 'Build niobium (tools, ${{ runner.os }}-${{ matrix.arch }})...'
-      if: ${{ inputs.build_tools && runner.os != 'macOS' }}
-      run: |
-        for _file in tools/*; do
-          if [ -d "$_file" ]; then
-            redub build --root=$_file --build=${{ inputs.build_type }}
+            if [[ "${{ runner.os }}" == "macOS" ]]; then
+              dub run redub -y -- build-universal --root=$_file --build=${{ inputs.build_type }}
+            else
+              dub run redub -y --  build --root=$_file --build=${{ inputs.build_type }}
+            fi
             cp $_file/out/* out/
           fi
         done
