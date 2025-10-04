@@ -144,10 +144,12 @@ protected:
         encoder.
     */
     final void finishEncoding() {
-        if (cmdbuffer_.activeEncoder) {
-            nogc_delete(cmdbuffer_.activeEncoder);
-            cmdbuffer_.activeEncoder = null;
-            cmdbuffer_.onEncodingEnd();
+        auto cmdbuffer = cmdbuffer_;
+        if (cmdbuffer.activeEncoder) {
+
+            nogc_delete(cmdbuffer.activeEncoder);
+            cmdbuffer.activeEncoder = null;
+            cmdbuffer.onEncodingEnd();
         }
     }
 
