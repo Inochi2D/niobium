@@ -299,6 +299,27 @@ public:
         (cast(NioVkDevice)device).uploadDataToTexture(this, region, level, slice, data, rowStride);
         return this;
     }
+
+    /**
+        Downloads data from a texture using a device-internal
+        transfer queue.
+
+        This is overall a slow operation, downloading via
+        a $(D NioTransferCommandEncoder) is recommended.
+        
+        Params:
+            region =    Region to download
+            level =     Mip level to download
+            slice =     Array slice to download
+            rowStride = The stride of a single row of pixels.
+        
+        Returns:
+            A nogc slice of data on success,
+            $(D null) otherwise.
+    */
+    override void[] download(NioRegion3D region, uint level, uint slice, uint rowStride) {
+        return (cast(NioVkDevice)device).downloadDataFromTexture(this, region, level, slice, rowStride);
+    }
 }
 
 /**

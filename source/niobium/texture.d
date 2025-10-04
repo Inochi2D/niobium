@@ -150,6 +150,21 @@ public:
             The calling texture, allowing chaining.
     */
     abstract NioTexture upload(NioRegion3D region, uint level, uint slice, void[] data, uint rowStride);
+
+    /**
+        Downloads data from a texture.
+        
+        Params:
+            region =    Region to download
+            level =     Mip level to download
+            slice =     Array slice to download
+            rowStride = The stride of a single row of pixels.
+        
+        Returns:
+            A nogc slice of data on success,
+            $(D null) otherwise.
+    */
+    abstract void[] download(NioRegion3D region, uint level, uint slice, uint rowStride);
 }
 
 

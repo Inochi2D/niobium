@@ -241,6 +241,30 @@ public:
         );
         return this;
     }
+    
+    /**
+        Downloads data from a texture.
+        
+        Params:
+            region =    Region to download
+            level =     Mip level to download
+            slice =     Array slice to download
+            rowStride = The stride of a single row of pixels.
+        
+        Returns:
+            A nogc slice of data on success,
+            $(D null) otherwise.
+    */
+    override void[] download(NioRegion3D region, uint level, uint slice, uint rowStride) {
+        auto mtlregion = MTLRegion(
+            MTLOrigin(region.x, region.y, region.z),
+            MTLSize(region.width, region.height, region.depth),
+        );
+        
+        void[] result = cast(void[])nu_malloca!ubyte(region.extent.height*rowStride);
+        handle_.getBytes(result.ptr, rowStride, 0, mtlregion, level, slice);
+        return result;
+    }
 }
 
 /**

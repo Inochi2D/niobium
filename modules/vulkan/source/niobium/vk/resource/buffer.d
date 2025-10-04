@@ -162,18 +162,52 @@ public:
             data =      The data to upload.
             offset =    Offset into the buffer to upload the data.
     */
-    override void upload(void[] data, size_t offset) {
-        import nulib.math : min;
+    override NioBuffer upload(void[] data, size_t offset) {
+        if (allocation_.memory && allocation_.memory.isMappable) {
 
-        if (void[] mapped = this.map()) {
-            size_t start = min(offset, mapped.length);
-            size_t end = min(offset+data.length, mapped.length);
-            size_t srcEnd = min(data.length, end-start);
-            
-            mapped[start..end] = data[0..srcEnd];
+            import nulib.math : min;
+            if (void[] mapped = this.map()) {
+                size_t start = min(offset, mapped.length);
+                size_t end = min(offset+data.length, mapped.length);
+                size_t srcEnd = min(data.length, end-start);
+                
+                mapped[start..end] = data[0..srcEnd];
 
-            this.unmap();
+                this.unmap();
+            }
+        } else {
+            (cast(NioVkDevice)device).uploadDataToBuffer(this, offset, data);
         }
+        return this;
+    }
+
+    /**
+        Downloads data from a buffer.
+        
+        Params:
+            offset =    Offset into the buffer to download from.
+            length =    Length of data to download, in bytes.
+        
+        Returns:
+            A nogc slice of data on success,
+            $(D null) otherwise.
+    */
+    override void[] download(size_t offset, size_t length) {
+        if (allocation_.memory && allocation_.memory.isMappable) {
+
+            import nulib.math : min;
+            if (void[] mapped = this.map()) {
+                size_t start = min(offset, mapped.length);
+                size_t end = min(offset+length, mapped.length);
+
+                auto result = mapped[start..end].nu_dup();
+                this.unmap();
+                return result;
+            }
+        } else {
+            return (cast(NioVkDevice)device).downloadDataFromBuffer(this, offset, length);
+        }
+        return null;
     }
 }
 

@@ -150,4 +150,20 @@ public:
             mapped[start..end] = data[0..srcEnd];
         this.unmap();
     }
+
+    /**
+        Downloads data from a buffer.
+        
+        Params:
+            offset =    Offset into the buffer to download from.
+            length =    Length of data to download, in bytes.
+        
+        Returns:
+            A nogc slice of data on success,
+            $(D null) otherwise.
+    */
+    override void[] download(size_t offset, size_t length) {
+        // TODO: Implement a staging buffer just for private resources.
+        return null; 
+    }
 }

@@ -88,8 +88,24 @@ public:
         Params:
             data =      The data to upload.
             offset =    Offset into the buffer to upload the data.
+    
+        Returns:
+            The calling buffer, allowing chaining.
     */
-    abstract void upload(void[] data, size_t offset);
+    abstract NioBuffer upload(void[] data, size_t offset);
+
+    /**
+        Downloads data from a buffer.
+        
+        Params:
+            offset =    Offset into the buffer to download from.
+            length =    Length of data to download, in bytes.
+        
+        Returns:
+            A nogc slice of data on success,
+            $(D null) otherwise.
+    */
+    abstract void[] download(size_t offset, size_t length);
 }
 
 /**
