@@ -120,7 +120,7 @@ jobs:
       id: archive
       run: |
         cd out/
-        tar -cvf ../niobium-${{ runner.os }}-.tar ./*
+        tar -cvf ../niobium-${{ runner.os }}-${{ matrix.arch }}-${{ inputs.build_type }}.tar ./*
     
     # Create artifacts.
     - name: 'Make Artifact'
@@ -128,7 +128,7 @@ jobs:
       with:
         name: 'niobium-${{ runner.os }}-${{ matrix.arch }}-${{ inputs.build_type }}'
         path: |
-          inochi2d-${{ runner.os }}-${{ matrix.arch }}-${{ inputs.build_type }}.tar
+          niobium-${{ runner.os }}-${{ matrix.arch }}-${{ inputs.build_type }}.tar
     
     - name: 'Finalize'
       id: finalize
