@@ -109,10 +109,11 @@ jobs:
         for _file in tools/*; do
           if [ -d "$_file" ]; then
             if [[ "${{ runner.os }}" == "macOS" ]]; then
-              redub build-universal --root=$_file --build=${{ inputs.build_type }} --dest=out/tools/
+              redub build-universal --root=$_file --build=${{ inputs.build_type }}
             else
-              redub build --root=$_file --build=${{ inputs.build_type }} --dest=out/tools/
+              redub build --root=$_file --build=${{ inputs.build_type }}
             fi
+            cp $_file/out/* out/tools/
           fi
         done
     
