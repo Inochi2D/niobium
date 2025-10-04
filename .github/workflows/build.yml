@@ -99,22 +99,24 @@ jobs:
         else
           redub build --config=vulkan-dynamic --build=${{ inputs.build_type }}
         fi
+        rm out/*.o out/*.obj
     
     # Build Tools
     - name: 'Build niobium (tools, ${{ runner.os }}-${{ matrix.arch }})...'
       if: ${{ inputs.build_tools }}
       shell: bash
       run: |
+        mkdir -p out/tools
         for _file in tools/*; do
           if [ -d "$_file" ]; then
             if [[ "${{ runner.os }}" == "macOS" ]]; then
-              redub build-universal --root=$_file --build=${{ inputs.build_type }}
+              redub build-universal --root=$_file --build=${{ inputs.build_type }} --dest=out/tools/
             else
-              redub build --root=$_file --build=${{ inputs.build_type }}
+              redub build --root=$_file --build=${{ inputs.build_type }} --dest=out/tools/
             fi
-            cp $_file/out/* out/
           fi
         done
+        rm out/tools/*.o out/tools/*.obj
     
     - name: 'Archive'
       id: archive
