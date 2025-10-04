@@ -73,10 +73,11 @@ jobs:
         vulkan-components: Vulkan-Headers, Vulkan-Loader
         vulkan-use-cache: true
     
-    # Clone nuvk
-    - name: 'Cloning nuvk...'
+    # Clone linrarues
+    - name: 'Cloning low-level API Bindings...'
       run: |
         git clone https://github.com/Inochi2D/nuvk ../nuvk
+        git clone https://github.com/Inochi2D/metal-d ../metal-d
       
     # Build Library
     - name: 'Build niobium (library, ${{ runner.os }}-${{ matrix.arch }})...'
