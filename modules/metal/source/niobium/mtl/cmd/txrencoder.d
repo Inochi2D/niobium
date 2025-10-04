@@ -32,6 +32,11 @@ class NioMTLTransferCommandEncoder : NioTransferCommandEncoder {
 public:
 @nogc:
 
+    /// Destructor
+    ~this() {
+        handle.release();
+    }
+
     /**
         Constructs a new command encoder.
     */

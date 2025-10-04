@@ -71,8 +71,8 @@ public:
 
     /// Destructor
     ~this() {
-        handle_.release();
         nogc_delete(encoderMutex_);
+        handle_.release();
     }
 
     /**
