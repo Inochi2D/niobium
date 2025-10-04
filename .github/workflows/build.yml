@@ -73,6 +73,16 @@ jobs:
         vulkan-components: Vulkan-Loader
         vulkan-use-cache: true
     
+    - name: 'Adding Vulkan SDK Libs to PATH...'
+      if: ${{ runner.os != 'macOS' }}
+      shell: bash
+      run: |
+        (
+          echo LD_LIBRARY_PATH=${VULKAN_SDK}/lib:$LD_LIBRARY_PATH
+          echo LIBRARY_PATH=${VULKAN_SDK}/lib:$LIBRARY_PATH
+        ) | tee -a $GITHUB_ENV
+        echo "${VULKAN_SDK}/lib" >> "$GITHUB_PATH"
+
     # Clone linrarues
     - name: 'Cloning low-level API Bindings...'
       run: |
@@ -87,7 +97,6 @@ jobs:
         if [[ "${{ runner.os }}" == "macOS" ]]; then
           redub build-universal --config=metal-dynamic --build=${{ inputs.build_type }}
         else
-          export LD_LIBRARY_PATH="$VULKAN_SDK/Lib:$LD_LIBRARY_PATH"
           redub build --config=vulkan-dynamic --build=${{ inputs.build_type }}
         fi
     
@@ -101,7 +110,6 @@ jobs:
             if [[ "${{ runner.os }}" == "macOS" ]]; then
               redub build-universal --root=$_file --build=${{ inputs.build_type }}
             else
-              export LD_LIBRARY_PATH="$VULKAN_SDK/Lib:$LD_LIBRARY_PATH"
               redub build --root=$_file --build=${{ inputs.build_type }}
             fi
             cp $_file/out/* out/
