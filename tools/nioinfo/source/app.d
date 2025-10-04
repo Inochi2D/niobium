@@ -23,7 +23,6 @@ void main() {
 		
 		writefln("%s: (%s):", i, device.name);
 		writefln("  Type: %s", device.type);
-		writefln("  Queues: %s", device.queueCount);
 		writefln("  Features:");
 		static foreach(member; __traits(allMembers, NioDeviceFeatures)) {
 			writefln("    %s=%s", member, __traits(getMember, features, member));

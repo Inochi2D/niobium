@@ -240,8 +240,6 @@ public:
 
     /// Destructor
     ~this() {
-        vkDeviceWaitIdle(handle_);
-
         uploadQueue.release();
         uploadStagingBuffer.release();
 

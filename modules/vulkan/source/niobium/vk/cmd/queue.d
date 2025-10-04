@@ -192,8 +192,6 @@ public:
     /// Destructor
     ~this() {
         nogc_delete(pool_);
-
-        vkQueueWaitIdle(handle_);
         nogc_delete(submitMutex);
     }
 
