@@ -10,23 +10,21 @@
         Luna Nielsen
 */
 module niobium.mtl.device;
-import niobium.mtl.texture;
-import niobium.mtl.buffer;
-import niobium.mtl.queue;
+import niobium.mtl.resource;
+import niobium.mtl.sampler;
+import niobium.mtl.video;
+import niobium.mtl.cmd;
+import niobium.mtl.sync;
 import niobium.mtl.heap;
-import niobium.resource;
-import niobium.pipeline;
-import niobium.sampler;
-import niobium.texture;
-import niobium.device;
-import niobium.buffer;
-import niobium.sync;
-import niobium.queue;
-import niobium.heap;
 import foundation;
 import metal.device;
 import numem;
 import nulib;
+
+import niobium.pipeline;
+
+public import niobium.device;
+public import niobium.types;
 
 class NioMTLDevice : NioDevice {
 private:
@@ -156,7 +154,7 @@ public:
             $(D null) otherwise.
     */
     override NioFence createFence() {
-        return null;
+        return nogc_new!NioMTLFence(this);
     }
 
     /**
@@ -167,7 +165,7 @@ public:
             $(D null) otherwise.
     */
     override NioSemaphore createSemaphore() {
-        return null;
+        return nogc_new!NioMTLSemaphore(this);
     }
 
     /**

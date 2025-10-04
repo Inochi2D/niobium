@@ -9,19 +9,18 @@
     Authors:
         Luna Nielsen
 */
-module niobium.mtl.texture;
-import niobium.pixelformat;
+module niobium.mtl.resource.texture;
+import niobium.mtl.resource;
 import niobium.mtl.device;
 import niobium.mtl.heap;
-import niobium.texture;
-import niobium.resource;
-import niobium.device;
-import niobium.types;
 import numem;
 import metal.pixelformat;
 import metal.texture;
 import metal.types;
 import foundation;
+
+public import niobium.texture;
+public import niobium.pixelformat;
 
 /**
     Vulkan Texture

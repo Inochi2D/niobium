@@ -1,5 +1,5 @@
 /**
-    Niobium Vulkan Resources
+    Niobium Vulkan Samplers
     
     Copyright:
         Copyright © 2025, Kitsunebi Games
@@ -9,8 +9,12 @@
     Authors:
         Luna Nielsen
 */
-module niobium.vk.resource;
+module niobium.mtl.sampler;
+import niobium.mtl.device;
+import niobium.mtl.heap;
+import metal.sampler;
+import numem;
+import nulib;
 
-public import niobium.resource;
-public import niobium.vk.resource.texture;
-public import niobium.vk.resource.buffer;
+public import niobium.sampler;
+

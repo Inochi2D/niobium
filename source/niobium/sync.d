@@ -149,6 +149,19 @@ public:
     abstract @property ulong value();
 
     /**
+        Signals the semaphore with the given value.
+
+        Params:
+            value = The value to signal with, must be greater 
+                    than the current value.
+        
+        Returns:
+            $(D true) if the operation succeeded,
+            $(D false) otherwise.
+    */
+    abstract bool signal(ulong value);
+
+    /**
         Awaits the semaphore getting signalled.
 
         Params:

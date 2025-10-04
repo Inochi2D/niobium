@@ -9,16 +9,17 @@
     Authors:
         Luna Nielsen
 */
-module niobium.mtl.buffer;
+module niobium.mtl.resource.buffer;
+import niobium.mtl.resource;
 import niobium.mtl.device;
 import niobium.mtl.heap;
-import niobium.buffer;
-import niobium.resource;
-import niobium.device;
 import foundation;
 import metal.resource;
 import metal.buffer;
 import numem;
+
+public import niobium.buffer;
+public import niobium.vertexformat;
 
 /**
     Metal Buffer

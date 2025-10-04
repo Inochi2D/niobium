@@ -10,20 +10,17 @@
         Luna Nielsen
 */
 module niobium.mtl.surface;
-import niobium.mtl.texture;
 import niobium.mtl.device;
-import niobium.pixelformat;
-import niobium.surface;
-import niobium.texture;
-import niobium.device;
-import niobium.types;
-import metal.drawable;
+import niobium.mtl.resource;
 import metal.pixelformat;
+import metal.drawable;
 import foundation;
 import coregraphics.cggeometry;
-import numem;
-import nulib;
 import nulib.threading.mutex;
+import nulib;
+import numem;
+
+public import niobium.surface;
 
 // Darwin Version Identifier
 version (OSX)
@@ -48,12 +45,10 @@ private:
     uint                                framesInFlight_ = 2;
     NioMTLDevice                        device_;
     NioExtent2D                         size_;
-    weak_vector!NioMTLDrawable          activeDrawables_;
-    weak_map!(void*, NioMTLDrawable)    drawables_;
     Mutex                               mutex_;
 
     // Handles
-    CAMetalLayer    handle_;
+    CAMetalLayer                        handle_;
 public:
 
     /**
@@ -114,8 +109,6 @@ public:
         (framesInFlight_ >= 2);
     
     ~this() {
-        foreach(drawable; activeDrawables_)
-            drawable.release();
         nogc_delete(mutex_);
     }
 
@@ -164,13 +157,7 @@ public:
         mutex_.lock();
         scope(exit) mutex_.unlock();
         if (auto mtldrawable = handle_.next()) {
-            if (cast(void*)mtldrawable in drawables_) {
-                return drawables_[cast(void*)mtldrawable];
-            }
-
-            activeDrawables_ ~= nogc_new!NioMTLDrawable(this, mtldrawable);
-            drawables_[cast(void*)mtldrawable] = activeDrawables_[$-1];
-            return drawables_[cast(void*)mtldrawable];
+            return nogc_new!NioMTLDrawable(this, mtldrawable);
         }
         return null;
     }

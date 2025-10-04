@@ -1,5 +1,5 @@
 /**
-    Niobium Vulkan Resources
+    Niobium Metal Synchronisation
     
     Copyright:
         Copyright © 2025, Kitsunebi Games
@@ -9,8 +9,8 @@
     Authors:
         Luna Nielsen
 */
-module niobium.vk.resource;
+module niobium.mtl.sync;
 
-public import niobium.resource;
-public import niobium.vk.resource.texture;
-public import niobium.vk.resource.buffer;
+public import niobium.sync;
+public import niobium.mtl.sync.fence;
+public import niobium.mtl.sync.semaphore;

@@ -1,5 +1,5 @@
 /**
-    Niobium Vulkan Resources
+    Niobium Metal Command Infrastructure
     
     Copyright:
         Copyright © 2025, Kitsunebi Games
@@ -9,8 +9,8 @@
     Authors:
         Luna Nielsen
 */
-module niobium.vk.resource;
+module niobium.mtl.cmd;
 
-public import niobium.resource;
-public import niobium.vk.resource.texture;
-public import niobium.vk.resource.buffer;
+public import niobium.mtl.cmd.queue;
+public import niobium.mtl.cmd.buffer;
+

@@ -90,6 +90,26 @@ public:
     }
 
     /**
+        Signals the semaphore with the given value.
+
+        Params:
+            value = The value to signal with, must be greater 
+                    than the current value.
+        
+        Returns:
+            $(D true) if the operation succeeded,
+            $(D false) otherwise.
+    */
+    override bool signal(ulong value) {
+        auto nvkDevice = cast(NioVkDevice)device;
+        auto signalInfo = VkSemaphoreSignalInfo(
+            semaphore: handle_,
+            value: value
+        );
+        return vkSignalSemaphore(nvkDevice.handle, &signalInfo) == VK_SUCCESS;
+    }
+
+    /**
         Awaits the semaphore getting signalled.
 
         Params:

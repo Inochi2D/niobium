@@ -9,11 +9,10 @@
     Authors:
         Luna Nielsen
 */
-module niobium.mtl.queue;
+module niobium.mtl.cmd.queue;
 import niobium.mtl.surface;
 import niobium.mtl.device;
 import niobium.mtl.cmd;
-import niobium.surface;
 import niobium.device;
 import niobium.queue;
 import niobium.cmd;
@@ -22,6 +21,8 @@ import metal.commandbuffer;
 import foundation;
 import numem;
 import nulib;
+
+public import niobium.queue;
 
 
 /**

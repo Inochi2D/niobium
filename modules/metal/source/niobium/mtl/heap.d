@@ -11,17 +11,13 @@
 */
 module niobium.mtl.heap;
 import niobium.mtl.device;
-import niobium.mtl.texture;
-import niobium.mtl.buffer;
-import niobium.resource;
-import niobium.texture;
-import niobium.heap;
-import niobium.buffer;
-import niobium.device;
+import niobium.mtl.resource;
 import metal.resource;
 import metal.device;
 import metal.heap;
 import foundation;
+
+public import niobium.heap;
 
 /**
     A heap which can suballocate resources from itself.

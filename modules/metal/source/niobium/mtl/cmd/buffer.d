@@ -9,8 +9,8 @@
     Authors:
         Luna Nielsen
 */
-module niobium.mtl.cmd;
-import niobium.mtl.queue;
+module niobium.mtl.cmd.buffer;
+import niobium.mtl.cmd;
 import niobium.cmd;
 import niobium.queue;
 import niobium.device;
@@ -20,6 +20,10 @@ import foundation;
 import numem;
 import nulib;
 import niobium.mtl.surface;
+
+public import niobium.cmd;
+public import niobium.mtl.cmd.txrencoder;
+public import niobium.mtl.cmd.renderencoder;
 
 /**
     A buffer of commands which can be sent to the GPU
