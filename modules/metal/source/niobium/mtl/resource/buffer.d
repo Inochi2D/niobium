@@ -137,11 +137,11 @@ public:
             data =      The data to upload.
             offset =    Offset into the buffer to upload the data.
     */
-    override void upload(void[] data, size_t offset) {
+    override NioBuffer upload(void[] data, size_t offset) {
         import nulib.math : min;
 
         if (desc_.storage.privateStorage)
-            return;
+            return this;
         
         void[] mapped = this.map();
             size_t start = min(offset, mapped.length);
@@ -149,6 +149,7 @@ public:
             size_t srcEnd = mapped.length-end;
             mapped[start..end] = data[0..srcEnd];
         this.unmap();
+        return this;
     }
 
     /**
