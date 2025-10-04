@@ -10,15 +10,30 @@ subPackage "modules/vulkan"
 targetName "niobium"
 targetPath "out/"
 
-configuration "metal" {
+configuration "metal-static" {
     platforms "osx" "ios" "tvos" "watchos" "visionos"
     targetType "staticLibrary"
 
     dependency ":metal" version="*"
 }
 
+configuration "metal-dynamic" {
+    platforms "osx" "ios" "tvos" "watchos" "visionos"
+    targetType "dynamicLibrary"
+
+    dependency ":metal" version="*"
+    dependency "nurt" version=">=0.2.1"
+}
+
 configuration "vulkan" {
     targetType "staticLibrary"
     
     dependency ":vulkan" version="*"
+}
+
+configuration "vulkan-dynamic" {
+    targetType "dynamicLibrary"
+
+    dependency ":vulkan" version="*"
+    dependency "nurt" version=">=0.2.1"
 }

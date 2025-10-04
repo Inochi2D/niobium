@@ -1,0 +1,116 @@
+name: Build Niobium
+run-name: 'Build Niobium...'
+
+on:
+  workflow_call:
+    inputs:
+      build_tools:
+        description: 'Whether the build the niobium tools'
+        required: false
+        default: true
+        type: boolean
+      build_library:
+        description: 'Whether the build the niobium library'
+        required: false
+        default: true
+        type: boolean
+      build_type:
+        description: 'The type of build to do'
+        required: false
+        type: string
+        default: 'debug'
+      target_ref:
+        description: 'The ref to build'
+        required: false
+        type: string
+        default: '${{ github.ref_name }}'
+    outputs:
+      artifact:
+        description: 'The artifact that was produced.'
+        value: ${{ jobs.build.outputs.artifact }}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: x86_64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+          - os: macos-latest
+            arch: universal
+          - os: windows-latest
+            arch: x86_64
+          - os: windows-latest
+            arch: arm64
+    outputs:
+      artifact: '${{ steps.finalize.outputs.artifact }}'
+    runs-on: ${{ matrix.os }}
+    steps:
+    
+    # Checkout
+    - uses: actions/checkout@v4
+      with:
+        ref: '${{ inputs.target_ref }}'
+    
+    # Setup redub
+    - uses: MrcSnm/setup-dlang@v2
+      with:
+        compiler: ldc-latest
+        redub: 1.25.2
+    
+    # Build Library
+    - name: 'Build niobium (library, ${{ runner.os }}-${{ matrix.arch }})...'
+      if: ${{ inputs.build_library && runner.os == 'macOS' }}
+      run: |
+        redub build-universal --config=metal-dynamic --build=${{ inputs.build_type }}
+    
+    - name: 'Build niobium (library, ${{ runner.os }}-${{ matrix.arch }})...'
+      if: ${{ inputs.build_library && runner.os != 'macOS' }}
+      run: |
+        redub build --config=vulkan-dynamic --build=${{ inputs.build_type }}
+    
+    # Build Tools
+    - name: 'Build niobium (tools, ${{ runner.os }}-${{ matrix.arch }})...'
+      if: ${{ inputs.build_tools && runner.os == 'macOS' }}
+      run: |
+        for _file in tools/*; do
+          if [ -d "$_file" ]; then
+            redub build-universal --root=$_file --build=${{ inputs.build_type }}
+            cp $_file/out/* out/
+          fi
+        done
+    
+    - name: 'Build niobium (tools, ${{ runner.os }}-${{ matrix.arch }})...'
+      if: ${{ inputs.build_tools && runner.os != 'macOS' }}
+      run: |
+        for _file in tools/*; do
+          if [ -d "$_file" ]; then
+            redub build --root=$_file --build=${{ inputs.build_type }}
+            cp $_file/out/* out/
+          fi
+        done
+    
+    - name: 'Archive'
+      id: archive
+      run: |
+        cd out/
+        tar -cvf ../niobium-${{ runner.os }}-.tar ./*
+    
+    # Create artifacts.
+    - name: 'Make Artifact'
+      uses: actions/upload-artifact@v4
+      with:
+        name: 'niobium-${{ runner.os }}-${{ matrix.arch }}-${{ inputs.build_type }}'
+        path: |
+          inochi2d-${{ runner.os }}-${{ matrix.arch }}-${{ inputs.build_type }}.tar
+    
+    - name: 'Finalize'
+      id: finalize
+      run: |
+        echo "artifact=niobium-${{ runner.os }}-${{ matrix.arch }}-${{ inputs.build_type }}" >> $GITHUB_OUTPUT
