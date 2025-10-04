@@ -39,14 +39,19 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
+            name: linux
             arch: x86_64
           - os: ubuntu-24.04-arm
+            name: linux
             arch: arm64
           - os: macos-latest
+            name: osx
             arch: universal
           - os: windows-latest
+            name: win32
             arch: x86_64
           - os: windows-latest
+            name: win32
             arch: arm64
     outputs:
       artifact: '${{ steps.finalize.outputs.artifact }}'
@@ -117,27 +122,33 @@ jobs:
           fi
         done
     
-    - name: 'Cleaning up object files...'
+    - name: 'Cleaning up file structure...'
       shell: bash
       run: |
         rm -f out/*.o out/*.obj || true
         rm -f out/tools/*.o out/tools/*.obj || true
+        cp LICENSE out/
+
+        # Delete unneccesary debug files for Windows.
+        if [[ "${{ inputs.build_type }}" != "debug" ]]; then
+          rm -f out/tools/*.lib out/tools/*.pdb out/tools/*.exp || true
+        fi
         
     - name: 'Archive'
       id: archive
       run: |
         cd out/
-        tar -cvf ../niobium-${{ runner.os }}-${{ matrix.arch }}-${{ inputs.build_type }}.tar ./*
+        tar -cvzf ../niobium-${{ matrix.name }}-${{ matrix.arch }}-${{ inputs.build_type }}.tar.gz ./*
     
     # Create artifacts.
     - name: 'Make Artifact'
       uses: actions/upload-artifact@v4
       with:
-        name: 'niobium-${{ runner.os }}-${{ matrix.arch }}-${{ inputs.build_type }}'
+        name: 'niobium-${{ matrix.name }}-${{ matrix.arch }}-${{ inputs.build_type }}'
         path: |
-          niobium-${{ runner.os }}-${{ matrix.arch }}-${{ inputs.build_type }}.tar
+          niobium-${{ matrix.name }}-${{ matrix.arch }}-${{ inputs.build_type }}.tar.gz
     
     - name: 'Finalize'
       id: finalize
       run: |
-        echo "artifact=niobium-${{ runner.os }}-${{ matrix.arch }}-${{ inputs.build_type }}" >> $GITHUB_OUTPUT
+        echo "artifact=niobium-${{ matrix.name }}-${{ matrix.arch }}-${{ inputs.build_type }}" >> $GITHUB_OUTPUT

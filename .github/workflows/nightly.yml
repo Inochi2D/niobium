@@ -31,4 +31,4 @@ jobs:
       with:
         tag_name: 'nightly'
         files: |
-          *.tar
+          *.tar.gz

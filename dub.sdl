@@ -10,8 +10,6 @@ subPackage "modules/vulkan"
 targetName "niobium"
 targetPath "out/"
 
-copyFiles "LICENSE"
-
 configuration "metal-static" {
     platforms "osx" "ios" "tvos" "watchos" "visionos"
     targetType "staticLibrary"
