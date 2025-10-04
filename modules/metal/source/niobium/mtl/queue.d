@@ -30,12 +30,15 @@ import nulib;
 class NioMTLCommandQueue : NioCommandQueue {
 private:
 @nogc:
+    // State
+    NioCommandQueueDescriptor desc_;
 
     // Handles
     MTLCommandQueue handle_;
 
-    void setup(NioMTLDevice device) {
-        this.handle_ = device.handle.newCommandQueue();
+    void setup(NioMTLDevice device, NioCommandQueueDescriptor desc) {
+        this.desc_ = desc;
+        this.handle_ = device.handle.newCommandQueue(desc.maxCommandBuffers);
     }
 protected:
 
@@ -60,6 +63,12 @@ public:
     */
     final @property MTLCommandQueue handle() => handle_;
 
+    /**
+        The maximum amount of active command buffers you can
+        have.
+    */
+    override @property uint maxCommandBuffers() => desc_.maxCommandBuffers;
+
     /// Destructor
     ~this() {
         handle_.release();
@@ -68,9 +77,9 @@ public:
     /**
         Creates a new command queue.
     */
-    this(NioMTLDevice device) {
+    this(NioMTLDevice device, NioCommandQueueDescriptor desc) {
         super(device);
-        this.setup(device);
+        this.setup(device, desc);
     }
 
     /**
@@ -82,14 +91,44 @@ public:
     }
 
     /**
+        Reserves space in the command queue for the given
+        buffer.
+        
+        Params:
+            buffer = The buffer to enqueue.
+    */
+    override void enqueue(NioCommandBuffer buffer) {
+        if (auto mtlcmdbuffer = cast(NioMTLCommandBuffer)buffer) {
+            if (mtlcmdbuffer.handle.status == MTLCommandBufferStatus.NotEnqueued)
+                mtlcmdbuffer.handle.enqueue();
+        }
+    }
+
+    /**
+        Reserves space in the command queue for the given
+        buffer.
+
+        Params:
+            buffers = The buffers to enqueue.
+    */
+    override void enqueue(NioCommandBuffer[] buffers) {
+        foreach(buffer; buffers) {
+            if (auto mtlcmdbuffer = cast(NioMTLCommandBuffer)buffer) {
+                if (mtlcmdbuffer.handle.status == MTLCommandBufferStatus.NotEnqueued)
+                    mtlcmdbuffer.handle.enqueue();
+            }
+        }
+    }
+
+    /**
         Submit a single command buffer onto the queue.
         
         Params:
             buffer = The buffer to enqueue.
     */
-    override void submit(NioCommandBuffer buffer) {
+    override void commit(NioCommandBuffer buffer) {
         if (auto mtlcmdbuffer = cast(NioMTLCommandBuffer)buffer) {
-            if (mtlcmdbuffer.handle.status != MTLCommandBufferStatus.NotEnqueued)
+            if (mtlcmdbuffer.handle.status >= MTLCommandBufferStatus.Committed)
                 return;
             
             mtlcmdbuffer.handle.commit();
@@ -102,10 +141,10 @@ public:
         Params:
             buffers = The buffers to enqueue.
     */
-    override void submit(NioCommandBuffer[] buffers) {
+    override void commit(NioCommandBuffer[] buffers) {
         foreach(buffer; buffers) {
             if (auto mtlcmdbuffer = cast(NioMTLCommandBuffer)buffer) {
-                if (mtlcmdbuffer.handle.status != MTLCommandBufferStatus.NotEnqueued)
+                if (mtlcmdbuffer.handle.status >= MTLCommandBufferStatus.Committed)
                     return;
                 
                 mtlcmdbuffer.handle.commit();

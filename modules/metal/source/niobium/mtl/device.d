@@ -15,9 +15,12 @@ import niobium.mtl.buffer;
 import niobium.mtl.queue;
 import niobium.mtl.heap;
 import niobium.resource;
+import niobium.pipeline;
+import niobium.sampler;
 import niobium.texture;
 import niobium.device;
 import niobium.buffer;
+import niobium.sync;
 import niobium.queue;
 import niobium.heap;
 import foundation;
@@ -91,12 +94,6 @@ public:
     */
     override @property NioDeviceType type() => deviceType_;
 
-    /**
-        The amount of command queues that you can 
-        fetch from the device.
-    */
-    override @property uint queueCount() => 1;
-
     ~this() {
         nu_freea(deviceName_);
     }
@@ -147,8 +144,30 @@ public:
         Returns:
             A $(D NioCommandQueue) or $(D null) on failure.
     */
-    override NioCommandQueue createQueue(uint index) {
-        return index == 0 ? nogc_new!NioMTLCommandQueue(this) : null;
+    override NioCommandQueue createQueue(NioCommandQueueDescriptor desc) {
+        return nogc_new!NioMTLCommandQueue(this, desc);
+    }
+
+    /**
+        Creates a new fence.
+        
+        Returns:
+            A new $(D NioFence) on success,
+            $(D null) otherwise.
+    */
+    override NioFence createFence() {
+        return null;
+    }
+
+    /**
+        Creates a new semaphore.
+        
+        Returns:
+            A new $(D NioSemaphore) on success,
+            $(D null) otherwise.
+    */
+    override NioSemaphore createSemaphore() {
+        return null;
     }
 
     /**
@@ -209,6 +228,34 @@ public:
     */
     override NioBuffer createBuffer(NioBufferDescriptor desc) {
         return nogc_new!NioMTLBuffer(this, desc);
+    }
+
+    /**
+        Creates a new render pipeline object.
+
+        Params:
+            desc = Descriptor for the pipeline.
+        
+        Returns:
+            A new $(D NioRenderPipeline) on success,
+            $(D null) otherwise.
+    */
+    override NioRenderPipeline createRenderPipeline(NioRenderPipelineDescriptor desc) {
+        return null;
+    }
+
+    /**
+        Creates a new sampler.
+
+        Params:
+            desc = Descriptor for the sampler.
+        
+        Returns:
+            A new $(D NioSampler) on success,
+            $(D null) otherwise.
+    */
+    override NioSampler createSampler(NioSamplerDescriptor desc) {
+        return null;
     }
 
     /// Stringification override

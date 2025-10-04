@@ -84,6 +84,39 @@ public:
     }
 
     /**
+        Begins a new render pass.
+
+        Note:
+            Only one pass can be active at a time,
+            attempting to create new passes will fail.
+        
+        Params:
+            desc = Descriptor used to start the render pass
+
+        Returns:
+            A short lived $(D NioRenderCommandEncoder) on success,
+            $(D null) on failure.
+    */
+    override NioRenderCommandEncoder beginRenderPass(NioRenderPassDescriptor desc) {
+        return null;
+    }
+
+    /**
+        Begins a new transfer pass.
+
+        Note:
+            Only one pass can be active at a time,
+            attempting to create new passes will fail.
+        
+        Returns:
+            A short lived $(D NioTransferCommandEncoder) on success,
+            $(D null) on failure.
+    */
+    override NioTransferCommandEncoder beginTransferPass() {
+        return null;
+    }
+
+    /**
         Enqueues a presentation to happen after this
         command buffer finishes execution.
 
@@ -100,20 +133,6 @@ public:
             
             mtldrawable.queue = this.queue;
             handle_.present(mtldrawable.handle);
-        }
-    }
-
-    /**
-        Submits the command buffer to its queue.
-
-        After submitting a command buffer you cannot
-        modify it any further, not upload it to any other
-        queues.
-    */
-    override void submit() {
-        if (!isRecording_) {
-            this.isRecording_ = false;
-            queue.submit(this);
         }
     }
 

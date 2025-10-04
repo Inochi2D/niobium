@@ -85,3 +85,85 @@ enum NioPixelFormat : uint {
     x24Stencil8 =           0x00000102U,
     x32Stencil8 =           0x00000103U,
 }
+
+
+
+/**
+    Gets the byte-stride for a given pixel format.
+
+    Params:
+        format = The $(D NioPixelFormat)
+    
+    Returns:
+        The stride in bytes.
+*/
+pragma(inline, true)
+uint toStride(NioPixelFormat format) @nogc {
+    final switch(format) with(NioPixelFormat) {
+        case rgbaUnorm_BC1:
+        case rgbaUnormSRGB_BC1:
+        case rgbaUnorm_BC2:
+        case rgbaUnormSRGB_BC2:
+        case rgbaUnorm_BC3:
+        case rgbaUnormSRGB_BC3:
+        case rgbaUnorm_BC7:
+        case rgbaUnormSRGB_BC7:
+        case unknown:               return 0;
+
+        // 8-bit
+        case a8Unorm:
+        case r8Unorm:
+        case r8UnormSRGB:
+        case r8Snorm:
+        case r8Uint:
+        case r8Sint:                return 1;
+        
+        // 16-bit
+        case r16Unorm:
+        case r16Uint:
+        case r16Sint:
+        case r16Float:
+        case rg8Unorm:
+        case rg8UnormSRGB:
+        case rg8Snorm:
+        case rg8Uint:
+        case rg8Sint:               return 2;
+
+        // 32-bit
+        case rgba8Unorm:
+        case rgba8UnormSRGB:
+        case rgba8Snorm:
+        case rgba8Uint:
+        case rgba8Sint:
+        case r32Uint:
+        case r32Sint:
+        case r32Float:
+        case rg16Unorm:
+        case rg16Snorm:
+        case rg16Uint:
+        case rg16Sint:
+        case rg16Float:
+        case bgra8Unorm:
+        case bgra8UnormSRGB:
+        case depth24Stencil8:
+        case x24Stencil8:           return 4;
+
+        // 40-bit
+        case depth32Stencil8:
+        case x32Stencil8:           return 5;
+
+        // 64-bit
+        case rg32Uint:
+        case rg32Sint:
+        case rg32Float:
+        case rgba16Unorm:
+        case rgba16Snorm:
+        case rgba16Uint:
+        case rgba16Sint:            return 8;
+
+        // 128-bit
+        case rgba32Uint:
+        case rgba32Sint:
+        case rgba32Float:           return 16;
+    }
+}

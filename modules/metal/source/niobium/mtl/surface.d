@@ -12,6 +12,7 @@
 module niobium.mtl.surface;
 import niobium.mtl.texture;
 import niobium.mtl.device;
+import niobium.pixelformat;
 import niobium.surface;
 import niobium.texture;
 import niobium.device;

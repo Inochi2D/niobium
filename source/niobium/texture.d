@@ -152,6 +152,8 @@ public:
     abstract NioTexture upload(NioRegion3D region, uint level, uint slice, void[] data, uint rowStride);
 }
 
+
+
 /**
     Bit flags describing how a texture may be used.
 */

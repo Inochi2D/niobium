@@ -10,14 +10,17 @@
         Luna Nielsen
 */
 module niobium.mtl.texture;
+import niobium.pixelformat;
 import niobium.mtl.device;
 import niobium.mtl.heap;
 import niobium.texture;
 import niobium.resource;
 import niobium.device;
+import niobium.types;
 import numem;
-import metal.texture;
 import metal.pixelformat;
+import metal.texture;
+import metal.types;
 import foundation;
 
 /**
@@ -206,6 +209,36 @@ public:
         Mip level count of the texture.
     */
     override @property uint levels() => desc_.levels;
+
+    /**
+        Uploads data to the texture using a device-internal
+        transfer queue.
+
+        This is overall a slow operation, uploading via
+        a $(D NioTransferCommandEncoder) is recommended.
+
+        Params:
+            region =    The region of the texture to upload to.
+            level =     The mipmap level of the texture to upload to.
+            slice =     The array slice of the texture to upload to, for non-array textures, set to 0.
+            data =      The data to upload.
+            rowStride = The stride of a single row of pixels.
+    
+        Returns:
+            The calling texture, allowing chaining.
+    */
+    override NioTexture upload(NioRegion3D region, uint level, uint slice, void[] data, uint rowStride) {
+        auto mtlregion = *(cast(MTLRegion*)&region);
+        this.handle_.replace(
+            mtlregion,
+            level,
+            slice,
+            data.ptr,
+            rowStride*format.toStride(),
+            0
+        );
+        return this;
+    }
 }
 
 /**
