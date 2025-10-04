@@ -10,6 +10,7 @@
         Luna Nielsen
 */
 module niobium.mtl.cmd.buffer;
+import niobium.mtl.surface;
 import niobium.mtl.cmd;
 import niobium.cmd;
 import niobium.queue;
@@ -19,7 +20,7 @@ import metal.commandbuffer;
 import foundation;
 import numem;
 import nulib;
-import niobium.mtl.surface;
+import nulib.threading.mutex;
 
 public import niobium.cmd;
 public import niobium.mtl.cmd.txrencoder;
@@ -43,10 +44,7 @@ private:
 
     // Handles
     MTLCommandBuffer handle_;
-
-    void setup(NioMTLCommandQueue queue) {
-        this.handle_ = queue.handle.commandBuffer();
-    }
+    Mutex encoderMutex_;
 
 protected:
 
@@ -74,6 +72,7 @@ public:
     /// Destructor
     ~this() {
         handle_.release();
+        nogc_delete(encoderMutex_);
     }
 
     /**
@@ -82,9 +81,10 @@ public:
         Params:
             device = The device that "owns" this command buffer.
     */
-    this(NioDevice device, NioCommandQueue queue) {
+    this(NioDevice device, NioMTLCommandQueue queue) {
         super(device, queue);
-        this.setup(cast(NioMTLCommandQueue)queue);
+        this.handle_ = queue.handle.commandBuffer();
+        this.encoderMutex_ = nogc_new!Mutex();
     }
 
     /**
@@ -102,6 +102,12 @@ public:
             $(D null) on failure.
     */
     override NioRenderCommandEncoder beginRenderPass(NioRenderPassDescriptor desc) {
+        encoderMutex_.lock();
+        if (this.activeEncoder)
+            return null;
+
+        // TODO: Create NioRenderCommandEncoder here.
+        encoderMutex_.unlock();
         return null;
     }
 
@@ -117,7 +123,13 @@ public:
             $(D null) on failure.
     */
     override NioTransferCommandEncoder beginTransferPass() {
-        return null;
+        encoderMutex_.lock();
+        if (this.activeEncoder)
+            return null;
+        
+        this.activeEncoder = nogc_new!NioMTLTransferCommandEncoder(this);
+        encoderMutex_.unlock();
+        return cast(NioMTLTransferCommandEncoder)activeEncoder;
     }
 
     /**
@@ -146,5 +158,52 @@ public:
     */
     override void await() {
         handle_.waitUntilCompleted();
+    }
+}
+
+
+
+/*
+    Mixin template inserted into the different command encoders
+    to make them conform to the NioCommandEncoder class interface.
+*/
+mixin template MTLCommandEncoderFunctions(EncoderT) {
+
+    /**
+        Command encoder handle
+    */
+    protected EncoderT handle;
+
+    /**
+        Metal command buffer.
+    */
+    protected @property MTLCommandBuffer mtlcmdbuffer() => (cast(NioMTLCommandBuffer)commandBuffer).handle;
+
+    /**
+        Pushes a debug group.
+
+        Params:
+            name = The name of the debug group
+            color = The color of the debug group (optional)
+    */
+    override void pushDebugGroup(string name, float[4] color) {
+        mtlcmdbuffer.pushDebugGroup(NSString.create(name));
+    }
+
+    /**
+        Pops the top debug group from the debug
+        group stack.
+    */
+    override void popDebugGroup() {
+        mtlcmdbuffer.popDebugGroup();
+    }
+
+    /**
+        Ends the encoding pass, allowing a new pass to be
+        begun from the parent command buffer.
+    */
+    override void endEncoding() {
+        handle.endEncoding();
+        this.finishEncoding();
     }
 }

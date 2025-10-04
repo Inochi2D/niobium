@@ -10,16 +10,29 @@
         Luna Nielsen
 */
 module niobium.mtl.cmd.renderencoder;
-// import niobium.mtl.cmd.buffer;
-// import niobium.mtl.sampler;
-// import niobium.mtl.resource;
-// import niobium.mtl.sync;
-// import niobium.types;
-// import niobium.cmd;
-// import numem;
+import niobium.mtl.cmd.buffer;
+import niobium.mtl.sampler;
+import niobium.mtl.resource;
+import niobium.mtl.sync;
+import niobium.types;
+import niobium.cmd;
+import numem;
 
-// // TODO: remove this
-// import niobium.pipeline;
+// TODO: remove this
+import niobium.pipeline;
+
+// /**
+//     A short-lived object which encodes rendering commands 
+//     into a $(D NioCommandBuffer).
+//     Only one $(D NioCommandEncoder) can be active at a time 
+//     for a $(D NioCommandBuffer).
+
+//     To end encoding call $(D endEncoding).
+// */
+// class NioMTLRenderCommandEncoder : NioRenderCommandEncoder {
+// private:
+// @nogc:
+
 
 // /**
 //     A short-lived object which encodes rendering commands 
