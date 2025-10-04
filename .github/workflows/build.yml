@@ -59,11 +59,12 @@ jobs:
         ref: '${{ inputs.target_ref }}'
         
     # Setup D Compiler
-    - uses: dlang-community/setup-dlang@v1.4.0
+    - uses: MrcSnm/setup-dlang@v2
       with:
         compiler: ldc-latest
+        redub: 1.25.2
 
-    # Get dependencies
+    # Install Vulkan SDK
     - name: 'Install Vulkan SDK...'
       if: ${{ runner.os != 'macOS' }}
       uses: humbletim/setup-vulkan-sdk@v1.2.1
@@ -71,7 +72,7 @@ jobs:
         vulkan-query-version: 1.4.304.1
         vulkan-components: Vulkan-Headers, Vulkan-Loader
         vulkan-use-cache: true
-
+    
     # Clone nuvk
     - name: 'Cloning nuvk...'
       run: |
@@ -82,9 +83,9 @@ jobs:
       if: ${{ inputs.build_library }}
       run: |
         if [[ "${{ runner.os }}" == "macOS" ]]; then
-          dub run redub -y -- build-universal --config=metal-dynamic --build=${{ inputs.build_type }}
+          redub -build-universal --config=metal-dynamic --build=${{ inputs.build_type }}
         else
-          dub run redub -y -- build --config=vulkan-dynamic --build=${{ inputs.build_type }}
+          redub build --config=vulkan-dynamic --build=${{ inputs.build_type }}
         fi
     
     # Build Tools
@@ -94,9 +95,9 @@ jobs:
         for _file in tools/*; do
           if [ -d "$_file" ]; then
             if [[ "${{ runner.os }}" == "macOS" ]]; then
-              dub run redub -y -- build-universal --root=$_file --build=${{ inputs.build_type }}
+              redub build-universal --root=$_file --build=${{ inputs.build_type }}
             else
-              dub run redub -y --  build --root=$_file --build=${{ inputs.build_type }}
+              redub build --root=$_file --build=${{ inputs.build_type }}
             fi
             cp $_file/out/* out/
           fi
