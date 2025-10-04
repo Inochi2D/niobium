@@ -87,7 +87,7 @@ jobs:
         if [[ "${{ runner.os }}" == "macOS" ]]; then
           redub build-universal --config=metal-dynamic --build=${{ inputs.build_type }}
         else
-          set LIBRARY_PATH="$VULKAN_SDK/Lib:$LIBRARY_PATH"
+          export LD_LIBRARY_PATH="$VULKAN_SDK/Lib:$LD_LIBRARY_PATH"
           redub build --config=vulkan-dynamic --build=${{ inputs.build_type }}
         fi
     
@@ -101,7 +101,7 @@ jobs:
             if [[ "${{ runner.os }}" == "macOS" ]]; then
               redub build-universal --root=$_file --build=${{ inputs.build_type }}
             else
-              set LIBRARY_PATH="$VULKAN_SDK/Lib:$LIBRARY_PATH"
+              export LD_LIBRARY_PATH="$VULKAN_SDK/Lib:$LD_LIBRARY_PATH"
               redub build --root=$_file --build=${{ inputs.build_type }}
             fi
             cp $_file/out/* out/
