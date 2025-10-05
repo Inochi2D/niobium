@@ -253,7 +253,7 @@ public:
             $(D null) otherwise.
     */
     override NioSampler createSampler(NioSamplerDescriptor desc) {
-        return null;
+        return nogc_new!NioMTLSampler(this, desc);
     }
 
     /// Stringification override
