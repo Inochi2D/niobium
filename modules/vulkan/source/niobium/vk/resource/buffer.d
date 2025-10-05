@@ -136,9 +136,10 @@ public:
             The mapped buffer or $(D null) on failure.
     */
     override void[] map() {
-        if (allocation_.memory && allocation_.memory.isMappable)
-            return allocation_.memory.map(allocation_.offset, allocation_.size);
-        return null;
+        if (!allocation_.memory || !allocation_.memory.isMappable)
+            return null;
+
+        return allocation_.memory.map(allocation_.offset, allocation_.size);
     }
 
     
@@ -147,7 +148,13 @@ public:
         reference count.
     */
     override void unmap() {
-        if (allocation_.memory && allocation_.memory.isMappable)
+        if (!allocation_.memory)
+            return;
+        
+        if (!allocation_.memory.isCoherent)
+            allocation_.memory.flush();
+
+        if (allocation_.memory.isMappable)
             allocation_.memory.unmap();
     }
 
