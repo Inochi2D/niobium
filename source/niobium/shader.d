@@ -10,25 +10,46 @@
         Luna Nielsen
 */
 module niobium.shader;
-import niobium.resource;
 import niobium.device;
+import nir.library;
+
+/**
+    Descriptor used to create a shader.
+*/
+struct NioShaderDescriptor {
+
+    /**
+        The NIR Library to create the shader object from.
+    */
+    NirLibrary library;
+}
 
 /**
     A shader
 */
 abstract
-class NioShader : NioResource {
-protected:
+class NioShader : NioDeviceObject {
+private:
 @nogc:
+    NioShaderDescriptor desc_;
+
+protected:
+
+    /**
+        The shader descriptor used to create the shader.
+    */
+    final @property NioShaderDescriptor desc() => desc_;
 
     /**
         Constructs a new shader.
 
         Params:
-            device = The device that "owns" this shader.
+            device =    The device that "owns" this shader.
+            desc =      The descriptor usde to create the shader.
     */
-    this(NioDevice device) {
+    this(NioDevice device, NioShaderDescriptor desc) {
         super(device);
+        this.desc_ = desc;
     }
 
 public:
@@ -50,7 +71,7 @@ public:
     A shader function.
 */
 abstract
-class NioShaderFunction : NioResource {
+class NioShaderFunction : NioDeviceObject {
 protected:
 @nogc:
 
@@ -74,37 +95,5 @@ public:
     /**
         The shader stage this shader conforms to.
     */
-    abstract @property NioShaderStage stage();
-}
-
-/**
-    The different kinds of shader stages that a shader
-    can apply to.
-*/
-enum NioShaderStage : uint {
-    
-    /**
-        Vertex shader stage
-    */
-    vertex =            0x00000000U,
-    
-    /**
-        Fragment shader stage
-    */
-    fragment =          0x00000001U,
-
-    /**
-        Mesh task shader stage
-    */
-    task =              0x00000002U,
-
-    /**
-        Mesh shader stage
-    */
-    mesh =              0x00000004U,
-    
-    /**
-        Compute kernel shader stage
-    */
-    kernel =            0x00000008U,
+    abstract @property NirShaderStage stage();
 }
