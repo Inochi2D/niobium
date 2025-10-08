@@ -11,18 +11,18 @@
 */
 module niobium.vk.cmd.renderencoder;
 import niobium.vk.cmd.buffer;
-import niobium.vk.sampler;
 import niobium.vk.resource;
+import niobium.vk.sampler;
+import niobium.vk.device;
+import niobium.vk.render;
 import niobium.vk.sync;
 import niobium.types;
 import niobium.cmd;
+import vulkan.loader;
 import vulkan.core;
 import vulkan.eh;
 import nulib.math : min, max;
 import numem;
-
-// TODO: remove this
-import niobium.pipeline;
 
 /**
     A short-lived object which encodes rendering commands 
@@ -35,6 +35,8 @@ import niobium.pipeline;
 class NioVkRenderCommandEncoder : NioRenderCommandEncoder {
 private:
 @nogc:
+    VK_EXT_extended_dynamic_state3 dyn3;
+    VkRect2D renderArea;
 
     void transitionIfNotLayout(T)(T attachment, VkImageLayout layout) {
         auto nvkTexture = cast(NioVkTexture)attachment.texture;
@@ -65,6 +67,7 @@ private:
             renderInfo.renderArea.extent.width = max(renderInfo.renderArea.extent.width, nvkTexture.width);
             renderInfo.renderArea.extent.height = max(renderInfo.renderArea.extent.height, nvkTexture.height);
         }
+        renderArea = renderInfo.renderArea;
 
         // Depth attachment.
         if (desc.depthAttachment.texture || desc.depthAttachment.resolveTexture) {
@@ -91,6 +94,9 @@ private:
         nu_free(cast(void*)renderInfo.pColorAttachments);
         nu_free(cast(void*)renderInfo.pDepthAttachment);
         nu_free(cast(void*)renderInfo.pStencilAttachment);
+
+        auto nvkDevice = cast(NioVkDevice)cmdbuffer.device;
+        nvkDevice.handle.loadProcs(dyn3);
     }
 
     NioPrimitive prim_;
@@ -218,7 +224,7 @@ public:
             viewport = The viewport.
     */
     override void setViewport(NioViewport viewport) {
-        vkCmdSetViewport(vkcmdbuffer, 0, 1, cast(VkViewport*)&viewport);
+        vkCmdSetViewportWithCount(vkcmdbuffer, 1, cast(VkViewport*)&viewport);
     }
 
     /**
@@ -228,7 +234,7 @@ public:
             scissor = The scissor rectangle.
     */
     override void setScissor(NioScissorRect scissor) {
-        vkCmdSetScissor(vkcmdbuffer, 0, 1, cast(VkRect2D*)&scissor);
+        vkCmdSetScissorWithCount(vkcmdbuffer, 1, cast(VkRect2D*)&scissor);
     }
 
     /**
@@ -269,7 +275,20 @@ public:
             pipeline =  The pipeline.
     */
     override void setPipeline(NioRenderPipeline pipeline) {
-
+        auto nvkRenderPipeline = cast(NioVkRenderPipeline)pipeline;
+        vkCmdBindPipeline(vkcmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, nvkRenderPipeline.handle);
+        this.setCulling(NioCulling.none);
+        this.setViewport(NioViewport(renderArea.offset.x, renderArea.offset.y, renderArea.extent.width, renderArea.extent.height, 0, 1));
+        this.setScissor(NioScissorRect(renderArea.offset.x, renderArea.offset.y, renderArea.extent.width, renderArea.extent.height));
+        
+        vkCmdSetDepthBiasEnable(vkcmdbuffer, VK_TRUE);
+        vkCmdSetDepthBias(vkcmdbuffer, 0, 0, 0);
+        vkCmdSetDepthBoundsTestEnable(vkcmdbuffer, VK_TRUE);
+        vkCmdSetDepthBounds(vkcmdbuffer, 0, 1);
+        vkCmdSetFrontFace(vkcmdbuffer, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+        vkCmdSetPrimitiveRestartEnable(vkcmdbuffer, VK_FALSE);
+        dyn3.vkCmdSetDepthClampEnableEXT(vkcmdbuffer, VK_FALSE);
+        dyn3.vkCmdSetPolygonModeEXT(vkcmdbuffer, VK_POLYGON_MODE_FILL);
     }
 
     /**
@@ -282,7 +301,10 @@ public:
             slot =      The slot in the argument table to set.
     */
     override void setVertexBuffer(NioBuffer buffer, ulong offset, uint slot) {
+        auto nvkBuffer = cast(NioVkBuffer)buffer;
+        auto handle = nvkBuffer.handle;
 
+        vkCmdBindVertexBuffers(vkcmdbuffer, slot, 1, &handle, &offset);
     }
 
     /**
@@ -294,7 +316,7 @@ public:
             slot =      The slot in the argument table to set.
     */
     override void setVertexTexture(NioTexture texture, uint slot) {
-
+        
     }
 
     /**
@@ -319,7 +341,7 @@ public:
             slot =      The slot in the argument table to set.
     */
     override void setFragmentBuffer(NioBuffer buffer, ulong offset, uint slot) {
-
+        
     }
 
     /**

@@ -12,6 +12,8 @@
 module niobium.vk.device;
 import niobium.vk.resource;
 import niobium.vk.sampler;
+import niobium.vk.render;
+import niobium.vk.shader;
 import niobium.vk.video;
 import niobium.vk.heap;
 import niobium.vk.sync;
@@ -61,11 +63,10 @@ private:
     NioCommandQueue uploadQueue;
     NioBuffer stagingBuffer;
 
-    void createDevice(NioVkQueueTable queueTable) {
+    void createDevice(NioVkQueueTable queueTable, const(char)*[] deviceExtensions) {
         this.queueTable = queueTable;
 
         // Fetch temporaries.
-        auto deviceExtensions = physicalDevice_.getDeviceExtensions();
         auto tmpQueuePriorities = nu_malloca!float(32);
         tmpQueuePriorities[0..$] = 1.0f;
 
@@ -104,7 +105,8 @@ private:
         vkGetPhysicalDeviceMemoryProperties(physicalDevice_, &memoryProperties);
 
         // Build Properties.
-        VkPhysicalDeviceVulkan13Properties vk13p = VkPhysicalDeviceVulkan13Properties();
+        VkPhysicalDeviceExtendedDynamicState3PropertiesEXT dyn3p = VkPhysicalDeviceExtendedDynamicState3PropertiesEXT();
+        VkPhysicalDeviceVulkan13Properties vk13p = VkPhysicalDeviceVulkan13Properties(pNext: &dyn3p);
         VkPhysicalDeviceVulkan12Properties vk12p = VkPhysicalDeviceVulkan12Properties(pNext: &vk13p);
         VkPhysicalDeviceVulkan11Properties vk11p = VkPhysicalDeviceVulkan11Properties(pNext: &vk12p);
         VkPhysicalDeviceProperties2 vkp = VkPhysicalDeviceProperties2(pNext: &vk11p);
@@ -115,7 +117,8 @@ private:
         this.deviceName_ = nstring(vkp.properties.deviceName.ptr).take();
 
         // Build features
-        VkPhysicalDeviceVulkan13Features vk13 = VkPhysicalDeviceVulkan13Features();
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dyn3 = VkPhysicalDeviceExtendedDynamicState3FeaturesEXT();
+        VkPhysicalDeviceVulkan13Features vk13 = VkPhysicalDeviceVulkan13Features(pNext: &dyn3);
         VkPhysicalDeviceVulkan12Features vk12 = VkPhysicalDeviceVulkan12Features(pNext: &vk13);
         VkPhysicalDeviceVulkan11Features vk11 = VkPhysicalDeviceVulkan11Features(pNext: &vk12);
         VkPhysicalDeviceFeatures2 vkf =         VkPhysicalDeviceFeatures2(pNext: &vk11);
@@ -147,6 +150,7 @@ private:
 
         // Build extensions list.
         vector!(const(char)*) extensions;
+        extensions ~= nstring("VK_EXT_extended_dynamic_state3").take().ptr;
         if (deviceFeatures_.presentation)
             extensions ~= nstring("VK_KHR_swapchain").take().ptr;
         if (deviceFeatures_.meshShaders)
@@ -271,10 +275,10 @@ public:
     /**
         Creates a Vulkan Device from its physical device handle.
     */
-    this(VkPhysicalDevice physicalDevice, NioVkQueueTable queueTable) {
+    this(VkPhysicalDevice physicalDevice, NioVkQueueTable queueTable, const(char)*[] extensions) {
         this.physicalDevice_ = physicalDevice;
 
-        this.createDevice(queueTable);
+        this.createDevice(queueTable, extensions);
         this.allocator_ = nogc_new!NioPoolAllocator(physicalDevice_, handle_, NioPoolAllocatorDescriptor(
             size: 134_217_728, 
         ));
@@ -408,6 +412,20 @@ public:
     }
 
     /**
+        Creates a new shader from a library.
+
+        Params:
+            library = The NIR Library.
+        
+        Returns:
+            A new $(D NioShader) on success,
+            $(D null) otherwise.
+    */
+    override NioShader createShader(NirLibrary library) {
+        return nogc_new!NioVkShader(this, library);
+    }
+
+    /**
         Creates a new render pipeline object.
 
         Params:
@@ -418,7 +436,7 @@ public:
             $(D null) otherwise.
     */
     override NioRenderPipeline createRenderPipeline(NioRenderPipelineDescriptor desc) {
-        return null;
+        return nogc_new!NioVkRenderPipeline(this, desc);
     }
 
     /**
@@ -664,6 +682,16 @@ void popDebugGroup(VkCommandBuffer buffer) @nogc {
     }
 }
 
+struct VK_EXT_extended_dynamic_state3 {
+extern(System) @nogc nothrow:
+    
+    @VkProcName("vkCmdSetDepthClampEnableEXT")
+    void function(VkCommandBuffer, VkBool32) vkCmdSetDepthClampEnableEXT;
+    
+    @VkProcName("vkCmdSetPolygonModeEXT")
+    void function(VkCommandBuffer, VkPolygonMode) vkCmdSetPolygonModeEXT;
+}
+
 /**
     Global Vulkan Instance.
 */
@@ -676,7 +704,7 @@ extern(C) __gshared VkInstance __nio_vk_instance;
 private:
 
 /// Gets device extensions.
-const(char)*[] getDeviceExtensions(VkPhysicalDevice device) @nogc nothrow {
+const(char)*[] fetchDeviceExtensions(VkPhysicalDevice device) @nogc nothrow {
     uint pCount;
     vkEnumerateDeviceExtensionProperties(device, null, &pCount, null);
 
@@ -721,8 +749,9 @@ export extern(C) @property NioDevice[] __nio_enumerate_devices() @nogc {
 
         foreach(i, physicalDevice; physicalDevices) {
             auto queueTable = physicalDevice.fetchQueues();
-            if (physicalDevice.isSupported(queueTable))
-                devices ~= nogc_new!NioVkDevice(physicalDevice, queueTable);
+            auto extensions = physicalDevice.fetchDeviceExtensions();
+            if (physicalDevice.isSupported(queueTable, extensions))
+                devices ~= nogc_new!NioVkDevice(physicalDevice, queueTable, extensions);
         }
         __nio_vk_devices = devices.take();
 
@@ -741,7 +770,7 @@ VkPhysicalDevice[] getPhysicalDevices() @nogc {
     return devices;
 }
 
-bool isSupported(VkPhysicalDevice device, NioVkQueueTable queueTable) @nogc {
+bool isSupported(VkPhysicalDevice device, NioVkQueueTable queueTable, const(char)*[] extensions) @nogc {
     VkPhysicalDeviceProperties props;
     vkGetPhysicalDeviceProperties(device, &props);
 
@@ -751,6 +780,10 @@ bool isSupported(VkPhysicalDevice device, NioVkQueueTable queueTable) @nogc {
 
     // No graphics-transfer queues?
     if (queueTable.mainQueueFamily.queueFamilyIndex == -1)
+        return false;
+    
+    // VK_EXT_extended_dynamic_state3 is required for Metal parity. 
+    if (!extensions.hasExtension("VK_EXT_extended_dynamic_state3"))
         return false;
 
     VkPhysicalDeviceVulkan13Features vk13 = VkPhysicalDeviceVulkan13Features();
@@ -919,4 +952,50 @@ extern(System) @nogc nothrow:
     
     @VkProcName("vkCmdEndDebugUtilsLabelEXT")
     void function (VkCommandBuffer) vkCmdEndDebugUtilsLabelEXT;
+}
+
+
+//
+//              VK_EXT_extended_dynamic_state3
+//
+struct VkPhysicalDeviceExtendedDynamicState3FeaturesEXT {
+    VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
+    void*              pNext;
+    VkBool32           extendedDynamicState3TessellationDomainOrigin;
+    VkBool32           extendedDynamicState3DepthClampEnable;
+    VkBool32           extendedDynamicState3PolygonMode;
+    VkBool32           extendedDynamicState3RasterizationSamples;
+    VkBool32           extendedDynamicState3SampleMask;
+    VkBool32           extendedDynamicState3AlphaToCoverageEnable;
+    VkBool32           extendedDynamicState3AlphaToOneEnable;
+    VkBool32           extendedDynamicState3LogicOpEnable;
+    VkBool32           extendedDynamicState3ColorBlendEnable;
+    VkBool32           extendedDynamicState3ColorBlendEquation;
+    VkBool32           extendedDynamicState3ColorWriteMask;
+    VkBool32           extendedDynamicState3RasterizationStream;
+    VkBool32           extendedDynamicState3ConservativeRasterizationMode;
+    VkBool32           extendedDynamicState3ExtraPrimitiveOverestimationSize;
+    VkBool32           extendedDynamicState3DepthClipEnable;
+    VkBool32           extendedDynamicState3SampleLocationsEnable;
+    VkBool32           extendedDynamicState3ColorBlendAdvanced;
+    VkBool32           extendedDynamicState3ProvokingVertexMode;
+    VkBool32           extendedDynamicState3LineRasterizationMode;
+    VkBool32           extendedDynamicState3LineStippleEnable;
+    VkBool32           extendedDynamicState3DepthClipNegativeOneToOne;
+    VkBool32           extendedDynamicState3ViewportWScalingEnable;
+    VkBool32           extendedDynamicState3ViewportSwizzle;
+    VkBool32           extendedDynamicState3CoverageToColorEnable;
+    VkBool32           extendedDynamicState3CoverageToColorLocation;
+    VkBool32           extendedDynamicState3CoverageModulationMode;
+    VkBool32           extendedDynamicState3CoverageModulationTableEnable;
+    VkBool32           extendedDynamicState3CoverageModulationTable;
+    VkBool32           extendedDynamicState3CoverageReductionMode;
+    VkBool32           extendedDynamicState3RepresentativeFragmentTestEnable;
+    VkBool32           extendedDynamicState3ShadingRateImageEnable;
+}
+
+struct VkPhysicalDeviceExtendedDynamicState3PropertiesEXT {
+    VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_PROPERTIES_EXT;
+    void*              pNext;
+    VkBool32           dynamicPrimitiveTopologyUnrestricted;
 }

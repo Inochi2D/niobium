@@ -1,9 +1,5 @@
 /**
-    Niobium Intermediate Representation
-
-    Implements a bytecode format based on SPIR-V but with
-    some limitations lifted, and designed around some features
-    of niobium.
+    Niobium Vulkan Render Primitives
     
     Copyright:
         Copyright © 2025, Kitsunebi Games
@@ -13,6 +9,6 @@
     Authors:
         Luna Nielsen
 */
-module nir;
+module niobium.vk.render;
 
-public import nir.library;
+public import niobium.vk.render.pipeline;

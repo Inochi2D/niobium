@@ -12,17 +12,8 @@
 module niobium.shader;
 import niobium.device;
 import nir.library;
-
-/**
-    Descriptor used to create a shader.
-*/
-struct NioShaderDescriptor {
-
-    /**
-        The NIR Library to create the shader object from.
-    */
-    NirLibrary library;
-}
+import nir.types;
+import numem;
 
 /**
     A shader
@@ -31,14 +22,14 @@ abstract
 class NioShader : NioDeviceObject {
 private:
 @nogc:
-    NioShaderDescriptor desc_;
+    NirLibrary library_;
 
 protected:
 
     /**
-        The shader descriptor used to create the shader.
+        The NIR Library attached to this shader.
     */
-    final @property NioShaderDescriptor desc() => desc_;
+    final @property NirLibrary library() => library_;
 
     /**
         Constructs a new shader.
@@ -47,12 +38,17 @@ protected:
             device =    The device that "owns" this shader.
             desc =      The descriptor usde to create the shader.
     */
-    this(NioDevice device, NioShaderDescriptor desc) {
+    this(NioDevice device, NirLibrary library) {
         super(device);
-        this.desc_ = desc;
+        this.library_ = library.retained();
     }
 
 public:
+
+    /// Destructor
+    ~this() {
+        library_.release();
+    }
 
     /**
         Gets a named function from the shader.

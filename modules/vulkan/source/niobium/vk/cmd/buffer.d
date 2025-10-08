@@ -138,9 +138,10 @@ public:
         if (this.activeEncoder)
             return null;
         
+        handle_.pushDebugGroup("Render Pass", __invisibleColor);
         this.activeEncoder = nogc_new!NioVkRenderCommandEncoder(this, desc);
         encoderMutex_.unlock();
-        handle_.pushDebugGroup("Render Pass", __invisibleColor);
+        
         return cast(NioRenderCommandEncoder)activeEncoder;
     }
 
@@ -160,10 +161,10 @@ public:
         if (this.activeEncoder)
             return null;
         
+        handle_.pushDebugGroup("Transfer Pass", __invisibleColor);
         this.activeEncoder = nogc_new!NioVkTransferCommandEncoder(this);
         encoderMutex_.unlock();
 
-        handle_.pushDebugGroup("Transfer Pass", __invisibleColor);
         return cast(NioTransferCommandEncoder)activeEncoder;
     }
 
@@ -290,6 +291,11 @@ mixin template VkCommandEncoderFunctions() {
             texture.layout = layout;
         }
     }
+
+    /**
+        Command buffer.
+    */
+    protected @property NioVkCommandBuffer cmdbuffer() => (cast(NioVkCommandBuffer)commandBuffer);
 
     /**
         Vulkan command buffer.

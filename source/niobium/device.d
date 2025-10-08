@@ -15,8 +15,10 @@ import niobium.sampler;
 import niobium.texture;
 import niobium.buffer;
 import niobium.queue;
+import niobium.shader;
 import niobium.heap;
 import niobium.sync;
+import nir.library;
 import numem;
 import nulib;
 
@@ -250,6 +252,18 @@ public:
             $(D null) otherwise.
     */
     abstract NioBuffer createBuffer(NioBufferDescriptor desc);
+
+    /**
+        Creates a new shader from a library.
+
+        Params:
+            library = The NIR Library.
+        
+        Returns:
+            A new $(D NioShader) on success,
+            $(D null) otherwise.
+    */
+    abstract NioShader createShader(NirLibrary library);
 
     /**
         Creates a new render pipeline object.

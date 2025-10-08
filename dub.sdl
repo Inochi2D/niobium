@@ -6,6 +6,7 @@ license "BSL-1.0"
 
 subPackage "modules/metal"
 subPackage "modules/vulkan"
+subPackage "tools/dlslc"
 
 dependency "nuvk:spirv" path="../nuvk"
 dependency "numem" version="~>1.3"

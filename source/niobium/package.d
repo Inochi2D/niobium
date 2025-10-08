@@ -25,3 +25,5 @@ public import niobium.queue;
 public import niobium.cmd;
 public import niobium.sync;
 public import niobium.types;
+
+public import nir;

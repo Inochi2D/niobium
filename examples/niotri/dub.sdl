@@ -1,0 +1,29 @@
+name "niotri"
+description "Example application which draws a colorful triangle."
+
+dependency "niobium" path="../../"
+dependency "sdl-d" version=">=3.2.0"
+dependency "inmath" version=">=1.3.0"
+
+targetName "niotri"
+targetType "executable"
+targetPath "out/"
+
+workingDirectory "out/"
+
+preBuildCommands "" \
+    "cp shaders/triangle.metal out/triangle.metal" \
+    platform="osx"
+
+preBuildCommands "" \
+    "glslang -V -e vertex_main --source-entrypoint main -o out/triangle.vert.spv shaders/triangle.vert" \
+    "glslang -V -e fragment_main --source-entrypoint main -o out/triangle.frag.spv shaders/triangle.frag" \
+    "spirv-link -o out/triangle.spv out/triangle.vert.spv out/triangle.frag.spv" \
+    platform="windows"
+
+preBuildCommands "" \
+    "glslang -V -e vertex_main --source-entrypoint main -o out/triangle.vert.spv shaders/triangle.vert" \
+    "glslang -V -e fragment_main --source-entrypoint main -o out/triangle.frag.spv shaders/triangle.frag" \
+    "spirv-link -o out/triangle.spv out/triangle.vert.spv out/triangle.frag.spv" \
+    platform="linux"
+    

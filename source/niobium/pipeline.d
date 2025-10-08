@@ -21,7 +21,7 @@ import niobium.shader;
     $(D NioComputeCommandEncoder)
 */
 abstract
-class NioComputePipeline : NioResource {
+class NioComputePipeline : NioDeviceObject {
 protected:
 @nogc:
 
@@ -34,8 +34,6 @@ protected:
     this(NioDevice device) {
         super(device);
     }
-
-public:
 }
 
 /**
@@ -79,6 +77,11 @@ struct NioRenderPipelineDescriptor {
     bool alphaToCoverage;
 
     /**
+        Whether alpha-to-one is enabled.
+    */
+    bool alphaToOne;
+
+    /**
         The amount of multisample samples to use.
     */
     uint sampleCount;
@@ -87,52 +90,51 @@ struct NioRenderPipelineDescriptor {
 /**
     Step function to apply for vertex attributes.
 */
-enum NioVertexStepFunction {
-    
-    /**
-        Vertex fetches a new attribute once, and uses
-        it for the rest of the draw.
-    */
-    constant =          0x00000001U,
+enum NioVertexInputRate {
     
     /**
         Vertex fetches a new attribute per vertex.
     */
-    perVertex =         0x00000002U,
+    perVertex =         0x00000001U,
     
     /**
         Vertex fetches a new attribute per instance.
     */
-    perInstance =       0x00000003U,
-    
-    /**
-        Vertex fetches a new attribute based on patch indices.
-    */
-    perPatch =          0x00000004U,
-    
-    /**
-        Vertex fetches a new attribute based on 
-        patch control point indices.
-    */
-    perPatchControl =   0x00000004U,
+    perInstance =       0x00000002U,
 }
 
 /**
     Descriptor used to define how vertex buffers are laid out.
 */
 struct NioVertexDescriptor {
+    
+    /**
+        Descriptors for every vertex buffer attached
+        to this pipeline.
+    */
+    NioVertexBindingDescriptor[] bindings;
 
     /**
         Descriptors for every attribute in every buffer
         listed in $(D layout).
     */
     NioVertexAttributeDescriptor[] attributes;
-    
+}
+
+/**
+    Describes the layout of a single vertex buffer.
+*/
+struct NioVertexBindingDescriptor {
+
     /**
-        Descriptors for every vertex buffer attached
-        to this pipeline.
+        The vertex stepping rate.
     */
-    NioVertexLayoutDescriptor[] layout;
+    NioVertexInputRate rate = NioVertexInputRate.perVertex;
+
+    /**
+        The stride between each attribute iteration of the buffer.
+    */
+    uint stride;
 }
 
 /**
@@ -146,27 +148,14 @@ struct NioVertexAttributeDescriptor {
     NioVertexFormat format;
 
     /**
-        The offset of this attribute into the vertex buffer, in bytes.
-    */
-    uint offset;
-
-    /**
         The buffer this attribute applies to.
     */
     uint bufferIndex;
-}
-
-/**
-    Describes the layout of a single vertex buffer.
-*/
-struct NioVertexLayoutDescriptor {
-    NioVertexStepFunction step = NioVertexStepFunction.perVertex;
-    uint rate = 0;
 
     /**
-        The stride between each attribute iteration of the buffer.
+        The offset of this attribute into the vertex buffer, in bytes.
     */
-    uint stride;
+    uint offset;
 }
 
 /**
@@ -228,32 +217,32 @@ struct NioRenderPipelineAttachmentDescriptor {
     /**
         Color blending operation
     */
-    NioBlendOp colorOp;
+    NioBlendOp colorOp = NioBlendOp.add;
 
     /**
         Alpha blending operation
     */
-    NioBlendOp alphaOp;
+    NioBlendOp alphaOp = NioBlendOp.add;
 
     /**
         Source color blending factor
     */
-    NioBlendFactor srcColorFactor;
+    NioBlendFactor srcColorFactor = NioBlendFactor.one;
 
     /**
         Source alpha blending factor
     */
-    NioBlendFactor srcAlphaFactor;
+    NioBlendFactor srcAlphaFactor = NioBlendFactor.one;
 
     /**
         Destination color blending factor
     */
-    NioBlendFactor dstColorFactor;
+    NioBlendFactor dstColorFactor = NioBlendFactor.oneMinusSrcAlpha;
 
     /**
         Destination alpha blending factor
     */
-    NioBlendFactor dstAlphaFactor;
+    NioBlendFactor dstAlphaFactor = NioBlendFactor.oneMinusSrcAlpha;
 }
 
 /**
@@ -261,9 +250,17 @@ struct NioRenderPipelineAttachmentDescriptor {
     $(D NioRenderCommandEncoder)
 */
 abstract
-class NioRenderPipeline : NioResource {
-protected:
+class NioRenderPipeline : NioDeviceObject {
+private:
 @nogc:
+    NioRenderPipelineDescriptor desc_;
+
+protected:
+
+    /**
+        The descriptor used to make the pipeline.
+    */
+    final @property NioRenderPipelineDescriptor desc() => desc_;
 
     /**
         Constructs a new pipeline.
@@ -271,9 +268,8 @@ protected:
         Params:
             device = The device that "owns" this pipeline.
     */
-    this(NioDevice device) {
+    this(NioDevice device, NioRenderPipelineDescriptor desc) {
         super(device);
+        this.desc_ = desc;
     }
-
-public:
 }

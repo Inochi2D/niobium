@@ -1,9 +1,5 @@
 /**
-    Niobium Intermediate Representation
-
-    Implements a bytecode format based on SPIR-V but with
-    some limitations lifted, and designed around some features
-    of niobium.
+    The smallest unit of a NIR instruction stream.
     
     Copyright:
         Copyright © 2025, Kitsunebi Games
@@ -13,6 +9,11 @@
     Authors:
         Luna Nielsen
 */
-module nir;
+module nir.ir.parser;
 
-public import nir.library;
+/**
+    
+*/
+class NIRParser {
+
+}

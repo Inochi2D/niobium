@@ -14,7 +14,10 @@
 module nir.library;
 import nulib.io.stream;
 import nulib.io.stream.rw;
+import nulib.memory.endian;
 import numem;
+
+public import nir.types;
 
 /**
     The type of shader stored in the NIR Library
@@ -27,46 +30,35 @@ enum NirShaderType : uint {
     nir =           0x00000001U,
     
     /**
-        SPIR-V Bytecode
-    */
-    spirv =         0x00000002U,
-    
-    /**
         Metal Shading Language
     */
-    msl =           0x00000003U,
+    msl =           0x00000002U,
 }
 
 /**
-    The different kinds of shader stages that a shader
-    can apply to.
+    The amount of shader stages that are supported.
 */
-enum NirShaderStage : uint {
-    
-    /**
-        Vertex shader stage
-    */
-    vertex =            0x00000000U,
-    
-    /**
-        Fragment shader stage
-    */
-    fragment =          0x00000001U,
+enum NirShaderStageCount = __traits(allMembers, NirShaderStage).length;
 
-    /**
-        Mesh task shader stage
-    */
-    task =              0x00000002U,
+/**
+    Magic bytes for a Nir Library.
+*/
+enum ubyte[4] NirLibraryMagic = cast(ubyte[4])"NIO\0";
 
-    /**
-        Mesh shader stage
-    */
-    mesh =              0x00000004U,
+/**
+    Magic bytes for a Nir Library section.
+*/
+enum ubyte[4] NirLibrarySectionMagic = cast(ubyte[4])"NIO\1";
+
+/**
+    Gets whether a stage flag specifies multiple stages.
+*/
+bool isMultistage(NirShaderStage stages) @nogc {
+    uint count = 0;
+    foreach(i; 0..NirShaderStageCount)
+        count += (stages >> i) & 0x01;
     
-    /**
-        Compute kernel shader stage
-    */
-    kernel =            0x00000008U,
+    return count > 1;
 }
 
 /**
@@ -77,7 +69,41 @@ private:
 @nogc:
     NirShader[] shaders_;
 
+    /// Adds a shader to the library.
+    void addShaderImpl(ref NirShader shader) {
+        
+        // We already have a shader like this...
+        if (this.findShader(shader.type) != -1) 
+            return;
+
+        shaders_ = shaders_.nu_resize(shaders_.length+1);
+        shaders_[$-1] = NirShader(
+            name: shader.name.nu_dup(),
+            type: shader.type,
+            code: shader.code.nu_dup()
+        );
+    }
+
+    /// Finds a shader within the list.
+    ptrdiff_t findShader(NirShaderType type) {
+        foreach(i, ref installed; shaders_) {
+            if (installed.type == type)
+                return i;
+        }
+        return -1;
+    }
+
 public:
+
+    ~this() {
+        foreach(ref shader; shaders_) {
+            nu_freea(shader.name);
+            nu_freea(shader.code);
+        }
+        nu_freea(shaders_);
+    }
+
+    this() { }
 
     /**
         The shaders stored in the library.
@@ -86,10 +112,49 @@ public:
 
     /**
         Adds a shader to the library.
+
+        Note:
+            The library keeps an internal
+
+        Params:
+            shader = The shader to add.
     */
     void addShader(NirShader shader) {
-        this.shaders_ = shaders_.nu_resize(shaders_.length+1);
-        this.shaders_[$-1] = shader;
+        this.addShaderImpl(shader);
+    }
+
+    /**
+        Finds a shader within the library that is of the given
+        type and which supports the given shader stage.
+
+        Params:
+            type =  The type of shader to find
+            stage = The supported stages mask
+        
+        Returns:
+            A $(D NirShader*) if a shader with the given stage(s) if found,
+            $(D null) otherwise.
+    */
+    NirShader* find(NirShaderType type) {
+        ptrdiff_t idx = this.findShader(type);
+        return idx != -1 ? &shaders_[idx] : null;
+    }
+
+    /**
+        Reads a library from memory.
+
+        Params:
+            memory = The memory to read from.
+
+        Returns:
+            The shader library or $(D null) on failure.
+    */
+    static NirLibrary fromMemory(ubyte[] memory) {
+        auto memstream = nogc_new!MemoryStream(memory.nu_dup());
+        auto library = NirLibrary.fromStream(memstream);
+        
+        nogc_delete(memstream);
+        return library;
     }
 
     /**
@@ -105,7 +170,7 @@ public:
         auto reader = nogc_new!StreamReader(stream);
         
         // Wrong magic bytes.
-        if (reader.readU32LE() != 0x78737900)
+        if (reader.readU32LE() != *cast(int*)&NirLibraryMagic)
             return null;
 
         auto result = nogc_new!NirLibrary();
@@ -125,8 +190,8 @@ public:
     void write(Stream stream) {
 
         auto writer = nogc_new!StreamWriter(stream);
-        writer.writeLE!uint(0x78737900);        // "NIO\0"
-        writer.writeLE!uint(cast(uint)shaders_.length);   // Shader count
+        writer.stream.write(NirLibraryMagic);
+        writer.writeLE!uint(cast(uint)shaders_.length);  // Shader count
 
         foreach(ref shader; shaders_) {
             writer.writeShader(shader);
@@ -140,9 +205,7 @@ public:
 */
 struct NirShader {
     string name;
-    string entrypoint;
     NirShaderType type;
-    NirShaderStage stages;
     ubyte[] code;
 }
 
@@ -154,21 +217,10 @@ struct NirShader {
         shader = The shader to write to the stream.
 */
 void writeShader(ref StreamWriter writer, ref NirShader shader) @nogc {
-    uint totalSectionLength = 
-        cast(uint)(shader.name.length + 4 +
-        shader.entrypoint.length + 4 +
-        NirShaderType.sizeof +
-        NirShaderStage.sizeof +
-        shader.code.length + 4);
-    
-    writer.writeLE!uint(0x78737901);        // "NIO\1"
-    writer.writeLE!uint(totalSectionLength);
+    writer.stream.write(NirLibrarySectionMagic);
     writer.writeLE!uint(shader.type);
-    writer.writeLE!uint(shader.stages);
     writer.writeLE!uint(cast(uint)shader.name.length);
     writer.stream.write(cast(ubyte[])shader.name);
-    writer.writeLE!uint(cast(uint)shader.entrypoint.length);
-    writer.stream.write(cast(ubyte[])shader.entrypoint);
     writer.writeLE!uint(cast(uint)shader.code.length);
     writer.stream.write(shader.code);
 }
@@ -184,23 +236,15 @@ void writeShader(ref StreamWriter writer, ref NirShader shader) @nogc {
 */
 NirShader readShader(ref StreamReader reader) @nogc {
     uint magic = reader.readU32LE();
-    if (magic != 0x78737901)        // "NIO\1"
+    if (magic != *cast(int*)&NirLibrarySectionMagic)        // "NIO\1"
         return NirShader.init;
-    
-    // Skip length, since we're not doing section
-    // skipping.
-    reader.stream.seek(4, SeekOrigin.relative);
 
     NirShader result;
     result.type = cast(NirShaderType)reader.readU32LE();
-    result.stages = cast(NirShaderStage)reader.readU32LE();
 
     result.name = nu_malloca!(immutable(char))(reader.readU32LE());
     reader.stream.read(cast(ubyte[])result.name);
-    
-    result.entrypoint = nu_malloca!(immutable(char))(reader.readU32LE());
-    reader.stream.read(cast(ubyte[])result.entrypoint);
-    
+
     result.code = nu_malloca!(ubyte)(reader.readU32LE());
     reader.stream.read(result.code);
     return result;
