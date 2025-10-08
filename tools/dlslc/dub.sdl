@@ -1,0 +1,11 @@
+name "dlslang"
+description "DLSL Compiler"
+authors "luna"
+copyright "Copyright © 2025, luna"
+license "BSL-1.0"
+
+dependency "niobium" path="../../"
+dependency "libdparse" version="~>0.25.0"
+
+targetName "dlslang"
+targetPath "out/"
