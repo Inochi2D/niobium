@@ -9,6 +9,11 @@ on:
         required: false
         default: true
         type: boolean
+      build_examples:
+        description: 'Whether the build the niobium examples'
+        required: false
+        default: true
+        type: boolean
       build_library:
         description: 'Whether the build the niobium library'
         required: false
@@ -122,6 +127,26 @@ jobs:
           fi
         done
     
+    # Build Examples
+    - name: 'Build niobium (examples, ${{ runner.os }}-${{ matrix.arch }})...'
+      if: ${{ inputs.build_examples }}
+      shell: bash
+      run: |
+        for _file in examples/*; do
+          if [ -d "$_file" ]; then
+            fbname=$(basename "$_file")
+
+            if [[ "${{ runner.os }}" == "macOS" ]]; then
+              redub build-universal --root=$_file --build=${{ inputs.build_type }}
+            else
+              redub build --root=$_file --build=${{ inputs.build_type }}
+            fi
+            
+            mkdir -p out/examples/$fbname/
+            cp $_file/out/* out/examples/$fbname/
+          fi
+        done
+    
     - name: 'Cleaning up file structure...'
       shell: bash
       run: |
@@ -132,6 +157,7 @@ jobs:
         # Delete unneccesary debug files for Windows.
         if [[ "${{ inputs.build_type }}" != "debug" ]]; then
           rm -f out/tools/*.lib out/tools/*.pdb out/tools/*.exp || true
+          rm -f out/examples/*.lib out/examples/*.pdb out/examples/*.exp || true
         fi
         
     - name: 'Archive'
