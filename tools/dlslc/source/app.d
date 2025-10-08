@@ -1,5 +1,6 @@
 import std.stdio;
 
-void main(string[] args) {
-
+int main(string[] args) {
+    writeln("TODO: Implement this (sorry)");
+    return -1;
 }
