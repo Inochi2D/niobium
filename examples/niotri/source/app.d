@@ -58,7 +58,7 @@ void main() {
 
     // Create Window and Surface
 	SDL_Init(SDL_INIT_EVERYTHING);
-	SDL_Window* window = SDL_CreateWindow("Test", 640, 480, SDL_WindowFlags.SDL_WINDOW_RESIZABLE);
+	SDL_Window* window = SDL_CreateWindow("Niobium Triangle Example", 640, 480, SDL_WindowFlags.SDL_WINDOW_RESIZABLE);
 	NioSurface surface = window.surfaceFromWindow();
 	surface.device = device;
 	surface.framesInFlight = 3;
