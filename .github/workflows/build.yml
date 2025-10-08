@@ -80,7 +80,7 @@ jobs:
       uses: humbletim/setup-vulkan-sdk@v1.2.1
       with:
         vulkan-query-version: 1.4.304.1
-        vulkan-components: Vulkan-Loader
+        vulkan-components: Vulkan-Loader SPIRV-Tools Glslang
         vulkan-use-cache: true
     
     - name: 'Adding Vulkan SDK Libs to PATH...'
@@ -141,7 +141,7 @@ jobs:
             else
               redub build --root=$_file --build=${{ inputs.build_type }}
             fi
-            
+
             mkdir -p out/examples/$fbname/
             cp $_file/out/* out/examples/$fbname/
           fi
