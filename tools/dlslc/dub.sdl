@@ -1,11 +1,21 @@
-name "dlslang"
+name "dlslc"
 description "DLSL Compiler"
 authors "luna"
 copyright "Copyright © 2025, luna"
 license "BSL-1.0"
 
 dependency "niobium" path="../../"
-dependency "libdparse" version="~>0.25.0"
+dependency "dmd" version="~>2.111.0"
 
-targetName "dlslang"
+targetName "dlslc"
 targetPath "out/"
+
+configuration "executable" {
+    targetType "executable"
+
+    versions "DLSLC_WithFrontend"
+}
+
+configuration "library" {
+    targetType "staticLibrary"
+}
