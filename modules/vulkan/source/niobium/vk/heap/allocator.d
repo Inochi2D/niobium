@@ -272,13 +272,16 @@ private:
     }
 
     // Takes ownership of a chunk by reducing its allocated size.
-    void claimChunk(SpanIndex index, uint type, VkDeviceSize size) {
+    ptrdiff_t claimChunk(SpanIndex index, uint type, VkDeviceSize size) {
 
         if (type >= pools.length)
-            return;
+            return -1;
         
+        auto offset = pools[type].blocks[index.blockIdx].layout[index.spanIdx].offset;
         pools[type].blocks[index.blockIdx].layout[index.spanIdx].offset += size;
         pools[type].blocks[index.blockIdx].layout[index.spanIdx].length -= size;
+        
+        return offset;
     }
 
     // Adds a new block to the pool.
@@ -378,10 +381,10 @@ public:
         }
         
         this.allocated[type] += reqSize;
-        this.claimChunk(idx, type, reqSize);
+        auto offset = this.claimChunk(idx, type, reqSize);
         return NioAllocation(
             memory: pools[type].blocks[idx.blockIdx].memory,
-            offset: pools[type].blocks[idx.blockIdx].layout[idx.spanIdx].offset,
+            offset: offset,
             size: size,
             poolId: cast(uint)idx.blockIdx
         );
