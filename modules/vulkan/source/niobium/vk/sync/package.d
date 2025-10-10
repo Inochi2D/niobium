@@ -46,6 +46,7 @@ VkPipelineStageFlags2 toVkPipelineStageFlags2(NioRenderStage stage) @nogc {
 
     return result;
 }
+
 /**
     Converts a $(D NioPipelineStage) format to its $(D VkPipelineStageFlags2) equivalent.
 
@@ -57,6 +58,9 @@ VkPipelineStageFlags2 toVkPipelineStageFlags2(NioRenderStage stage) @nogc {
 */
 VkPipelineStageFlags2 toVkPipelineStageFlags2(NioPipelineStage stage) @nogc {
     VkPipelineStageFlags2 result = 0;
+
+    if (stage == NioPipelineStage.all)
+        return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 
     if (stage & NioPipelineStage.transfer)
         result |= VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;

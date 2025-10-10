@@ -328,4 +328,29 @@ mixin template VkCommandEncoderFunctions() {
     override void endEncoding() {
         this.finishEncoding();
     }
+
+    /**
+        Inserts a barrier that ensures that subsequent commands 
+        of type $(D afterStages) submitted to the command queue does 
+        not proceed until the work in $(D beforeStages) completes.
+
+        Params:
+            afterStages =   A mask that defines the stages of work to wait for.
+            beforeStages =  A mask that defines the work that must wait.
+    */
+    override void insertBarrier(NioPipelineStage afterStages, NioPipelineStage beforeStages) {
+        import niobium.vk.sync : toVkPipelineStageFlags2;
+        
+        auto barrierInfo = VkMemoryBarrier2(
+            srcStageMask: afterStages.toVkPipelineStageFlags2(),
+            srcAccessMask: VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT,
+            dstStageMask: beforeStages.toVkPipelineStageFlags2(),
+            dstAccessMask: VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT
+        );
+        auto depInfo = VkDependencyInfo(
+            memoryBarrierCount: 1,
+            pMemoryBarriers: &barrierInfo
+        );
+        vkCmdPipelineBarrier2(vkcmdbuffer, &depInfo);
+    }
 }

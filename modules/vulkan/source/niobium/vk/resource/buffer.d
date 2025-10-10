@@ -230,8 +230,8 @@ public:
 pragma(inline, true)
 VkIndexType toVkIndexType(NioIndexType value) @nogc {
     final switch(value) with(NioIndexType) {
-        case u16:  return VK_FRONT_FACE_CLOCKWISE;
-        case u32:  return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        case u16:  return VK_INDEX_TYPE_UINT16;
+        case u32:  return VK_INDEX_TYPE_UINT32;
     }
 }
 

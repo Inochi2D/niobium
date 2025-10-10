@@ -180,6 +180,17 @@ public:
         begun from the parent command buffer.
     */
     abstract void endEncoding();
+
+    /**
+        Inserts a barrier that ensures that subsequent commands 
+        of type $(D afterStages) submitted to the command queue does 
+        not proceed until the work in $(D beforeStages) completes.
+
+        Params:
+            afterStages =   A mask that defines the stages of work to wait for.
+            beforeStages =  A mask that defines the work that must wait.
+    */
+    abstract void insertBarrier(NioPipelineStage afterStages, NioPipelineStage beforeStages);
 }
 
 /**
