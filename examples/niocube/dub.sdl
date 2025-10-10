@@ -1,0 +1,31 @@
+name "niocube"
+description "Example application which draws a colorful rotating cube."
+
+dependency "niobium" path="../../"
+dependency "sdl-d" version=">=3.2.0"
+dependency "inmath" version=">=1.3.0"
+
+targetName "niocube"
+targetType "executable"
+targetPath "out/"
+
+workingDirectory "out/"
+
+postBuildCommands "" \
+    "cp shaders/cube.metal out/cube.metal" \
+    platform="osx"
+
+postBuildCommands "" \
+    "glslang -V -e vertex_main --source-entrypoint main -o out/cube.vert.spv shaders/cube.vert" \
+    "glslang -V -e fragment_main --source-entrypoint main -o out/cube.frag.spv shaders/cube.frag" \
+    "spirv-link -o out/cube.spv out/cube.vert.spv out/cube.frag.spv" \
+    "del out\\cube.vert.spv out\\cube.frag.spv" \
+    platform="windows"
+
+postBuildCommands "" \
+    "glslang -V -e vertex_main --source-entrypoint main -o out/cube.vert.spv shaders/cube.vert" \
+    "glslang -V -e fragment_main --source-entrypoint main -o out/cube.frag.spv shaders/cube.frag" \
+    "spirv-link -o out/cube.spv out/cube.vert.spv out/cube.frag.spv" \
+    "rm out/cube.vert.spv out/cube.frag.spv" \
+    platform="linux"
+    

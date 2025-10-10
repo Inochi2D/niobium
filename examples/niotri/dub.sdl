@@ -11,19 +11,21 @@ targetPath "out/"
 
 workingDirectory "out/"
 
-preBuildCommands "" \
+postBuildCommands "" \
     "cp shaders/triangle.metal out/triangle.metal" \
     platform="osx"
 
-preBuildCommands "" \
+postBuildCommands "" \
     "glslang -V -e vertex_main --source-entrypoint main -o out/triangle.vert.spv shaders/triangle.vert" \
     "glslang -V -e fragment_main --source-entrypoint main -o out/triangle.frag.spv shaders/triangle.frag" \
     "spirv-link -o out/triangle.spv out/triangle.vert.spv out/triangle.frag.spv" \
+    "del out\\triangle.vert.spv out\\triangle.frag.spv" \
     platform="windows"
 
-preBuildCommands "" \
+postBuildCommands "" \
     "glslang -V -e vertex_main --source-entrypoint main -o out/triangle.vert.spv shaders/triangle.vert" \
     "glslang -V -e fragment_main --source-entrypoint main -o out/triangle.frag.spv shaders/triangle.frag" \
     "spirv-link -o out/triangle.spv out/triangle.vert.spv out/triangle.frag.spv" \
+    "rm out/triangle.vert.spv out/triangle.frag.spv" \
     platform="linux"
     
