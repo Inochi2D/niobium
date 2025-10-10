@@ -3,7 +3,7 @@ description "Vulkan backend for Niobium."
 
 targetPath "out/"
 targetName "niobium-vk"
-importPaths "../../source"
+importPaths "../../source" "../nir/source"
 
 dependency "nuvk:vulkan" path="../../../nuvk"
 dependency "nuvk:spirv" path="../../../nuvk"

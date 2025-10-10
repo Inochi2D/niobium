@@ -1,0 +1,12 @@
+name "nir"
+description "Niobium Intermediate Representation"
+authors "luna"
+copyright "Copyright © 2025, luna"
+license "BSL-1.0"
+
+importPaths "../../source" "../nir/source"
+
+dependency "nuvk:spirv" path="../../../nuvk"
+
+targetPath "out/"
+targetName "nir"

@@ -6,9 +6,10 @@ license "BSL-1.0"
 
 subPackage "modules/metal"
 subPackage "modules/vulkan"
+subPackage "modules/nir"
 subPackage "tools/dlslc"
 
-dependency "nuvk:spirv" path="../nuvk"
+dependency ":nir" version="*"
 dependency "numem" version="~>1.3"
 dependency "nulib" version="~>0.3"
 
