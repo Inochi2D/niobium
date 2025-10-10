@@ -10,6 +10,7 @@
         Luna Nielsen
 */
 module niobium.vk.shader.shader;
+import niobium.vk.shader.table;
 import niobium.vk.device;
 import vulkan.core;
 import nir.utils;
@@ -28,6 +29,7 @@ private:
 @nogc:
 
     // State
+    NioArgumentTable table_;
     NioVkShaderFunction[] functions_;
     NirShader shader_;
 
@@ -59,6 +61,7 @@ private:
             pCode: bytecode.ptr,
         );
         vkCreateShaderModule(nvkDevice.handle, &createInfo, null, &handle_);
+        this.table_ = nogc_new!NioArgumentTable();
     }
 
 public:
@@ -75,8 +78,10 @@ public:
 
     /// Destructor
     ~this() {
+        table_.release();
         nu_freea(shader_.name);
         nu_freea(shader_.code);
+        
         auto nvkDevice = (cast(NioVkDevice)device);
         vkDestroyShaderModule(nvkDevice.handle, handle_, null);
     }

@@ -129,7 +129,6 @@ public:
 
         Params:
             type =  The type of shader to find
-            stage = The supported stages mask
         
         Returns:
             A $(D NirShader*) if a shader with the given stage(s) if found,

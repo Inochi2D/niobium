@@ -266,7 +266,8 @@ protected:
         Constructs a new pipeline.
 
         Params:
-            device = The device that "owns" this pipeline.
+            device =    The device that "owns" this pipeline.
+            desc =      The descriptor used to create the pipeline.
     */
     this(NioDevice device, NioRenderPipelineDescriptor desc) {
         super(device);

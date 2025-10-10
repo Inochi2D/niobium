@@ -189,7 +189,6 @@ private:
         enforce(desc.vertexFunction.stage == NirShaderStage.vertex, "vertexFunction is not a vertex function!");
         enforce(desc.fragmentFunction.stage == NirShaderStage.fragment, "fragmentFunction is not a fragment function!");
 
-
         VkPipelineShaderStageCreateInfo[2] shaderStages = [
             VkPipelineShaderStageCreateInfo(
                 stage: VK_SHADER_STAGE_VERTEX_BIT,

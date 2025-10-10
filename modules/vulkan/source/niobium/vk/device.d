@@ -322,7 +322,7 @@ public:
         at a time.
 
         Params:
-            index = The index of the queue to get.
+            desc = Descriptor used to create the queue.
         
         Returns:
             A $(D NioCommandQueue) or $(D null) on failure.
@@ -630,7 +630,7 @@ public:
     Converts a $(D VkPhysicalDeviceType) bitmask to its $(D NioDeviceType) equivalent.
 
     Params:
-        usage = The $(D VkPhysicalDeviceType)
+        type = The $(D VkPhysicalDeviceType)
     
     Returns:
         The $(D NioDeviceType) equivalent.

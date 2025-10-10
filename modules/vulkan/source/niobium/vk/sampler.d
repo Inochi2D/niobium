@@ -81,7 +81,7 @@ public:
     Converts a $(D NioSamplerWrap) type to its $(D VkSamplerAddressMode) equivalent.
 
     Params:
-        type = The $(D NioSamplerWrap)
+        value = The $(D NioSamplerWrap)
     
     Returns:
         The $(D VkSamplerAddressMode) equivalent.

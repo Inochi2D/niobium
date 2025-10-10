@@ -404,7 +404,7 @@ public:
     Converts a $(D NioPresentMode) format to its $(D VkPresentModeKHR) equivalent.
 
     Params:
-        format = The $(D NioPresentMode)
+        mode = The $(D NioPresentMode)
     
     Returns:
         The $(D VkPresentModeKHR) equivalent.

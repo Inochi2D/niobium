@@ -43,6 +43,12 @@ NioSurface surfaceFromWindow(SDL_Window* window) {
 	}
 }
 
+// Uniform data
+struct Uniform {
+	mat4 mvp;
+}
+
+// Vertex data
 struct Vertex {
     vec3 vtx;
     vec3 color;
@@ -168,7 +174,7 @@ void main() {
 		)
 	);
 
-    // Create Vertex Buffer
+    // Vertex Data
     NioBuffer vtxbuffer = device.createBuffer(NioBufferDescriptor(
         usage: NioBufferUsage.transfer | NioBufferUsage.vertexBuffer,
 		storage: NioStorageMode.privateStorage,
@@ -179,6 +185,15 @@ void main() {
 		storage: NioStorageMode.privateStorage,
         size: cast(uint)(indices.length * uint.sizeof)
     )).upload(cast(void[])indices[0..$], 0);
+
+	// Uniform data
+	Uniform* uniformData;
+	NioBuffer uniforms = device.createBuffer(NioBufferDescriptor(
+        usage: NioBufferUsage.transfer | NioBufferUsage.uniformBuffer,
+		storage: NioStorageMode.sharedStorage,
+		size: cast(uint)(Uniform.sizeof)
+	));
+	uniformData = cast(Uniform*)uniforms.map().ptr;
 
 	bool closeRequested;
 	SDL_Event ev;
@@ -198,10 +213,16 @@ void main() {
 				)
 			];
 			if (auto cmdbuffer = queue.fetch()) {
+				uniformData.mvp = 
+					mat4.orthographic01(0, -drawable.texture.width, drawable.texture.height, 0, 0, 1000) * 
+					mat4.translation(0, 0, -1) *
+					mat4.rotation(0.0, 0.0, 1.0, 0.0);
+
 				auto renderPass = cmdbuffer.beginRenderPass(NioRenderPassDescriptor(colorAttachments[]));
 					renderPass.setPipeline(renderPipeline);
 					renderPass.setCulling(NioCulling.none);
 					renderPass.setVertexBuffer(vtxbuffer, 0, 0);
+					renderPass.setVertexBuffer(uniforms, 0, 1);
 					renderPass.drawIndexed(NioPrimitive.triangles, idxbuffer, NioIndexType.u32, cast(uint)indices.length);
 				renderPass.endEncoding();
 
@@ -215,6 +236,7 @@ void main() {
 
 	renderPipeline.release();
 	shader.release();
+	uniforms.release();
     vtxbuffer.release();
     idxbuffer.release();
 	queue.release();

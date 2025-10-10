@@ -36,7 +36,7 @@ protected:
 
         Params:
             device =    The device that "owns" this shader.
-            desc =      The descriptor usde to create the shader.
+            library =   The library used to create the shader.
     */
     this(NioDevice device, NirLibrary library) {
         super(device);

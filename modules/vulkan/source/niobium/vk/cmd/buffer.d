@@ -110,11 +110,11 @@ public:
         Constructs a new command buffer.
 
         Params:
-            device = The device that "owns" this command buffer.
-            buffer = The vulkan command buffer
+            queue =     The queue that "owns" this command buffer.
+            buffer =    The vulkan command buffer
     */
     this(NioVkCommandQueue queue, VkCommandBuffer buffer) {
-        super(queue.device, queue);
+        super(queue);
         this.handle_ = buffer;
         this.encoderMutex_ = nogc_new!Mutex();
     }

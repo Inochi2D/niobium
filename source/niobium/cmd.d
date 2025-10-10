@@ -49,10 +49,10 @@ protected:
         Constructs a new command buffer.
 
         Params:
-            device = The device that "owns" this command buffer.
+            queue =     The queue that "owns" this command buffer.
     */
-    this(NioDevice device, NioCommandQueue queue) {
-        super(device);
+    this(NioCommandQueue queue) {
+        super(queue.device);
         this.queue_ = queue;
     }
 
@@ -546,7 +546,7 @@ public:
 
         Params:
             fence =         The fence to wait for.
-            afterStages =   Which stages will be waiting.
+            beforeStages =  Which stages will be waiting.
     */
     abstract void waitForFence(NioFence fence, NioRenderStage beforeStages);
 
@@ -720,7 +720,6 @@ public:
         Params:
             prim =          The primitive topology to draw with.
             indexBuffer =   The index buffer to use.
-            indexCount =    The amount of indices to draw.
             indexType =     The type of the index values.
             indexCount =    The amount of indices to draw.
             indexOffset =   Offset into the index buffer to begin at.
@@ -734,7 +733,6 @@ public:
         Params:
             prim =          The primitive topology to draw with.
             indexBuffer =   The index buffer to use.
-            indexCount =    The amount of indices to draw.
             indexType =     The type of the index values.
             indexCount =    The amount of indices to draw.
             indexOffset =   Offset into the index buffer to begin at.
@@ -749,7 +747,6 @@ public:
         Params:
             prim =          The primitive topology to draw with.
             indexBuffer =   The index buffer to use.
-            indexCount =    The amount of indices to draw.
             indexType =     The type of the index values.
             indexCount =    The amount of indices to draw.
             indexOffset =   Offset into the index buffer to begin at.

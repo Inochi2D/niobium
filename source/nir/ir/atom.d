@@ -127,7 +127,7 @@ protected:
         Adds multiple operands to the atom.
 
         Params:
-            operand = The operand to add.
+            operands = The operands to add.
     */
     void addOperands(uint[] operands) {
         atom.operands = atom.operands.nu_resize(atom.operands.length+operands.length);
@@ -174,7 +174,7 @@ public:
         Constructs a new Atom Object
 
         Params:
-            atom = The atom to construct the object from.
+            opcode = The opcode to construct the object from.
     */
     this(Op opcode) {
         this(NirAtom(opcode: opcode));

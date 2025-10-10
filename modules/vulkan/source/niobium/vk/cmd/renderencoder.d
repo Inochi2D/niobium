@@ -144,7 +144,7 @@ public:
 
         Params:
             fence =         The fence to wait for.
-            afterStages =   Which stages will be waiting.
+            beforeStages =  Which stages will be waiting.
     */
     override void waitForFence(NioFence fence, NioRenderStage beforeStages) {
         auto vkevent = (cast(NioVkFence)fence).handle;
@@ -417,7 +417,6 @@ public:
         Params:
             prim =          The primitive topology to draw with.
             indexBuffer =   The index buffer to use.
-            indexCount =    The amount of indices to draw.
             indexType =     The type of the index values.
             indexCount =    The amount of indices to draw.
             indexOffset =   Offset into the index buffer to begin at.
@@ -435,7 +434,6 @@ public:
         Params:
             prim =          The primitive topology to draw with.
             indexBuffer =   The index buffer to use.
-            indexCount =    The amount of indices to draw.
             indexType =     The type of the index values.
             indexCount =    The amount of indices to draw.
             indexOffset =   Offset into the index buffer to begin at.
@@ -454,7 +452,6 @@ public:
         Params:
             prim =          The primitive topology to draw with.
             indexBuffer =   The index buffer to use.
-            indexCount =    The amount of indices to draw.
             indexType =     The type of the index values.
             indexCount =    The amount of indices to draw.
             indexOffset =   Offset into the index buffer to begin at.
