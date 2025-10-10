@@ -177,7 +177,7 @@ private:
         this.createQueues(queueTable);
 
         // Internal upload queue.
-        this.uploadQueue = this.createQueue(NioCommandQueueDescriptor(maxCommandBuffers: 1));
+        this.uploadQueue = this.createQueue(NioCommandQueueDescriptor(maxCommandBuffers: 4));
     }
 
     void createQueues(NioVkQueueTable queueTable) {
@@ -471,6 +471,7 @@ public:
         stagingBuffer.upload(data, 0);
         if (auto cmdbuffer = uploadQueue.fetch()) {
             auto transferPass = cmdbuffer.beginTransferPass();
+                transferPass.insertBarrier(NioPipelineStage.transfer, NioPipelineStage.all);
                 transferPass.copy(
                     NioBufferSrcInfo(
                         buffer: stagingBuffer, 
@@ -514,6 +515,7 @@ public:
 
         if (auto cmdbuffer = uploadQueue.fetch()) {
             auto transferPass = cmdbuffer.beginTransferPass();
+                transferPass.insertBarrier(NioPipelineStage.transfer, NioPipelineStage.all);
                 transferPass.copy(
                     NioTextureSrcInfo(
                         texture: texture,
@@ -556,6 +558,7 @@ public:
         stagingBuffer.upload(data, 0);
         if (auto cmdbuffer = uploadQueue.fetch()) {
             auto transferPass = cmdbuffer.beginTransferPass();
+                transferPass.insertBarrier(NioPipelineStage.transfer, NioPipelineStage.all);
                 transferPass.copy(
                     NioBufferSrcInfo(
                         buffer: stagingBuffer, 
@@ -594,12 +597,13 @@ public:
 
         if (auto cmdbuffer = uploadQueue.fetch()) {
             auto transferPass = cmdbuffer.beginTransferPass();
+                transferPass.insertBarrier(NioPipelineStage.transfer, NioPipelineStage.all);
                 transferPass.copy(
                     NioBufferSrcInfo(
                         buffer: buffer,
                         offset: offset,
                         length: length
-                    ), 
+                    ),
                     NioBufferDstInfo(
                         buffer: stagingBuffer,
                         offset: 0,
