@@ -33,7 +33,6 @@ private:
 @nogc:
 
     // State
-    NioArgumentTable table_;
     SpirvModuleInfo moduleInfo_;
     NioVkShaderFunction[] functions_;
     NirShader shader_;
@@ -53,25 +52,21 @@ private:
                     code: shader.code.nu_dup()
                 );
 
+                this.moduleInfo_ = nogc_new!SpirvModuleInfo(bytecode);
                 foreach(entrypoint; bytecode.getEntrypoints()) {
                     funcs ~= nogc_new!NioVkShaderFunction(device, this, entrypoint);
                 }
                 break;
             }
         }
-        this.moduleInfo_ = nogc_new!SpirvModuleInfo(cast(uint[])shader_.code);
-        this.functions_ = funcs.take();
 
+        // Parse module and generate layout from it.
+        this.functions_ = funcs.take();
         auto createInfo = VkShaderModuleCreateInfo(
             codeSize: bytecode.length*4,
             pCode: bytecode.ptr,
         );
         vkCreateShaderModule(nvkDevice.handle, &createInfo, null, &handle_);
-        this.table_ = nogc_new!NioArgumentTable();
-    }
-
-    /// Parses bytecode into argument table.
-    void parse(uint[] bytecode) {
     }
 
 public:
@@ -93,7 +88,6 @@ public:
 
     /// Destructor
     ~this() {
-        table_.release();
         nu_freea(shader_.name);
         nu_freea(shader_.code);
         
@@ -137,12 +131,27 @@ private:
     NioVkShader parent_;
     NirEntrypoint entrypoint_;
 
+    vector!NirBinding bindings_;
+
+    void setup() {
+        foreach(i, ref NirBinding binding; parent_.moduleInfo.bindings) {
+            if (binding.stages & entrypoint_.stage) {
+                bindings_ ~= binding;
+            }
+        }
+    }
+
 public:
 
     /**
         Vulkan-native handle.
     */
     final @property VkShaderModule handle() => parent_.handle;
+
+    /**
+        Bindings associated with this function.
+    */
+    final @property NirBinding[] bindings() => bindings_[0..$];
 
     /**
         Name of the function
@@ -156,6 +165,7 @@ public:
 
     /// Destructor
     ~this() {
+        bindings_.clear();
         parent_.release();
     }
 
@@ -166,6 +176,7 @@ public:
         super(device);
         this.parent_ = parent.retained();
         this.entrypoint_ = entrypoint;
+        this.setup();
     }
 }
 
@@ -189,6 +200,29 @@ VkShaderStageFlags toVkShaderStageFlags(NirShaderStage stage) @nogc {
     }
 }
 
+/**
+    Converts a $(D NirBindingType) format to its $(D NirTypeKind) equivalent.
+
+    Params:
+        type = The $(D NirBindingType)
+    
+    Returns:
+        The $(D NirTypeKind) equivalent.
+*/
+pragma(inline, true)
+VkDescriptorType toVkDescriptorType(NirTypeKind kind) @nogc {
+    switch(kind) with(NirTypeKind) {
+        default:            return uint.max;
+        case struct_:       return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        case sampledImage:  return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        case sampler:       return VK_DESCRIPTOR_TYPE_SAMPLER;
+        case image:         return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    }
+}
+
+/**
+    Class which manages binding and type info for a spirv/NIR module.
+*/
 class SpirvModuleInfo : NuObject {
 private:
 @nogc:
@@ -197,8 +231,6 @@ private:
 
     weak_map!(uint, size_t) bindingMap;
     vector!NirBinding bindings_;
-
-    vector!NirEntrypoint entrypoints_;
 
     void parse(uint[] bytecode) {
         import spirv.reflection : getClass, OpClass;
@@ -500,7 +532,7 @@ public:
     /**
         Bindings exposed by the shader.
     */
-    final @property NirBinding[] bindings() => bindings_[0..$];
+    final @property NirBinding[] bindings() => bindings_[];
 
     /// Destructor
     ~this() {

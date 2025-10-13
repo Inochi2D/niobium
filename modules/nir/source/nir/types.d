@@ -11,6 +11,7 @@
 */
 module nir.types;
 import nir.ir.atom;
+import vulkan.core;
 
 /**
     The different kinds of shader stages that a shader
@@ -83,4 +84,35 @@ NirShaderStage toNirShaderStage(ExecutionModel stage) @nogc {
         case MeshEXT:   return NirShaderStage.mesh;
         case Kernel:    return NirShaderStage.kernel;
     }
+}
+
+/**
+    Converts a $(D NirShaderStage) format to its $(D VkShaderStageFlags) equivalent.
+
+    Params:
+        stage = The $(D NirShaderStage)
+    
+    Returns:
+        The $(D VkShaderStageFlags) equivalent.
+*/
+pragma(inline, true)
+VkShaderStageFlags toVkShaderStage(NirShaderStage stage) @nogc {
+    VkShaderStageFlags result = 0;
+    
+    if (stage & NirShaderStage.vertex)
+        result |= VK_SHADER_STAGE_VERTEX_BIT;
+    
+    if (stage & NirShaderStage.task)
+        result |= VK_SHADER_STAGE_TASK_BIT_EXT;
+    
+    if (stage & NirShaderStage.mesh)
+        result |= VK_SHADER_STAGE_MESH_BIT_EXT;
+    
+    if (stage & NirShaderStage.fragment)
+        result |= VK_SHADER_STAGE_FRAGMENT_BIT;
+    
+    if (stage & NirShaderStage.kernel)
+        result |= VK_SHADER_STAGE_COMPUTE_BIT;
+
+    return result;
 }

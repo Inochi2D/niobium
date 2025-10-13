@@ -77,6 +77,7 @@ public:
         A non-zero $(D NirBindingType) on success,
         $(D NirBindingType.unknown) otherwise.
 */
+pragma(inline, true)
 NirBindingType toBindingType(StorageClass storage) @nogc {
     switch(storage) with(StorageClass) {
         default:                return NirBindingType.unknown;
