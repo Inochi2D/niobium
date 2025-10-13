@@ -86,8 +86,8 @@ void main() {
 	// Create pipeline
 	NioRenderPipeline renderPipeline = device.createRenderPipeline(
 		NioRenderPipelineDescriptor(
-			vertexFunction: shader.getFunction("vertex_main").released(),
-			fragmentFunction: shader.getFunction("fragment_main").released(),
+			vertexFunction: shader.getFunction("vertex_main"),
+			fragmentFunction: shader.getFunction("fragment_main"),
 			vertexDescriptor: NioVertexDescriptor(
 				[NioVertexBindingDescriptor(NioVertexInputRate.perVertex, Vertex.sizeof)],
 				[

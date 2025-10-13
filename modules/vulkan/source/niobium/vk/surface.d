@@ -311,7 +311,7 @@ public:
             display = The wayland display to create the surface for.
             surface = The wayland surface (window) to create the surface for.
     */
-    version(posix)
+    version(Posix)
     this(void* display, void* surface) {
         VK_KHR_wayland_surface procs = __nio_surface_procs.get().wayland;
 
@@ -332,7 +332,7 @@ public:
             display =   The X11 Display to create the surface for.
             window =    The X11 window to create the surface for.
     */
-    version(posix)
+    version(Posix)
     this(void* display, uint window) {
         VK_KHR_xlib_surface procs = __nio_surface_procs.get().xlib;
         if (procs.vkCreateXlibSurfaceKHR) {
@@ -503,7 +503,7 @@ export extern(C) NioSurface nio_surface_create_for_win32_window(void* hinstance,
         display = The wayland display to create the surface for.
         surface = The wayland surface (window) to create the surface for.
 */
-version(posix)
+version(Posix)
 export extern(C) static NioSurface nio_surface_create_for_wl_window(void* display, void* surface) @nogc {
     return nogc_new!NioVkSurface(display, surface);
 }
@@ -515,7 +515,7 @@ export extern(C) static NioSurface nio_surface_create_for_wl_window(void* displa
         display =   The X11 Display to create the surface for.
         window =    The X11 window to create the surface for.
 */
-version(posix)
+version(Posix)
 export extern(C) static NioSurface nio_surface_create_for_x11_window(void* display, uint window) @nogc {
     return nogc_new!NioVkSurface(display, window);
 }

@@ -139,7 +139,7 @@ public:
             display = The wayland display to create the surface for.
             surface = The wayland surface (window) to create the surface for.
     */
-    version(posix)
+    version(Posix)
     static NioSurface createForWindow(void* display, void* surface) @nogc {
         return nio_surface_create_for_wl_window(display, surface);
     }
@@ -151,7 +151,7 @@ public:
             display =   The X11 Display to create the surface for.
             window =    The X11 window to create the surface for.
     */
-    version(posix)
+    version(Posix)
     static NioSurface createForWindow(void* display, uint window) @nogc {
         return nio_surface_create_for_x11_window(display, window);
     }
@@ -232,10 +232,10 @@ private extern(C):
 version(Windows)
 extern extern(C) NioSurface nio_surface_create_for_win32_window(void* hinstance, void* hwnd) @nogc;
 
-version(posix)
+version(Posix)
 extern extern(C) NioSurface nio_surface_create_for_wl_window(void* display, void* surface) @nogc;
 
-version(posix)
+version(Posix)
 extern extern(C) NioSurface nio_surface_create_for_x11_window(void* display, uint window) @nogc;
 
 version(Darwin)
