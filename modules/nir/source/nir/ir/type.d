@@ -11,6 +11,7 @@
 */
 module nir.ir.type;
 import nir.ir.atom;
+import nir.types;
 import numem;
 
 /**
@@ -128,9 +129,41 @@ public:
 }
 
 /**
+    A $(D bool) type.
+*/
+class NirTypeBool : NirType {
+public:
+@nogc:
+
+    /**
+        The width of this type
+    */
+    override @property uint width() => 0;
+
+    /**
+        Constructs a void type.
+    */
+    this() { super(Op.OpTypeBool); }
+}
+
+/**
+    Base type of scalar types.
+*/
+abstract
+class NirTypeScalar : NirType {
+protected:
+@nogc:
+
+    /**
+        Base constructor for type atoms.
+    */
+    this(Op opcode) { super(opcode); }
+}
+
+/**
     A $(D float) type.
 */
-class NirTypeFloat : NirType {
+class NirTypeFloat : NirTypeScalar {
 private:
 @nogc:
     uint width_;
@@ -149,20 +182,6 @@ public:
         super(Op.OpTypeFloat);
         this.width_ = width;
     }
-}
-
-/**
-    Base type of scalar types.
-*/
-abstract
-class NirTypeScalar : NirType {
-protected:
-@nogc:
-
-    /**
-        Base constructor for type atoms.
-    */
-    this(Op opcode) { super(opcode); }
 }
 
 /**
@@ -451,7 +470,7 @@ public:
 class NirTypeImage : NirType {
 private:
 @nogc:
-    NirTypeScalar sampledType_;
+    NirType sampledType_;
     Dim dim_;
     bool array_;
     bool multisampled_;
@@ -462,7 +481,7 @@ public:
     /**
         The type of the image data
     */
-    @property NirTypeScalar sampledType() => sampledType_;
+    @property NirType sampledType() => sampledType_;
 
     /**
         The dimensionality of the image.
@@ -495,7 +514,7 @@ public:
     /**
         Constructs a void type.
     */
-    this(NirTypeScalar sampledType, Dim dim, bool array, bool multisampled, ImageFormat format) { 
+    this(NirType sampledType, Dim dim, bool array, bool multisampled, ImageFormat format) { 
         super(Op.OpTypeImage);
         this.sampledType_ = sampledType.retained();
         this.dim_ = dim;
