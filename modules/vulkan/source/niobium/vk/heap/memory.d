@@ -65,6 +65,24 @@ public:
     }
 
     /**
+        Creates a new memory object.
+
+        Params:
+            device =    The device to create the memory for.
+            desc =      Descriptor used to crate the memory.
+    */
+    this(VkDevice device, VkMemoryAllocateInfo allocInfo) {
+        this.device_ = device;
+        this.desc_ = NioDeviceMemoryDescriptor(
+            size: allocInfo.allocationSize,
+            type: allocInfo.memoryTypeIndex
+        );
+
+        auto createInfo = allocInfo;
+        vkEnforce(vkAllocateMemory(device_, &createInfo, null, &handle_));
+    }
+
+    /**
         Vulkan Handle to the memory.
     */
     @property VkDeviceMemory handle() => handle_;

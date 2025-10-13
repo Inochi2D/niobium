@@ -165,6 +165,17 @@ public:
     abstract NioAllocation malloc(VkDeviceSize size, uint type);
 
     /**
+        Creates a new allocation of the specified size.
+
+        Params:
+            allocInfo = Vulkan allocation info.
+        
+        Returns:
+            A new allocation, or a empty allocation on failure.
+    */
+    abstract NioAllocation malloc_unique(VkMemoryAllocateInfo allocInfo);
+
+    /**
         Frees the given allocation.
 
         Params:
@@ -235,6 +246,7 @@ private:
     VkDeviceSize[]              allocated;
     VkDeviceSize                allocatedTotal;
     uint                        allocCount;
+    NioDeviceMemory[]           uniqueAllocs;
 
     VkDeviceSize                pageSize;
     VkDeviceSize                blockMinSize;
@@ -318,7 +330,11 @@ public:
             }
             nu_freea(pool.blocks);
         }
+        foreach_reverse(ref memory; uniqueAllocs) {
+            memory.release();
+        }
         nu_freea(pools);
+        nu_freea(uniqueAllocs);
     }
 
     /**
@@ -387,6 +403,32 @@ public:
             offset: offset,
             size: size,
             poolId: cast(uint)idx.blockIdx
+        );
+    }
+
+    /**
+        Creates a new allocation of the specified size in a unique section,
+        this should only be used to create shared resources.
+
+        Params:
+            allocInfo = Vulkan allocation info.
+        
+        Returns:
+            A new allocation, or a empty allocation on failure.
+    */
+    override NioAllocation malloc_unique(VkMemoryAllocateInfo allocInfo) {
+
+        // Ensure the pool doesn't get changed from multiple threads at once.
+        mutex_.lock();
+        scope(exit) mutex_.unlock();
+
+        uniqueAllocs = uniqueAllocs.nu_resize(uniqueAllocs.length+1);
+        uniqueAllocs[$-1] = nogc_new!NioDeviceMemory(device, allocInfo);
+        return NioAllocation(
+            memory: uniqueAllocs[$-1],
+            offset: 0,
+            size: allocInfo.allocationSize,
+            poolId: uint.max
         );
     }
 

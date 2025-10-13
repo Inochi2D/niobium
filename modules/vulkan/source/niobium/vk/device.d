@@ -132,6 +132,7 @@ private:
         this.deviceFeatures_.alphaToCoverage = cast(bool)vkf.features.alphaToOne;
         this.deviceFeatures_.presentation = deviceExtensions.hasExtension("VK_KHR_swapchain");
         this.deviceFeatures_.meshShaders  = deviceExtensions.hasExtension("VK_EXT_mesh_shader");
+        this.deviceFeatures_.externalMemory = deviceExtensions.hasExtension("VK_KHR_external_memory");
 
         // Check device limits.
         this.deviceLimits_.maxBufferSize = vk13p.maxBufferSize;
@@ -155,6 +156,18 @@ private:
             extensions ~= nstring("VK_KHR_swapchain").take().ptr;
         if (deviceFeatures_.meshShaders)
             extensions ~= nstring("VK_EXT_mesh_shader").take().ptr;
+        
+        if (deviceFeatures_.externalMemory) {
+            extensions ~= nstring("VK_KHR_external_memory").take().ptr;
+            if (deviceExtensions.hasExtension("VK_KHR_external_memory_win32"))
+                extensions ~= nstring("VK_KHR_external_memory_win32").take().ptr;
+
+            if (deviceExtensions.hasExtension("VK_EXT_external_memory_dma_buf"))
+                extensions ~= nstring("VK_EXT_external_memory_dma_buf").take().ptr;
+
+            if (deviceExtensions.hasExtension("VK_KHR_external_memory_fd"))
+                extensions ~= nstring("VK_KHR_external_memory_fd").take().ptr;
+        }
 
         // Create Device
         auto createInfo = VkDeviceCreateInfo(
@@ -377,7 +390,22 @@ public:
             A new $(D NioTexture) or $(D null) on failure.
     */
     override NioTexture createTexture(NioTextureDescriptor desc) {
-        return nogc_new!NioVkTexture(this, desc);
+        return nogc_new!NioVkTexture(this, desc, false);
+    }
+
+    /**
+        Creates a new texture which can be shared between process
+        boundaries.
+
+        Params:
+            desc = Descriptor for the texture.
+        
+        Returns:
+            A new $(D NioTexture) on success,
+            $(D null) otherwise.
+    */
+    override NioTexture createSharedTexture(NioTextureDescriptor desc)  {
+        return nogc_new!NioVkTexture(this, desc, true);
     }
 
     /**

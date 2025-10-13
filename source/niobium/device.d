@@ -71,6 +71,11 @@ struct NioDeviceFeatures {
         Whether alpha-to-coverage is supported.
     */
     bool alphaToCoverage;
+
+    /**
+        Whether sharing memory between processes is supported.
+    */
+    bool externalMemory;
 }
 
 /**
@@ -223,6 +228,19 @@ public:
             $(D null) otherwise.
     */
     abstract NioTexture createTexture(NioTextureDescriptor desc);
+
+    /**
+        Creates a new texture which can be shared between process
+        boundaries.
+
+        Params:
+            desc = Descriptor for the texture.
+        
+        Returns:
+            A new $(D NioTexture) on success,
+            $(D null) otherwise.
+    */
+    abstract NioTexture createSharedTexture(NioTextureDescriptor desc);
 
     /**
         Creates a new buffer.

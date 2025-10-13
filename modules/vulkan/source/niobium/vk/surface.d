@@ -528,7 +528,7 @@ export extern(C) NioSurface nio_surface_create_for_win32_window(void* hinstance,
         surface = The wayland surface (window) to create the surface for.
 */
 version(Posix)
-export extern(C) static NioSurface nio_surface_create_for_wl_window(void* display, void* surface) @nogc {
+export extern(C) NioSurface nio_surface_create_for_wl_window(void* display, void* surface) @nogc {
     return nogc_new!NioVkSurface(display, surface);
 }
 
@@ -540,7 +540,7 @@ export extern(C) static NioSurface nio_surface_create_for_wl_window(void* displa
         window =    The X11 window to create the surface for.
 */
 version(Posix)
-export extern(C) static NioSurface nio_surface_create_for_x11_window(void* display, uint window) @nogc {
+export extern(C) NioSurface nio_surface_create_for_x11_window(void* display, uint window) @nogc {
     return nogc_new!NioVkSurface(display, window);
 }
 

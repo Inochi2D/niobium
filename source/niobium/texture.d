@@ -133,6 +133,16 @@ public:
     abstract @property uint levels();
 
     /**
+        Whether the texture can be shared between process boundaries.
+    */
+    abstract @property bool isShareable();
+
+    /**
+        Exported handle for the texture.
+    */
+    abstract @property NioSharedResourceHandle sharedHandle();
+
+    /**
         Uploads data to the texture using a device-internal
         transfer queue.
 
@@ -197,8 +207,6 @@ public:
     */
     abstract NioTexture createView(NioPixelFormat format, NioTextureType type, uint baseLevel = 0, uint baseSlice = 0, uint levels = 1, uint slices = 1);
 }
-
-
 
 /**
     Bit flags describing how a texture may be used.

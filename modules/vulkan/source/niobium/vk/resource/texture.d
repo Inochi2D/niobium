@@ -13,6 +13,7 @@ module niobium.vk.resource.texture;
 import niobium.vk.device;
 import niobium.vk.heap;
 import niobium.resource;
+import vulkan.khr.external_memory;
 import vulkan.core;
 import vulkan.eh;
 import numem;
@@ -20,6 +21,7 @@ import nulib;
 
 public import niobium.texture;
 public import niobium.vk.formats;
+import niobium.vk.resource.external;
 
 /**
     Vulkan Texture
@@ -34,40 +36,89 @@ private:
     // Handles
     VkImage         image_;
     VkImageView     view_;
+    NioSharedResourceHandle sharedHandle_;
     
     // State
     bool                    isView_;
     NioTextureDescriptor    desc_;
+    VkExternalMemoryImageCreateInfo externInfo_;
     VkImageCreateInfo       vkdesc_;
     VkImageViewCreateInfo   vkviewdesc_;
 
-    void createImage(NioTextureDescriptor desc) {
+    void createImage(NioTextureDescriptor desc, bool makeShared) {
         auto nvkDevice = (cast(NioVkDevice)device);
+        if (makeShared) {
         
-        this.desc_ = desc;
-        this.isView_ = false;
-        this.vkdesc_ = VkImageCreateInfo(
-            imageType: desc_.type.toVkImageType(),
-            format: desc_.format.toVkFormat(),
-            extent: VkExtent3D(desc.width, desc.height, desc.depth),
-            mipLevels: desc.levels,
-            arrayLayers: desc.slices,
-            samples: VK_SAMPLE_COUNT_1_BIT,
-            tiling: VK_IMAGE_TILING_OPTIMAL,
-            usage: desc.usage.toVkImageUsage(),
-            sharingMode: VK_SHARING_MODE_EXCLUSIVE,
-            initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
-        );
-        vkEnforce(vkCreateImage(nvkDevice.handle, &vkdesc_, null, &image_));
-        this.layout = vkdesc_.initialLayout;
+            this.desc_ = desc;
+            this.isView_ = false;
+            this.externInfo_ = VkExternalMemoryImageCreateInfo(
+                handleTypes: NIO_VK_SHARED_HANDLE_TYPE
+            );
+            this.vkdesc_ = VkImageCreateInfo(
+                pNext: &externInfo_,
+                imageType: desc_.type.toVkImageType(),
+                format: desc_.format.toVkFormat(),
+                extent: VkExtent3D(desc.width, desc.height, desc.depth),
+                mipLevels: desc.levels,
+                arrayLayers: desc.slices,
+                samples: VK_SAMPLE_COUNT_1_BIT,
+                tiling: VK_IMAGE_TILING_OPTIMAL,
+                usage: desc.usage.toVkImageUsage(),
+                sharingMode: VK_SHARING_MODE_EXCLUSIVE,
+                initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            vkEnforce(vkCreateImage(nvkDevice.handle, &vkdesc_, null, &image_));
+            this.layout = vkdesc_.initialLayout;
 
-        // Allocate memory for our texture.
-        VkMemoryRequirements vkmemreq_;
-        vkGetImageMemoryRequirements(nvkDevice.handle, image_, &vkmemreq_);
+            // Allocate memory for our texture.
+            VkMemoryRequirements vkmemreq_;
+            vkGetImageMemoryRequirements(nvkDevice.handle, image_, &vkmemreq_);
 
-        VkMemoryAllocateFlags flags = desc.storage.toVkMemoryProperties();
-        ptrdiff_t type = allocator_.getTypeForMasked(flags, vkmemreq_.memoryTypeBits);
-        if (type >= 0) {
+            VkMemoryAllocateFlags flags = desc.storage.toVkMemoryProperties();
+            ptrdiff_t type = allocator_.getTypeForMasked(flags, vkmemreq_.memoryTypeBits);
+
+            // Allocate shared texture
+            auto exportInfo = VkExportMemoryAllocateInfo(handleTypes: NIO_VK_SHARED_HANDLE_TYPE);
+            allocation_ = allocator_.malloc_unique(VkMemoryAllocateInfo(
+                pNext: &exportInfo,
+                allocationSize: vkmemreq_.size,
+                memoryTypeIndex: cast(uint)type,
+            ));
+            if (allocation_.memory) {
+                this.sharedHandle_ = nogc_new!NioVkSharedResourceHandle(device, allocation_.memory.handle);
+                vkBindImageMemory(
+                    nvkDevice.handle, 
+                    image_, 
+                    allocation_.memory.handle,
+                    allocation_.offset
+                );
+            }
+        } else if (type >= 0) {
+        
+            this.desc_ = desc;
+            this.isView_ = false;
+            this.vkdesc_ = VkImageCreateInfo(
+                imageType: desc_.type.toVkImageType(),
+                format: desc_.format.toVkFormat(),
+                extent: VkExtent3D(desc.width, desc.height, desc.depth),
+                mipLevels: desc.levels,
+                arrayLayers: desc.slices,
+                samples: VK_SAMPLE_COUNT_1_BIT,
+                tiling: VK_IMAGE_TILING_OPTIMAL,
+                usage: desc.usage.toVkImageUsage(),
+                sharingMode: VK_SHARING_MODE_EXCLUSIVE,
+                initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            vkEnforce(vkCreateImage(nvkDevice.handle, &vkdesc_, null, &image_));
+            this.layout = vkdesc_.initialLayout;
+
+            // Allocate memory for our texture.
+            VkMemoryRequirements vkmemreq_;
+            vkGetImageMemoryRequirements(nvkDevice.handle, image_, &vkmemreq_);
+
+            VkMemoryAllocateFlags flags = desc.storage.toVkMemoryProperties();
+            ptrdiff_t type = allocator_.getTypeForMasked(flags, vkmemreq_.memoryTypeBits);
+            
             allocation_ = allocator_.malloc(vkmemreq_.size, cast(uint)type);
             if (allocation_.memory) {
                 vkBindImageMemory(
@@ -191,16 +242,17 @@ public:
         Constructs a new $(D NioVkTexture) from a descriptor.
 
         Params:
-            device =    The device to create the texture on.
-            desc =      Descriptor used to create the texture.
-            allocator = Allocator to use $(D null) for device allocator.
+            device =        The device to create the texture on.
+            desc =          Descriptor used to create the texture.
+            makeShared =    Whether to allocate the texture as shared.
+            allocator =     Allocator to use $(D null) for device allocator.
     */
-    this(NioDevice device, NioTextureDescriptor desc, NioAllocator allocator = null) {
+    this(NioDevice device, NioTextureDescriptor desc, bool makeShared, NioAllocator allocator = null) {
         super(device);
 
         enforce(desc.usage != NioTextureUsage.none, "Invalid texture usage 'none'!");
         this.allocator_ = allocator ? allocator : (cast(NioVkDevice)device).allocator;
-        this.createImage(desc);
+        this.createImage(desc, makeShared);
     }
 
     /**
@@ -294,6 +346,16 @@ public:
         Mip level count of the texture.
     */
     override @property uint levels() => desc_.levels;
+
+    /**
+        Whether the texture can be shared between process boundaries.
+    */
+    override @property bool isShareable() => sharedHandle_ !is null;
+
+    /**
+        Exported handle for the texture.
+    */
+    override @property NioSharedResourceHandle sharedHandle() => sharedHandle_;
 
     /**
         Uploads data to the texture using a device-internal

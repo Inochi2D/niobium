@@ -84,7 +84,7 @@ public:
     */
     override NioTexture createTexture(NioTextureDescriptor descriptor) {
         descriptor.storage = desc_.storageMode;
-        return nogc_new!NioVkTexture(device, descriptor, allocator);
+        return nogc_new!NioVkTexture(device, descriptor, false, allocator);
     }
 
     /**
