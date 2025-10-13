@@ -442,7 +442,7 @@ private:
     }
 
     /// Discovers the usage of bindings recursively from the given function ID.
-    void discoverUsage(uint[] bytecode, uint funcId, NirShaderStage stage) {
+    void discoverUsage(uint[] bytecode, uint funcId, NirShaderStage stage, uint step = 0) {
 
         // 1.   Seek over to the function ID.
         uint[] read = bytecode;
@@ -475,6 +475,16 @@ private:
                     
                     auto target = &bindings_[bindingMap[atom.operands[0]]];
                     target.stages |= stage;
+                    break;
+                
+                case OpFunctionCall:
+
+                    // Escape if recursion depth is getting ridiculous.
+                    if (step > 10)
+                        return;
+                    
+                    // Recurse into the function.
+                    this.discoverUsage(bytecode, atom.operands[2], stage, step+1);
                     break;
             }
         }
