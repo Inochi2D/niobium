@@ -76,6 +76,12 @@ public:
     abstract @property void size(NioExtent2D);
 
     /**
+        Whether to enable transparent composition.
+    */
+    abstract @property bool transparent();
+    abstract @property void transparent(bool);
+
+    /**
         Format of the surface.
     */
     abstract @property NioPixelFormat format();

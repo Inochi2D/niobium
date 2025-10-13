@@ -35,9 +35,11 @@ private:
 @nogc:
     // Settings
     uint framesInFlight_;
+    bool transparent_;
     NioPresentMode presentMode_;
     NioPixelFormat format_;
     NioExtent2D size_;
+    VkCompositeAlphaFlagsKHR supportedAlphaMode_;
     VkSwapchainCreateInfoKHR swapCreateInfo;
     VkSurfaceCapabilitiesKHR surfaceCaps;
 
@@ -208,6 +210,12 @@ public:
                 handle_, 
                 &surfaceCaps
             );
+
+            // Update supported alpha mode.
+            this.supportedAlphaMode_ = 
+                (surfaceCaps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR) ? VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR :
+                (surfaceCaps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR) ? VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR :
+                VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         }
     }
 
@@ -234,6 +242,20 @@ public:
             swapCreateInfo.imageColorSpace = supportedFormats_[fmtidx].colorSpace;
             
             this.format_ = value;
+            this.needsRebuild = true;
+        }
+    }
+
+    /**
+        The amount of frames that can be in-flight.
+    */
+    override @property bool transparent() => transparent_;
+    override @property void transparent(bool value) {
+        import nulib.math : max;
+
+        if (supportedAlphaMode_ != VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) {
+            swapCreateInfo.compositeAlpha = value ? supportedAlphaMode_ : VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+            this.transparent_ = value;
             this.needsRebuild = true;
         }
     }
