@@ -57,6 +57,10 @@ enum NioPresentMode : uint {
 /**
     Represents a surface, whether it be a window, a full screen framebuffer,
     or something else.
+
+    Note:
+        You can only change the settings of the surface *after* you've selected
+        a device to render to the surface with.
 */
 abstract
 class NioSurface : NuRefCounted {
@@ -76,7 +80,12 @@ public:
     abstract @property void size(NioExtent2D);
 
     /**
-        Whether to enable transparent composition.
+        Whether to enable transparent composition for the surface.
+        
+        Note:
+            This only applies to platforms where the app controls
+            composition mode, some platforms may let you request
+            transparent composition elsewhere.
     */
     abstract @property bool transparent();
     abstract @property void transparent(bool);

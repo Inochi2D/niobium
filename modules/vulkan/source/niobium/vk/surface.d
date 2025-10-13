@@ -216,6 +216,10 @@ public:
                 (surfaceCaps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR) ? VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR :
                 (surfaceCaps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR) ? VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR :
                 VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+            
+            // Disable transparency if we can only do opaque composition.
+            if (supportedAlphaMode_ == VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR && transparent_)
+                transparent_ = false;
         }
     }
 
@@ -247,7 +251,7 @@ public:
     }
 
     /**
-        The amount of frames that can be in-flight.
+        Whether to enable transparent composition for the surface.
     */
     override @property bool transparent() => transparent_;
     override @property void transparent(bool value) {
