@@ -39,7 +39,7 @@ private:
     NioPresentMode presentMode_;
     NioPixelFormat format_;
     NioExtent2D size_;
-    VkCompositeAlphaFlagsKHR supportedAlphaMode_;
+    VkCompositeAlphaFlagsKHR supportedAlphaMode_ = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     VkSwapchainCreateInfoKHR swapCreateInfo;
     VkSurfaceCapabilitiesKHR surfaceCaps;
 
@@ -255,8 +255,6 @@ public:
     */
     override @property bool transparent() => transparent_;
     override @property void transparent(bool value) {
-        import nulib.math : max;
-
         if (supportedAlphaMode_ != VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) {
             swapCreateInfo.compositeAlpha = value ? supportedAlphaMode_ : VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
             this.transparent_ = value;
