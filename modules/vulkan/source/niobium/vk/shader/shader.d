@@ -400,7 +400,7 @@ private:
             );
         }
 
-        // 4.   Resolve all the decorations and names.
+        // 4.   Resolve all the decorations.
         foreach(decor; nirDecorations_) {
             if (decor.operands[0] !in bindingMap)
                 continue;
