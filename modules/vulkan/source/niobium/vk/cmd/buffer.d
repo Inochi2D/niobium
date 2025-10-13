@@ -59,6 +59,8 @@ private:
         vkResetCommandBuffer(handle_, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
         if (drawable) {
             drawable.reset();
+            
+            drawable.release();
             drawable = null;
         }
     }
@@ -214,7 +216,7 @@ public:
 
             // Add to queue.
             nvkDrawable.queue = this.queue;
-            this.drawable = nvkDrawable;
+            this.drawable = nvkDrawable.retained();
         }
     }
 

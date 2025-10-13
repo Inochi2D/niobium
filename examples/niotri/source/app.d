@@ -118,8 +118,18 @@ void main() {
 	SDL_Event ev;
 	while(!closeRequested) {
 		while(SDL_PollEvent(&ev)) {
-			if (ev.type == SDL_EventType.SDL_EVENT_QUIT)
-				closeRequested = true;
+			switch(ev.type) with(SDL_EventType) {
+				default: break;
+
+				case SDL_EVENT_QUIT:
+					closeRequested = true;
+					break;
+				
+				case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+					version(linux)
+					surface.size = NioExtent2D(ev.window.data1, ev.window.data2);
+					break;
+			}
 		}
 
 		if (NioDrawable drawable = surface.next()) {
