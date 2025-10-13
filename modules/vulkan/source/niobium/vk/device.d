@@ -381,21 +381,6 @@ public:
     }
 
     /**
-        Creates a new texture which reinterprets the data of another
-        texture.
-
-        Params:
-            texture =   Texture to create a view of.
-            desc =      Descriptor for the texture.
-        
-        Returns:
-            A new $(D NioTexture) or $(D null) on failure.
-    */
-    override NioTexture createTextureView(NioTexture texture, NioTextureDescriptor desc) {
-        return nogc_new!NioVkTexture(this, texture, desc);
-    }
-
-    /**
         Creates a new buffer.
 
         The buffer is created on the internal device heap, managed

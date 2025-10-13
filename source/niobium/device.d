@@ -225,20 +225,6 @@ public:
     abstract NioTexture createTexture(NioTextureDescriptor desc);
 
     /**
-        Creates a new texture which reinterprets the data of another
-        texture.
-
-        Params:
-            texture =   Texture to create a view of.
-            desc =      Descriptor for the texture.
-        
-        Returns:
-            A new $(D NioTexture) on success,
-            $(D null) otherwise.
-    */
-    abstract NioTexture createTextureView(NioTexture texture, NioTextureDescriptor desc);
-
-    /**
         Creates a new buffer.
 
         The buffer is created on the internal device heap, managed

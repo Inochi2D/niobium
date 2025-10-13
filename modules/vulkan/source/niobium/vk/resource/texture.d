@@ -51,7 +51,7 @@ private:
             format: desc_.format.toVkFormat(),
             extent: VkExtent3D(desc.width, desc.height, desc.depth),
             mipLevels: desc.levels,
-            arrayLayers: desc.layers,
+            arrayLayers: desc.slices,
             samples: VK_SAMPLE_COUNT_1_BIT,
             tiling: VK_IMAGE_TILING_OPTIMAL,
             usage: desc.usage.toVkImageUsage(),
@@ -90,7 +90,7 @@ private:
         vkEnforce(vkCreateImageView(nvkDevice.handle, &vkviewdesc_, null, &view_));
     }
 
-    void createImageView(NioVkTexture parent, NioTextureDescriptor desc) {
+    void createImageView(NioVkTexture parent, NioTextureDescriptor desc, uint baseLevel, uint baseSlice) {
         auto nvkDevice = (cast(NioVkDevice)device);
 
         // Create View
@@ -103,7 +103,7 @@ private:
             viewType: desc.type.toVkImageViewType(),
             format: desc.format.toVkFormat(),
             components: VkComponentMapping(VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY),
-            subresourceRange: VkImageSubresourceRange(desc.format.toVkAspect(), 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS)
+            subresourceRange: VkImageSubresourceRange(desc.format.toVkAspect(), baseLevel, desc_.levels, baseSlice, desc_.slices)
         );
         vkEnforce(vkCreateImageView(nvkDevice.handle, &vkviewdesc_, null, &view_));
     }
@@ -119,7 +119,7 @@ private:
             format: desc_.format.toVkFormat(),
             extent: VkExtent3D(desc.width, desc.height, desc.depth),
             mipLevels: desc.levels,
-            arrayLayers: desc.layers,
+            arrayLayers: desc.slices,
             samples: VK_SAMPLE_COUNT_1_BIT,
             tiling: VK_IMAGE_TILING_OPTIMAL,
             usage: desc.usage.toVkImageUsage(),
@@ -213,8 +213,22 @@ public:
     */
     this(NioDevice device, NioTexture texture, NioTextureDescriptor desc) {
         super(device);
+        this.createImageView(cast(NioVkTexture)texture, desc, 0, 0);
+    }
 
-        this.createImageView(cast(NioVkTexture)texture, desc);
+    /**
+        Constructs a new $(D NioVkTexture) as a view of another texture.
+
+        Params:
+            device =    The device to create the texture on.
+            texture =   Texture to create a view of.
+            desc =      Descriptor used to create the texture.
+            baseLevel = Base mip level
+            baseSlice = Base slice
+    */
+    this(NioDevice device, NioTexture texture, NioTextureDescriptor desc, uint baseLevel, uint baseSlice) {
+        super(device);
+        this.createImageView(cast(NioVkTexture)texture, desc, baseLevel, baseSlice);
     }
 
     /**
@@ -274,7 +288,7 @@ public:
     /**
         Array layer count of the texture.
     */
-    override @property uint layers() => desc_.layers;
+    override @property uint slices() => desc_.slices;
 
     /**
         Mip level count of the texture.
@@ -295,7 +309,8 @@ public:
             data =      The data to upload.
             rowStride = The stride of a single row of pixels.
     */
-    override NioTexture upload(NioRegion3D region, uint level, uint slice, void[] data, uint rowStride) {
+    override
+    NioTexture upload(NioRegion3D region, uint level, uint slice, void[] data, uint rowStride) {
         (cast(NioVkDevice)device).uploadDataToTexture(this, region, level, slice, data, rowStride);
         return this;
     }
@@ -317,8 +332,67 @@ public:
             A nogc slice of data on success,
             $(D null) otherwise.
     */
-    override void[] download(NioRegion3D region, uint level, uint slice, uint rowStride) {
+    override
+    void[] download(NioRegion3D region, uint level, uint slice, uint rowStride) {
         return (cast(NioVkDevice)device).downloadDataFromTexture(this, region, level, slice, rowStride);
+    }
+
+    /**
+        Creates a new texture which reinterprets the data of this
+        texture.
+
+        Params:
+            format =    Pixel format to interpret the texture as.
+        
+        Returns:
+            A new $(D NioTexture) on success,
+            $(D null) otherwise.
+    */
+    override
+    NioTexture createView(NioPixelFormat format) {
+        return nogc_new!NioVkTexture(device, this, NioTextureDescriptor(
+            type: desc_.type,
+            format: format,
+            storage: desc_.storage,
+            usage: desc_.usage,
+            width: desc_.width,
+            height: desc_.height,
+            depth: desc_.depth,
+            levels: desc_.levels,
+            slices: desc_.slices
+        ));
+    }
+
+    /**
+        Creates a new texture which reinterprets the data of this
+        texture.
+
+        Params:
+            format =        Pixel format to interpret the texture as.
+            type =          The texture type to interpret the texture as.
+            baseLevel =     The base mip level to interpret
+            baseSlice =     The base array slice to interpret
+            levels =        The levels to interpret.
+            slices =        The slices to interpret.
+        
+        Returns:
+            A new $(D NioTexture) on success,
+            $(D null) otherwise.
+    */
+    override
+    NioTexture createView(NioPixelFormat format, NioTextureType type, uint baseLevel = 0, uint baseSlice = 0, uint levels = 1, uint slices = 1) {
+        return nogc_new!NioVkTexture(device, this, NioTextureDescriptor(
+            type: desc_.type,
+            format: format,
+            storage: desc_.storage,
+            usage: desc_.usage,
+            width: desc_.width,
+            height: desc_.height,
+            depth: desc_.depth,
+            levels: desc_.levels,
+            slices: desc_.slices
+        ), baseLevel, baseSlice);
+
     }
 }
 

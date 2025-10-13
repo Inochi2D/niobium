@@ -107,7 +107,7 @@ public:
         
         auto nvkTexture = cast(NioVkTexture)dst;
         auto aspect = nvkTexture.format.toVkAspect;
-        auto layers = dst.layers;
+        auto slices = dst.slices;
         this.transitionTextureTo(nvkTexture, VK_IMAGE_LAYOUT_GENERAL);
 
         VkOffset3D[2] srcOffsets = [VkOffset3D(0, 0, 0), VkOffset3D(dst.width, dst.height, dst.depth)];
@@ -115,9 +115,9 @@ public:
         VkImageBlit[] blits = nu_malloca!VkImageBlit(dst.levels-1);
         foreach(level, ref blit; blits) {
             blit = VkImageBlit(
-                srcSubresource: VkImageSubresourceLayers(aspect, 0, 0, layers),
+                srcSubresource: VkImageSubresourceLayers(aspect, 0, 0, slices),
                 srcOffsets: srcOffsets,
-                dstSubresource: VkImageSubresourceLayers(aspect, cast(uint)level+1, 0, layers),
+                dstSubresource: VkImageSubresourceLayers(aspect, cast(uint)level+1, 0, slices),
                 dstOffsets: dstOffsets,
             );
             dstOffsets[1].x = max(1, dstOffsets[1].x/2);
@@ -307,7 +307,7 @@ public:
     override void copy(NioTexture src, NioTexture dst) {
         auto vkImageSrc = (cast(NioVkTexture)src);
         auto vkImageDst = (cast(NioVkTexture)dst);
-        auto layersToCopy = min(vkImageSrc.layers, vkImageDst.layers);
+        auto slicesToCopy = min(vkImageSrc.slices, vkImageDst.slices);
         auto extentToCopy = VkExtent3D(
             min(vkImageSrc.width, vkImageDst.width),
             min(vkImageSrc.height, vkImageDst.height),
@@ -315,9 +315,9 @@ public:
         );
 
         auto imageInfo = VkImageCopy2(
-            srcSubresource: VkImageSubresourceLayers(vkImageSrc.format.toVkAspect(), 0, 0, layersToCopy),
+            srcSubresource: VkImageSubresourceLayers(vkImageSrc.format.toVkAspect(), 0, 0, slicesToCopy),
             srcOffset: VkOffset3D(0, 0, 0),
-            dstSubresource: VkImageSubresourceLayers(vkImageDst.format.toVkAspect(), 0, 0, layersToCopy),
+            dstSubresource: VkImageSubresourceLayers(vkImageDst.format.toVkAspect(), 0, 0, slicesToCopy),
             dstOffset: VkOffset3D(0, 0, 0),
             extent: extentToCopy
         );

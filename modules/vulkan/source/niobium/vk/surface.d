@@ -498,7 +498,7 @@ public:
             height: surfaceSize.height,
             depth: 1,
             levels: 1,
-            layers: 1,
+            slices: 1,
         ));
     }
 

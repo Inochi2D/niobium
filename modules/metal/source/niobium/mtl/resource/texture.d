@@ -42,7 +42,7 @@ private:
         createInfo.height = desc.height;
         createInfo.depth = desc.depth;
         createInfo.mipmapLevelCount = desc.levels;
-        createInfo.arrayLength = desc.layers;
+        createInfo.arrayLength = desc.slices;
         createInfo.usage = desc.usage.toMTLTextureUsage();
         createInfo.sampleCount = 1;
         createInfo.compressionType = MTLTextureCompressionType.Lossless;
@@ -66,13 +66,13 @@ private:
             height: texture.height,
             depth: texture.depth,
             levels: desc.levels,
-            layers: desc.layers
+            slices: desc.slices
         );
         this.handle_ = texture.handle.newTextureView(
             desc_.format.toMTLPixelFormat(),
             desc_.type.toMTLTextureType(),
             NSRange(0, desc_.levels),
-            NSRange(0, desc_.layers),
+            NSRange(0, desc_.slices),
         );
     }
 
@@ -88,7 +88,7 @@ private:
             height: cast(uint)texture.height,
             depth: cast(uint)texture.depth,
             levels: cast(uint)texture.mipmapLevelCount,
-            layers: cast(uint)texture.arrayLength
+            slices: cast(uint)texture.arrayLength
         );
         this.handle_ = texture;
     }
@@ -202,7 +202,7 @@ public:
     /**
         Array layer count of the texture.
     */
-    override @property uint layers() => desc_.layers;
+    override @property uint slices() => desc_.slices;
 
     /**
         Mip level count of the texture.

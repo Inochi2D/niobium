@@ -64,7 +64,7 @@ struct NioTextureDescriptor {
     /**
         Array layer count of the texture.
     */
-    uint layers = 1;
+    uint slices = 1;
 }
 
 /**
@@ -125,7 +125,7 @@ public:
     /**
         Array layer count of the texture.
     */
-    abstract @property uint layers();
+    abstract @property uint slices();
 
     /**
         Mip level count of the texture.
@@ -165,6 +165,37 @@ public:
             $(D null) otherwise.
     */
     abstract void[] download(NioRegion3D region, uint level, uint slice, uint rowStride);
+
+    /**
+        Creates a new texture which reinterprets the data of this
+        texture.
+
+        Params:
+            format =    Pixel format to interpret the texture as.
+        
+        Returns:
+            A new $(D NioTexture) on success,
+            $(D null) otherwise.
+    */
+    abstract NioTexture createView(NioPixelFormat format);
+
+    /**
+        Creates a new texture which reinterprets the data of this
+        texture.
+
+        Params:
+            format =        Pixel format to interpret the texture as.
+            type =          The texture type to interpret the texture as.
+            baseLevel =     The base mip level to interpret
+            baseSlice =     The base array slice to interpret
+            levels =        The levels to interpret.
+            slices =        The slices to interpret.
+        
+        Returns:
+            A new $(D NioTexture) on success,
+            $(D null) otherwise.
+    */
+    abstract NioTexture createView(NioPixelFormat format, NioTextureType type, uint baseLevel = 0, uint baseSlice = 0, uint levels = 1, uint slices = 1);
 }
 
 
