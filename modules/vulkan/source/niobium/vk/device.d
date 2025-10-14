@@ -10,6 +10,7 @@
         Luna Nielsen
 */
 module niobium.vk.device;
+import niobium.vk.depthstencil;
 import niobium.vk.resource;
 import niobium.vk.sampler;
 import niobium.vk.render;
@@ -464,6 +465,20 @@ public:
     */
     override NioSampler createSampler(NioSamplerDescriptor desc) {
         return nogc_new!NioVkSampler(this, desc);
+    }
+
+    /**
+        Creates a new depth-stencil state object.
+
+        Params:
+            desc = Descriptor for the depth-stencil state object.
+        
+        Returns:
+            A new $(D NioDepthStencilState) on success,
+            $(D null) otherwise.
+    */
+    override NioDepthStencilState createDepthStencilState(NioDepthStencilStateDescriptor desc) {
+        return nogc_new!NioVkDepthStencilState(this, desc);
     }
     
     /**

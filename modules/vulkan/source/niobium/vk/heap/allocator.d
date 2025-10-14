@@ -156,13 +156,14 @@ public:
         Creates a new allocation of the specified size.
 
         Params:
-            size = The size of the allocation.
-            type = The type of the allocation.
+            size =      The size of the allocation.
+            type =      The type of the allocation.
+            alignment = The required alignment of the allocation.
         
         Returns:
             A new allocation, or a empty allocation on failure.
     */
-    abstract NioAllocation malloc(VkDeviceSize size, uint type);
+    abstract NioAllocation malloc(VkDeviceSize size, uint type, VkDeviceSize alignment = 0);
 
     /**
         Creates a new allocation of the specified size.
@@ -204,6 +205,11 @@ struct NioAllocation {
         Size of the allocation
     */
     VkDeviceSize size;
+
+    /**
+        Alignment of the allocation
+    */
+    VkDeviceSize alignment;
 
     /**
         Memory-pool internal ID.
@@ -284,16 +290,19 @@ private:
     }
 
     // Takes ownership of a chunk by reducing its allocated size.
-    ptrdiff_t claimChunk(SpanIndex index, uint type, VkDeviceSize size) {
-
+    Span claimChunk(SpanIndex index, uint type, VkDeviceSize size, VkDeviceSize alignment) {
         if (type >= pools.length)
-            return -1;
-        
+            return Span(-1, -1);
+
         auto offset = pools[type].blocks[index.blockIdx].layout[index.spanIdx].offset;
-        pools[type].blocks[index.blockIdx].layout[index.spanIdx].offset += size;
-        pools[type].blocks[index.blockIdx].layout[index.spanIdx].length -= size;
-        
-        return offset;
+
+        // Find the next aligned subarea, allocate enough space for it.
+        VkDeviceSize reqSizeAligned = size.alignTo(alignment);
+        VkDeviceSize reqOffsetAligned = offset.alignTo(alignment);
+        pools[type].blocks[index.blockIdx].layout[index.spanIdx].offset += reqSizeAligned;
+        pools[type].blocks[index.blockIdx].layout[index.spanIdx].length -= reqSizeAligned;
+
+        return Span(reqOffsetAligned, reqSizeAligned);
     }
 
     // Adds a new block to the pool.
@@ -369,13 +378,14 @@ public:
         Creates a new allocation of the specified size.
 
         Params:
-            size = The size of the allocation.
-            type = The type of the allocation.
+            size =      The size of the allocation.
+            type =      The type of the allocation.
+            alignment = The required alignment of the allocation.
         
         Returns:
             A new allocation, or a empty allocation on failure.
     */
-    override NioAllocation malloc(VkDeviceSize size, uint type) {
+    override NioAllocation malloc(VkDeviceSize size, uint type, VkDeviceSize alignment) {
         if (type >= memoryProperties.memoryTypeCount)
             return NioAllocation.init;
 
@@ -386,7 +396,7 @@ public:
         auto flags = memoryProperties.memoryTypes[type].propertyFlags;
 
         // Get allocation size
-        VkDeviceSize reqSize = size + (size % pageSize);
+        VkDeviceSize reqSize = (size + (size % pageSize));
         auto idx = this.findFreeChunk(type, size, !(flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
         if (idx.blockIdx < 0) {
             
@@ -395,13 +405,14 @@ public:
             if (idx.blockIdx < 0)
                 return NioAllocation.init;
         }
-        
-        this.allocated[type] += reqSize;
-        auto offset = this.claimChunk(idx, type, reqSize);
+
+        auto allocatedArea = this.claimChunk(idx, type, reqSize, alignment);
+        this.allocated[type] += allocatedArea.length;
         return NioAllocation(
             memory: pools[type].blocks[idx.blockIdx].memory,
-            offset: offset,
+            offset: allocatedArea.offset,
             size: size,
+            alignment: alignment,
             poolId: cast(uint)idx.blockIdx
         );
     }
@@ -428,6 +439,7 @@ public:
             memory: uniqueAllocs[$-1],
             offset: 0,
             size: allocInfo.allocationSize,
+            alignment: 0,
             poolId: uint.max
         );
     }
@@ -449,7 +461,7 @@ public:
         scope(exit) mutex_.unlock();
 
         auto pool = pools[obj.memory.type];
-        VkDeviceSize reqSize = size + (size % pageSize);
+        VkDeviceSize reqSize = (size + (size % pageSize)).alignTo(obj.alignment);
 
         Span span = Span(obj.offset, reqSize);
 

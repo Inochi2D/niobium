@@ -6,14 +6,18 @@ struct VertexIn {
     float3 color    [[attribute(1)]];
 };
 
+struct Uniform {
+    mat4x4 mvp;
+};
+
 struct VertexOut {
     float4 position [[position]];
     float3 color;
 };
 
-vertex VertexOut vertex_main(VertexIn in [[stage_in]]) {
+vertex VertexOut vertex_main(VertexIn in [[stage_in]], Uniform uniformIn [[buffer(0)]]) {
     VertexOut out;
-    out.position = float4(in.position, 1);
+    out.position = uniformIn.mvp * float4(in.position, 1);
     out.color = in.color;
     return out;
 }

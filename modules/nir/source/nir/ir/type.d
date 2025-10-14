@@ -396,6 +396,7 @@ class NirTypeArray : NirType {
 private:
 @nogc:
     NirType elementType_;
+    uint length_;
 
 public:
 
@@ -405,9 +406,14 @@ public:
     @property NirType elementType() => elementType_;
 
     /**
+        The length of the array.
+    */
+    @property uint length() => length_;
+
+    /**
         The width of this type
     */
-    override @property uint width() => 0;
+    override @property uint width() => elementType_.width*length_;
 
     /// Destructor
     ~this() {
@@ -417,9 +423,10 @@ public:
     /**
         Constructs a new array type
     */
-    this(NirType elementType) {
+    this(NirType elementType, uint length = 0) {
         super(Op.OpTypeRuntimeArray);
         this.elementType_ = elementType;
+        this.length_ = length;
     }
 }
 

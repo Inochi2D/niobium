@@ -11,7 +11,6 @@
 */
 module niobium.vk.sampler;
 import niobium.vk.device;
-import niobium.vk.heap;
 import vulkan.core;
 import vulkan.eh;
 import numem;
@@ -19,6 +18,11 @@ import nulib;
 
 public import niobium.sampler;
 
+/**
+    A sampler state object.
+
+    Once a sampler is created its state is immutable.
+*/
 class NioVkSampler : NioSampler {
 private:
 @nogc:
@@ -57,6 +61,11 @@ protected:
     }
 
 public:
+
+    /**
+        Underlying Vulkan handle.
+    */
+    final @property VkSampler handle() => handle_;
 
     // Destructor
     ~this() {

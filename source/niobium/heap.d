@@ -57,7 +57,7 @@ struct NioHeapDescriptor {
 */
 pragma(inline, true)
 T alignTo(T)(T size, T alignment) @nogc if (__traits(isIntegral, T)) {
-    return size + (size % alignment);
+    return alignment > 0 ? size + (alignment - (size % alignment)) : size;
 }
 
 /**

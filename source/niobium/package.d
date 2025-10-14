@@ -17,6 +17,7 @@ public import niobium.resource;
 public import niobium.pixelformat;
 public import niobium.texture;
 public import niobium.vertexformat;
+public import niobium.depthstencil;
 public import niobium.sampler;
 public import niobium.buffer;
 public import niobium.shader;

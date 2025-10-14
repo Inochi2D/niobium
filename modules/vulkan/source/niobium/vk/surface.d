@@ -104,7 +104,6 @@ private:
             // Recreate drawables.
             this.createDrawables(this.getSwapchainImages());
             this.currentImageIdx_ = 0;
-            this.currentFrame_ = 0;
             this.needsRebuild = false;
             return;
         }
@@ -337,6 +336,8 @@ public:
     */
     version(Posix)
     this(void* display, void* surface) {
+        import std.stdio;
+
         VK_KHR_wayland_surface procs = __nio_surface_procs.get().wayland;
 
         if (procs.vkCreateWaylandSurfaceKHR) {

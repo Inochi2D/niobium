@@ -10,8 +10,10 @@
         Luna Nielsen
 */
 module niobium.vk.cmd.renderencoder;
+import niobium.vk.render.pipeline;
 import niobium.vk.cmd.buffer;
 import niobium.vk.resource;
+import niobium.vk.depthstencil;
 import niobium.vk.sampler;
 import niobium.vk.device;
 import niobium.vk.render;
@@ -35,6 +37,11 @@ import numem;
 class NioVkRenderCommandEncoder : NioRenderCommandEncoder {
 private:
 @nogc:
+    uint setCount;
+    VkDescriptorSet[16] descriptorSets;
+    VkDevice vkDevice;
+
+    NioVkRenderPipeline pipeline;
     VK_EXT_extended_dynamic_state3 dyn3;
     VkRect2D renderArea;
 
@@ -49,6 +56,8 @@ private:
     }
 
     void setup(NioRenderPassDescriptor desc) {
+        this.vkDevice = (cast(NioVkDevice)cmdbuffer.device).handle;
+
         VkRenderingInfo renderInfo = VkRenderingInfo(
             colorAttachmentCount: cast(uint)desc.colorAttachments.length,
             layerCount: 1,
@@ -94,9 +103,7 @@ private:
         nu_free(cast(void*)renderInfo.pColorAttachments);
         nu_free(cast(void*)renderInfo.pDepthAttachment);
         nu_free(cast(void*)renderInfo.pStencilAttachment);
-
-        auto nvkDevice = cast(NioVkDevice)cmdbuffer.device;
-        nvkDevice.handle.loadProcs(dyn3);
+        vkDevice.loadProcs(dyn3);
     }
 
     NioPrimitive prim_;
@@ -269,18 +276,29 @@ public:
     }
 
     /**
+        Sets the active depth stencil state for the render pass.
+
+        Params:
+            state = The depth stencil state to apply.
+    */
+    override void setDepthStencilState(NioDepthStencilState state) {
+        (cast(NioVkDepthStencilState)state).apply(vkcmdbuffer);
+    }
+
+    /**
         Sets the active render pipeline for the render pass.
 
         Params:
             pipeline =  The pipeline.
     */
-    override void setPipeline(NioRenderPipeline pipeline) {
-        auto nvkRenderPipeline = cast(NioVkRenderPipeline)pipeline;
-        vkCmdBindPipeline(vkcmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, nvkRenderPipeline.handle);
+    override void setPipeline(NioRenderPipeline niopipeline) {
+        this.pipeline = cast(NioVkRenderPipeline)niopipeline;
+
+        vkCmdBindPipeline(vkcmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.handle);
         this.setCulling(NioCulling.none);
         this.setViewport(NioViewport(renderArea.offset.x, renderArea.offset.y, renderArea.extent.width, renderArea.extent.height, 0, 1));
         this.setScissor(NioScissorRect(renderArea.offset.x, renderArea.offset.y, renderArea.extent.width, renderArea.extent.height));
-        
+
         vkCmdSetDepthBiasEnable(vkcmdbuffer, VK_TRUE);
         vkCmdSetDepthBias(vkcmdbuffer, 0, 0, 0);
         vkCmdSetDepthBoundsTestEnable(vkcmdbuffer, VK_TRUE);
@@ -289,6 +307,24 @@ public:
         vkCmdSetPrimitiveRestartEnable(vkcmdbuffer, VK_FALSE);
         dyn3.vkCmdSetDepthClampEnableEXT(vkcmdbuffer, VK_FALSE);
         dyn3.vkCmdSetPolygonModeEXT(vkcmdbuffer, VK_POLYGON_MODE_FILL);
+
+        this.setCount = cast(uint)pipeline.descriptorLayouts.length;
+        auto allocInfo = VkDescriptorSetAllocateInfo(
+            descriptorPool: vkdescpool,
+            descriptorSetCount: setCount,
+            pSetLayouts: pipeline.descriptorLayouts.ptr,
+        );
+        vkAllocateDescriptorSets(vkDevice, &allocInfo, descriptorSets.ptr);
+        vkCmdBindDescriptorSets(
+            vkcmdbuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS, 
+            pipeline.layout,
+            0,
+            allocInfo.descriptorSetCount,
+            pDescriptorSets: descriptorSets.ptr,
+            dynamicOffsetCount: 0,
+            pDynamicOffsets: null,
+        );
     }
 
     /**
@@ -304,7 +340,49 @@ public:
         auto nvkBuffer = cast(NioVkBuffer)buffer;
         auto handle = nvkBuffer.handle;
 
-        vkCmdBindVertexBuffers(vkcmdbuffer, slot, 1, &handle, &offset);
+        switch(buffer.usage & (NioBufferUsage.uniformBuffer | NioBufferUsage.storageBuffer | NioBufferUsage.vertexBuffer)) {
+            default: break;
+            
+            case NioBufferUsage.vertexBuffer:
+                vkCmdBindVertexBuffers(vkcmdbuffer, slot, 1, &handle, &offset);
+                break;
+
+            case NioBufferUsage.uniformBuffer:
+                if (auto binding = pipeline.vertexTable.getBinding(NirBindingType.uniform, slot)) {
+                    auto bufferInfo = VkDescriptorBufferInfo(
+                        buffer: handle,
+                        offset: offset,
+                        range: VK_WHOLE_SIZE
+                    );
+                    auto writeInfo = VkWriteDescriptorSet(
+                        dstSet: descriptorSets[binding.bindingSet],
+                        dstBinding: binding.bindingLocation,
+                        descriptorType: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        descriptorCount: 1,
+                        pBufferInfo: &bufferInfo,
+                    );
+                    vkUpdateDescriptorSets(vkDevice, 1, &writeInfo, 0, null);
+                }
+                break;
+
+            case NioBufferUsage.storageBuffer:
+                if (auto binding = pipeline.vertexTable.getBinding(NirBindingType.uniform, slot)) {
+                    auto bufferInfo = VkDescriptorBufferInfo(
+                        buffer: handle,
+                        offset: offset,
+                        range: VK_WHOLE_SIZE
+                    );
+                    auto writeInfo = VkWriteDescriptorSet(
+                        dstSet: descriptorSets[binding.bindingSet],
+                        dstBinding: binding.bindingLocation,
+                        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        descriptorCount: 1,
+                        pBufferInfo: &bufferInfo,
+                    );
+                    vkUpdateDescriptorSets(vkDevice, 1, &writeInfo, 0, null);
+                }
+                break;
+        }
     }
 
     /**
@@ -316,7 +394,22 @@ public:
             slot =      The slot in the argument table to set.
     */
     override void setVertexTexture(NioTexture texture, uint slot) {
-        
+        auto nvkTexture = cast(NioVkTexture)texture;
+        auto handle = nvkTexture.view;
+
+        if (auto binding = pipeline.vertexTable.getBinding(NirBindingType.texture, slot)) {
+            auto imageInfo = VkDescriptorImageInfo(
+                imageView: handle
+            );
+            auto writeInfo = VkWriteDescriptorSet(
+                dstSet: descriptorSets[binding.bindingSet],
+                dstBinding: binding.bindingLocation,
+                descriptorType: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                descriptorCount: 1,
+                pImageInfo: &imageInfo,
+            );
+            vkUpdateDescriptorSets(vkDevice, 1, &writeInfo, 0, null);
+        }
     }
 
     /**
@@ -328,7 +421,22 @@ public:
             slot =      The slot in the argument table to set.
     */
     override void setVertexSampler(NioSampler sampler, uint slot) {
+        auto nvkSampler = cast(NioVkSampler)sampler;
+        auto handle = nvkSampler.handle;
 
+        if (auto binding = pipeline.vertexTable.getBinding(NirBindingType.sampler, slot)) {
+            auto imageInfo = VkDescriptorImageInfo(
+                sampler: handle
+            );
+            auto writeInfo = VkWriteDescriptorSet(
+                dstSet: descriptorSets[binding.bindingSet],
+                dstBinding: binding.bindingLocation,
+                descriptorType: VK_DESCRIPTOR_TYPE_SAMPLER,
+                descriptorCount: 1,
+                pImageInfo: &imageInfo,
+            );
+            vkUpdateDescriptorSets(vkDevice, 1, &writeInfo, 0, null);
+        }
     }
 
     /**
@@ -341,7 +449,48 @@ public:
             slot =      The slot in the argument table to set.
     */
     override void setFragmentBuffer(NioBuffer buffer, ulong offset, uint slot) {
-        
+        auto nvkBuffer = cast(NioVkBuffer)buffer;
+        auto handle = nvkBuffer.handle;
+
+        switch(buffer.usage & (NioBufferUsage.uniformBuffer | NioBufferUsage.storageBuffer)) {
+            default: break;
+
+            case NioBufferUsage.uniformBuffer:
+                if (auto binding = pipeline.fragmentTable.getBinding(NirBindingType.uniform, slot)) {
+                    auto bufferInfo = VkDescriptorBufferInfo(
+                        buffer: handle,
+                        offset: offset,
+                        range: VK_WHOLE_SIZE
+                    );
+                    auto writeInfo = VkWriteDescriptorSet(
+                        dstSet: descriptorSets[binding.bindingSet],
+                        dstBinding: binding.bindingLocation,
+                        descriptorType: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        descriptorCount: 1,
+                        pBufferInfo: &bufferInfo,
+                    );
+                    vkUpdateDescriptorSets(vkDevice, 1, &writeInfo, 0, null);
+                }
+                break;
+
+            case NioBufferUsage.storageBuffer:
+                if (auto binding = pipeline.fragmentTable.getBinding(NirBindingType.uniform, slot)) {
+                    auto bufferInfo = VkDescriptorBufferInfo(
+                        buffer: handle,
+                        offset: offset,
+                        range: VK_WHOLE_SIZE
+                    );
+                    auto writeInfo = VkWriteDescriptorSet(
+                        dstSet: descriptorSets[binding.bindingSet],
+                        dstBinding: binding.bindingLocation,
+                        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        descriptorCount: 1,
+                        pBufferInfo: &bufferInfo,
+                    );
+                    vkUpdateDescriptorSets(vkDevice, 1, &writeInfo, 0, null);
+                }
+                break;
+        }
     }
 
     /**
@@ -353,7 +502,22 @@ public:
             slot =      The slot in the argument table to set.
     */
     override void setFragmentTexture(NioTexture texture, uint slot) {
+        auto nvkTexture = cast(NioVkTexture)texture;
+        auto handle = nvkTexture.view;
 
+        if (auto binding = pipeline.fragmentTable.getBinding(NirBindingType.texture, slot)) {
+            auto imageInfo = VkDescriptorImageInfo(
+                imageView: handle
+            );
+            auto writeInfo = VkWriteDescriptorSet(
+                dstSet: descriptorSets[binding.bindingSet],
+                dstBinding: binding.bindingLocation,
+                descriptorType: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                descriptorCount: 1,
+                pImageInfo: &imageInfo,
+            );
+            vkUpdateDescriptorSets(vkDevice, 1, &writeInfo, 0, null);
+        }
     }
 
     /**
@@ -365,7 +529,22 @@ public:
             slot =      The slot in the argument table to set.
     */
     override void setFragmentSampler(NioSampler sampler, uint slot) {
-        
+        auto nvkSampler = cast(NioVkSampler)sampler;
+        auto handle = nvkSampler.handle;
+
+        if (auto binding = pipeline.fragmentTable.getBinding(NirBindingType.sampler, slot)) {
+            auto imageInfo = VkDescriptorImageInfo(
+                sampler: handle
+            );
+            auto writeInfo = VkWriteDescriptorSet(
+                dstSet: descriptorSets[binding.bindingSet],
+                dstBinding: binding.bindingLocation,
+                descriptorType: VK_DESCRIPTOR_TYPE_SAMPLER,
+                descriptorCount: 1,
+                pImageInfo: &imageInfo,
+            );
+            vkUpdateDescriptorSets(vkDevice, 1, &writeInfo, 0, null);
+        }
     }
 
     /**

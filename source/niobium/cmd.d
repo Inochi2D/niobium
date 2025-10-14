@@ -16,6 +16,7 @@ import niobium.surface;
 import niobium.texture;
 import niobium.resource;
 import niobium.pipeline;
+import niobium.depthstencil;
 import niobium.sampler;
 import niobium.buffer;
 import niobium.sync;
@@ -609,6 +610,14 @@ public:
             color = The constant blending color.
     */
     abstract void setBlendColor(NioColor color);
+
+    /**
+        Sets the active depth stencil state for the render pass.
+
+        Params:
+            state = The depth stencil state to apply.
+    */
+    abstract void setDepthStencilState(NioDepthStencilState state);
 
     /**
         Sets the active render pipeline for the render pass.

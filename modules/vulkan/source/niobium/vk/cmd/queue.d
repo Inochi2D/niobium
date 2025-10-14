@@ -114,15 +114,7 @@ private:
         }
 
         // Only-submit.
-        auto cmdSigInfo = VkSemaphoreSubmitInfo(
-            semaphore: buffer.semaphore,
-            value: 1,
-            stageMask: VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-            deviceIndex: 0
-        );
         auto submitInfo = VkSubmitInfo2(
-            signalSemaphoreInfoCount: 1,
-            pSignalSemaphoreInfos: &cmdSigInfo,
             commandBufferInfoCount: 1,
             pCommandBufferInfos: &cmdBufferInfo,
         );
@@ -347,22 +339,17 @@ private:
     ptrdiff_t awaitFreeBuffer() {
         import nulib.math : min;
 
-        // Special case; only 1 buffer.
-        if (instances_.length == 1) {
-            if (vkWaitForFences(device_.handle, cast(uint)fences_.length, fences_.ptr, VK_FALSE, ulong.max) == VK_SUCCESS) {
-                vkResetFences(device_.handle, 1, &fences_[0]);
-                return 0;
-            }
-            return -1;
-        }
-
         if (vkWaitForFences(device_.handle, cast(uint)fences_.length, fences_.ptr, VK_FALSE, ulong.max) == VK_SUCCESS) {
             foreach(offset; 0..instances_.length) {
-                size_t i = idx_ % instances_.length;
+
+                // The index is offset by 1 to avoid swapchain semaphore
+                // trampling.
+                size_t i = (idx_ + offset) % instances_.length;
                 if (vkGetFenceStatus(device_.handle, fences_[i]) == VK_SUCCESS) {
+                    idx_ = i;
+
                     vkResetFences(device_.handle, 1, &fences_[i]);
-                    idx_++;
-                    return i;
+                    return idx_;
                 }
             }
         }

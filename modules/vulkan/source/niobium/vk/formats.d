@@ -76,6 +76,9 @@ VkFormat toVkFormat(NioPixelFormat format) @nogc {
         case rgbaUnormSRGB_BC3:     return VK_FORMAT_BC3_SRGB_BLOCK;
         case rgbaUnorm_BC7:         return VK_FORMAT_BC7_UNORM_BLOCK;
         case rgbaUnormSRGB_BC7:     return VK_FORMAT_BC7_SRGB_BLOCK;
+        case depth16Unorm:          return VK_FORMAT_D16_UNORM;
+        case depth32Float:          return VK_FORMAT_D32_SFLOAT;
+        case stencil8:              return VK_FORMAT_S8_UINT;
         case depth24Stencil8:       return VK_FORMAT_D24_UNORM_S8_UINT;
         case depth32Stencil8:       return VK_FORMAT_D32_SFLOAT_S8_UINT;
         case x24Stencil8:           return VK_FORMAT_D24_UNORM_S8_UINT;
@@ -164,6 +167,9 @@ VkImageAspectFlags toVkAspect(NioPixelFormat format) @nogc {
         case depth32Stencil8:       return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
         case x24Stencil8:           return VK_IMAGE_ASPECT_STENCIL_BIT;
         case x32Stencil8:           return VK_IMAGE_ASPECT_STENCIL_BIT;
+        case stencil8:              return VK_IMAGE_ASPECT_STENCIL_BIT;
+        case depth16Unorm:          return VK_IMAGE_ASPECT_DEPTH_BIT;
+        case depth32Float:          return VK_IMAGE_ASPECT_DEPTH_BIT;
         default:                    return VK_IMAGE_ASPECT_COLOR_BIT;
     }
 }

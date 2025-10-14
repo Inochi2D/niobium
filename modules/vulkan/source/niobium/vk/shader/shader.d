@@ -130,12 +130,11 @@ private:
 @nogc:
     NioVkShader parent_;
     NirEntrypoint entrypoint_;
-
     vector!NirBinding bindings_;
 
     void setup() {
         foreach(i, ref NirBinding binding; parent_.moduleInfo.bindings) {
-            if (binding.stages & entrypoint_.stage) {
+            if (entrypoint_.stage & binding.stages) {
                 bindings_ ~= binding;
             }
         }
@@ -192,31 +191,12 @@ public:
 pragma(inline, true)
 VkShaderStageFlags toVkShaderStageFlags(NirShaderStage stage) @nogc {
     final switch(stage) with(NirShaderStage) {
+        case none:      return 0;
         case vertex:    return VK_SHADER_STAGE_VERTEX_BIT;
         case fragment:  return VK_SHADER_STAGE_FRAGMENT_BIT;
         case task:      return VK_SHADER_STAGE_TASK_BIT_EXT;
         case mesh:      return VK_SHADER_STAGE_MESH_BIT_EXT;
         case kernel:    return VK_SHADER_STAGE_COMPUTE_BIT;
-    }
-}
-
-/**
-    Converts a $(D NirBindingType) format to its $(D NirTypeKind) equivalent.
-
-    Params:
-        type = The $(D NirBindingType)
-    
-    Returns:
-        The $(D NirTypeKind) equivalent.
-*/
-pragma(inline, true)
-VkDescriptorType toVkDescriptorType(NirTypeKind kind) @nogc {
-    switch(kind) with(NirTypeKind) {
-        default:            return uint.max;
-        case struct_:       return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        case sampledImage:  return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        case sampler:       return VK_DESCRIPTOR_TYPE_SAMPLER;
-        case image:         return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     }
 }
 
@@ -369,6 +349,39 @@ private:
                         );
                         resolved++;
                         break;
+
+                    case OpTypeRuntimeArray:
+
+                        // Unresolvable, for now.
+                        if (type.operands[1] !in typeMap) {
+                            attempts++;
+                            break;
+                        }
+                        
+                        typeMap[type.operands[0]] = types_.length;
+                        types_ ~= nogc_new!NirTypeArray(
+                            types_[typeMap[type.operands[1]]],
+                            0,
+                        );
+                        resolved++;
+
+                        break;
+                    
+                    case OpTypeArray:
+
+                        // Unresolvable, for now.
+                        if (type.operands[1] !in typeMap) {
+                            attempts++;
+                            break;
+                        }
+                        
+                        typeMap[type.operands[0]] = types_.length;
+                        types_ ~= nogc_new!NirTypeArray(
+                            types_[typeMap[type.operands[1]]],
+                            type.operands[2],
+                        );
+                        resolved++;
+                        break;
                     
                     case OpTypePointer:
 
@@ -425,10 +438,11 @@ private:
             if (var.operands[0] !in typeMap)
                 continue;
 
+            auto type = types_[typeMap[var.operands[0]]];
             bindingMap[var.operands[1]] = bindings_.length;
             bindings_ ~= NirBinding(
-                type: types_[typeMap[var.operands[0]]],
-                bindingType: (cast(StorageClass)var.operands[2]).toBindingType()
+                type: type,
+                bindingType: (cast(StorageClass)var.operands[2]).toBindingType(cast(NirTypePointer)type)
             );
         }
 
@@ -475,6 +489,7 @@ private:
 
     /// Discovers the usage of bindings recursively from the given function ID.
     void discoverUsage(uint[] bytecode, uint funcId, NirShaderStage stage, uint step = 0) {
+        import std.stdio;
 
         // 1.   Seek over to the function ID.
         uint[] read = bytecode;
@@ -491,6 +506,14 @@ private:
             
             switch(atom.opcode) with(Op) {
                 default: break;
+
+                case OpAccessChain:
+                    if (atom.operands[2] !in bindingMap)
+                        continue;
+                    
+                    auto target = &bindings_[bindingMap[atom.operands[2]]];
+                    target.stages |= stage;
+                    break;
 
                 case OpLoad:
                     if (atom.operands[2] !in bindingMap)

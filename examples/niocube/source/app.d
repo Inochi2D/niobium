@@ -14,9 +14,12 @@ import niobium;
 import inmath;
 import numem;
 import sdl;
+import sdl.timer;
 import std.file : read;
+import niobium.vk.shader.shader;
 
 NioSurface surfaceFromWindow(SDL_Window* window) {
+	import std.stdio;
     import sdl.properties;
 	auto props = SDL_GetWindowProperties(window);
 	version(Windows) {
@@ -57,40 +60,40 @@ struct Vertex {
 const Vertex[] vertices = [
 
 	// Front face
-	Vertex(vec3(-1, -1,  1), vec3(0, 0, 1)),
-	Vertex(vec3(-1,  1,  1), vec3(0, 0, 1)),
-	Vertex(vec3( 1, -1,  1), vec3(0, 0, 1)),
-	Vertex(vec3( 1,  1,  1), vec3(0, 0, 1)),
+	Vertex(vec3(-32,-32, 32), vec3(0, 0, 1)),
+	Vertex(vec3(-32, 32, 32), vec3(0, 0, 1)),
+	Vertex(vec3( 32,-32, 32), vec3(0, 0, 1)),
+	Vertex(vec3( 32, 32, 32), vec3(0, 0, 1)),
 
 	// Back face
-	Vertex(vec3(-1, -1, -1), vec3(0, 0, 1)),
-	Vertex(vec3(-1,  1, -1), vec3(0, 0, 1)),
-	Vertex(vec3( 1, -1, -1), vec3(0, 0, 1)),
-	Vertex(vec3( 1,  1, -1), vec3(0, 0, 1)),
+	Vertex(vec3(-32,-32,-32), vec3(0, 0, 1)),
+	Vertex(vec3(-32, 32,-32), vec3(0, 0, 1)),
+	Vertex(vec3( 32,-32,-32), vec3(0, 0, 1)),
+	Vertex(vec3( 32, 32,-32), vec3(0, 0, 1)),
 
 	// Top face
-	Vertex(vec3(-1,  1, -1), vec3(0, 1, 0)),
-	Vertex(vec3(-1,  1,  1), vec3(0, 1, 0)),
-	Vertex(vec3( 1,  1, -1), vec3(0, 1, 0)),
-	Vertex(vec3( 1,  1,  1), vec3(0, 1, 0)),
+	Vertex(vec3(-32, 32,-32), vec3(0, 1, 0)),
+	Vertex(vec3(-32, 32, 32), vec3(0, 1, 0)),
+	Vertex(vec3( 32, 32,-32), vec3(0, 1, 0)),
+	Vertex(vec3( 32, 32, 32), vec3(0, 1, 0)),
 
 	// Bottom face
-	Vertex(vec3(-1, -1, -1), vec3(0, 1, 0)),
-	Vertex(vec3(-1, -1,  1), vec3(0, 1, 0)),
-	Vertex(vec3( 1, -1, -1), vec3(0, 1, 0)),
-	Vertex(vec3( 1, -1,  1), vec3(0, 1, 0)),
+	Vertex(vec3(-32,-32,-32), vec3(0, 1, 0)),
+	Vertex(vec3(-32,-32, 32), vec3(0, 1, 0)),
+	Vertex(vec3( 32,-32,-32), vec3(0, 1, 0)),
+	Vertex(vec3( 32,-32, 32), vec3(0, 1, 0)),
 
 	// Right face
-	Vertex(vec3( 1, -1, -1), vec3(1, 0, 0)),
-	Vertex(vec3( 1, -1,  1), vec3(1, 0, 0)),
-	Vertex(vec3( 1,  1, -1), vec3(1, 0, 0)),
-	Vertex(vec3( 1,  1,  1), vec3(1, 0, 0)),
+	Vertex(vec3( 32,-32,-32), vec3(1, 0, 0)),
+	Vertex(vec3( 32,-32, 32), vec3(1, 0, 0)),
+	Vertex(vec3( 32, 32,-32), vec3(1, 0, 0)),
+	Vertex(vec3( 32, 32, 32), vec3(1, 0, 0)),
 
 	// Left face
-	Vertex(vec3(-1, -1, -1), vec3(1, 0, 0)),
-	Vertex(vec3(-1, -1,  1), vec3(1, 0, 0)),
-	Vertex(vec3(-1,  1, -1), vec3(1, 0, 0)),
-	Vertex(vec3(-1,  1,  1), vec3(1, 0, 0)),
+	Vertex(vec3(-32,-32,-32), vec3(1, 0, 0)),
+	Vertex(vec3(-32,-32, 32), vec3(1, 0, 0)),
+	Vertex(vec3(-32, 32,-32), vec3(1, 0, 0)),
+	Vertex(vec3(-32, 32, 32), vec3(1, 0, 0)),
 ];
 
 const uint[] indices = [
@@ -121,16 +124,18 @@ const uint[] indices = [
 ];
 
 void main() {
+	import std.stdio;
 
     // Create Device
 	auto device = NioDevice.systemDevices[0];
 	auto queue = device.createQueue(NioCommandQueueDescriptor(
-		maxCommandBuffers: 4
+		maxCommandBuffers: 8
 	));
 
     // Create Window and Surface
 	SDL_Init(SDL_INIT_EVERYTHING);
 	SDL_Window* window = SDL_CreateWindow("Niobium Cube", 640, 480, SDL_WindowFlags.SDL_WINDOW_RESIZABLE);
+
 	NioSurface surface = window.surfaceFromWindow();
 	surface.device = device;
 	surface.framesInFlight = 3;
@@ -170,7 +175,8 @@ void main() {
 			colorAttachments: [NioRenderPipelineAttachmentDescriptor(
 				format: surface.format,
 				blending: true,
-			)]
+			)],
+			depthFormat: NioPixelFormat.depth24Stencil8
 		)
 	);
 
@@ -180,6 +186,7 @@ void main() {
 		storage: NioStorageMode.privateStorage,
         size: cast(uint)(vertices.length*Vertex.sizeof)
     )).upload(cast(void[])vertices[0..$], 0);
+
     NioBuffer idxbuffer = device.createBuffer(NioBufferDescriptor(
         usage: NioBufferUsage.transfer | NioBufferUsage.indexBuffer,
 		storage: NioStorageMode.privateStorage,
@@ -189,14 +196,35 @@ void main() {
 	// Uniform data
 	Uniform* uniformData;
 	NioBuffer uniforms = device.createBuffer(NioBufferDescriptor(
-        usage: NioBufferUsage.transfer | NioBufferUsage.uniformBuffer,
+        usage: NioBufferUsage.uniformBuffer,
 		storage: NioStorageMode.sharedStorage,
 		size: cast(uint)(Uniform.sizeof)
 	));
 	uniformData = cast(Uniform*)uniforms.map().ptr;
 
+	// Depth buffer
+	NioDepthStencilState depthState = device.createDepthStencilState(NioDepthStencilStateDescriptor(
+		depthTestEnabled: true,
+		depthState: NioDepthStateDescriptor(
+			depthWriteEnabled: true,
+			compareFunction: NioCompareOp.greater
+		)
+	));
+	NioTexture depthBuffer = device.createTexture(NioTextureDescriptor(
+		type: NioTextureType.type2D,
+		format: NioPixelFormat.depth24Stencil8,
+		storage: NioStorageMode.privateStorage,
+		usage: NioTextureUsage.attachment,
+		width: 640,
+		height: 480
+	));
+
 	bool closeRequested;
 	SDL_Event ev;
+	
+	ulong currentFrame;
+	ulong lastFrame;
+	float t = 0;
 	while(!closeRequested) {
 		while(SDL_PollEvent(&ev)) {
 			switch(ev.type) with(SDL_EventType) {
@@ -209,11 +237,25 @@ void main() {
 				case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
 					version(linux)
 					surface.size = NioExtent2D(ev.window.data1, ev.window.data2);
+					depthBuffer.release();
+					depthBuffer = device.createTexture(NioTextureDescriptor(
+						type: NioTextureType.type2D,
+						format: NioPixelFormat.depth24Stencil8,
+						storage: NioStorageMode.privateStorage,
+						usage: NioTextureUsage.attachment,
+						width: ev.window.data1,
+						height: ev.window.data2
+					));
 					break;
 			}
 		}
 
+		lastFrame = currentFrame;
+		currentFrame = SDL_GetTicks();
+		t += cast(float)(currentFrame-lastFrame) * 0.001;
+
 		if (NioDrawable drawable = surface.next()) {
+			auto cmdbuffer = queue.fetch();
 			NioColorAttachmentDescriptor[] colorAttachments = [
 				NioColorAttachmentDescriptor(
 					texture: drawable.texture,
@@ -222,25 +264,33 @@ void main() {
 					clearColor: NioColor(0, 0, 0, 1)
 				)
 			];
-			if (auto cmdbuffer = queue.fetch()) {
-				uniformData.mvp = 
-					mat4.orthographic01(0, -drawable.texture.width, drawable.texture.height, 0, 0, 1000) * 
-					mat4.translation(0, 0, -1) *
-					mat4.rotation(0.0, 0.0, 1.0, 0.0);
+			auto depthAttachment = NioDepthAttachmentDescriptor(
+				texture: depthBuffer,
+				loadAction: NioLoadAction.clear,
+				storeAction: NioStoreAction.store,
+				clearDepth: 0,
+			);
 
-				auto renderPass = cmdbuffer.beginRenderPass(NioRenderPassDescriptor(colorAttachments[]));
-					renderPass.setPipeline(renderPipeline);
-					renderPass.setCulling(NioCulling.none);
-					renderPass.setVertexBuffer(vtxbuffer, 0, 0);
-					renderPass.setVertexBuffer(uniforms, 0, 1);
-					renderPass.drawIndexed(NioPrimitive.triangles, idxbuffer, NioIndexType.u32, cast(uint)indices.length);
-				renderPass.endEncoding();
+			uniformData.mvp = (
+				mat4.orthographic01(0, drawable.texture.width, drawable.texture.height, 0, 0, ushort.max) *
+				mat4.translation((drawable.texture.width/2), (drawable.texture.height/2), ushort.max/2) * 
+				mat4.scaling(3, 3, 3) *
+				mat4.xRotation(radians(24)) *
+				mat4.yRotation(t)
+			).transposed;
+			
+			auto renderPass = cmdbuffer.beginRenderPass(NioRenderPassDescriptor(colorAttachments[], depthAttachment));
+				renderPass.setPipeline(renderPipeline);
+				renderPass.setDepthStencilState(depthState);
+				renderPass.setVertexBuffer(vtxbuffer, 0, 0);
+				renderPass.setVertexBuffer(uniforms, 0, 0);
+				renderPass.drawIndexed(NioPrimitive.triangles, idxbuffer, NioIndexType.u32, cast(uint)indices.length);
+			renderPass.endEncoding();
 
-				cmdbuffer.present(drawable);
-				queue.commit(cmdbuffer);
-				cmdbuffer.await();
-				cmdbuffer.release();
-			}
+			cmdbuffer.present(drawable);
+			queue.commit(cmdbuffer);
+			cmdbuffer.await();
+			cmdbuffer.release();
 		}
 	}
 

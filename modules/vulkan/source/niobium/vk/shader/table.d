@@ -15,23 +15,14 @@ import niobium.pipeline;
 import numem;
 import nulib;
 
-/**
-    Argument types.
-*/
-enum NioArgumentType : uint {
-    vertex          = 0x00000000U,
-    uniform         = 0x00000001U,
-    storage         = 0x00000002U,
-    texture         = 0x00000003U,
-    sampler         = 0x00000004U,
-}
+public import nir.ir.binding : NirBindingType;
 
 /**
     Binding slot for a shader.
 */
 struct NioArgumentBinding {
     uint slot;
-    uint bindingSlot;
+    uint bindingSet;
     uint bindingLocation;
 }
 
@@ -41,11 +32,11 @@ struct NioArgumentBinding {
 class NioArgumentTable : NuRefCounted {
 private:
 @nogc:
-    enum argumentTypeCount = __traits(allMembers, NioArgumentType).length;
+    enum argumentTypeCount = __traits(allMembers, NirBindingType).length;
     vector!(NioArgumentBinding)[argumentTypeCount] bindings;
 
     // Finds a binding within the table.
-    ptrdiff_t findBinding(NioArgumentType type, uint slot) {
+    ptrdiff_t findBinding(NirBindingType type, uint slot) {
         foreach(i, binding; bindings[type])
             if (binding.slot == slot)
                 return i;
@@ -61,7 +52,7 @@ public:
             type =      The type to add a binding for.
             binding =   The binding to add.
     */
-    void addBinding(NioArgumentType type, NioArgumentBinding binding) {
+    void addBinding(NirBindingType type, NioArgumentBinding binding) {
         ptrdiff_t idx = this.findBinding(type, binding.slot);
         if (idx == -1) {
             bindings[type] ~= binding;
@@ -78,7 +69,7 @@ public:
             type = The type of binding to get
             slot = The slot to get for that binding.
     */
-    NioArgumentBinding* getBinding(NioArgumentType type, uint slot) {
+    NioArgumentBinding* getBinding(NirBindingType type, uint slot) {
         ptrdiff_t idx = this.findBinding(type, slot);
         return idx >= 0 ? &bindings[type][idx] : null;
     }

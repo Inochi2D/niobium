@@ -80,10 +80,13 @@ enum NioPixelFormat : uint {
     rgbaUnormSRGB_BC7 =     0x00000057U,
 
     // Depth-Stencil
-    depth24Stencil8 =       0x00000100U,
-    depth32Stencil8 =       0x00000101U,
-    x24Stencil8 =           0x00000102U,
-    x32Stencil8 =           0x00000103U,
+    depth16Unorm =          0x00000100U,
+    depth32Float =          0x00000101U,
+    stencil8 =              0x00000102U,
+    depth24Stencil8 =       0x00000103U,
+    depth32Stencil8 =       0x00000104U,
+    x24Stencil8 =           0x00000105U,
+    x32Stencil8 =           0x00000106U,
 }
 
 
@@ -111,6 +114,7 @@ uint toStride(NioPixelFormat format) @nogc {
         case unknown:               return 0;
 
         // 8-bit
+        case stencil8:
         case a8Unorm:
         case r8Unorm:
         case r8UnormSRGB:
@@ -119,6 +123,7 @@ uint toStride(NioPixelFormat format) @nogc {
         case r8Sint:                return 1;
         
         // 16-bit
+        case depth16Unorm:
         case r16Unorm:
         case r16Uint:
         case r16Sint:
@@ -130,6 +135,7 @@ uint toStride(NioPixelFormat format) @nogc {
         case rg8Sint:               return 2;
 
         // 32-bit
+        case depth32Float:
         case rgba8Unorm:
         case rgba8UnormSRGB:
         case rgba8Snorm:

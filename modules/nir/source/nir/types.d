@@ -18,31 +18,36 @@ import vulkan.core;
     can apply to.
 */
 enum NirShaderStage : uint {
+
+    /**
+        No stages.
+    */
+    none =              0x00000000U,
     
     /**
         Vertex shader stage
     */
-    vertex =            0x00000000U,
+    vertex =            0x00000001U,
     
     /**
         Fragment shader stage
     */
-    fragment =          0x00000001U,
+    fragment =          0x00000002U,
 
     /**
         Mesh task shader stage
     */
-    task =              0x00000002U,
+    task =              0x00000004U,
 
     /**
         Mesh shader stage
     */
-    mesh =              0x00000004U,
+    mesh =              0x00000008U,
     
     /**
         Compute kernel shader stage
     */
-    kernel =            0x00000008U,
+    kernel =            0x00000010U,
 }
 
 /**
@@ -57,6 +62,7 @@ enum NirShaderStage : uint {
 pragma(inline, true)
 ExecutionModel toExecutionModel(NirShaderStage stage) @nogc {
     final switch(stage) with(NirShaderStage) {
+        case none:      return ExecutionModel.Max;
         case vertex:    return ExecutionModel.Vertex;
         case fragment:  return ExecutionModel.Fragment;
         case task:      return ExecutionModel.TaskEXT;
@@ -77,7 +83,7 @@ ExecutionModel toExecutionModel(NirShaderStage stage) @nogc {
 pragma(inline, true)
 NirShaderStage toNirShaderStage(ExecutionModel stage) @nogc {
     switch(stage) with(ExecutionModel) {
-        default:        return cast(NirShaderStage)0;
+        default:        return NirShaderStage.none;
         case Vertex:    return NirShaderStage.vertex;
         case Fragment:  return NirShaderStage.fragment;
         case TaskEXT:   return NirShaderStage.task;

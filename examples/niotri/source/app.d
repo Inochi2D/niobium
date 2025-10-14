@@ -58,13 +58,14 @@ void main() {
 
     // Create Window and Surface
 	SDL_Init(SDL_INIT_EVERYTHING);
-	SDL_Window* window = SDL_CreateWindow("Niobium Triangle Example", 640, 480, SDL_WindowFlags.SDL_WINDOW_RESIZABLE);
+	SDL_Window* window = SDL_CreateWindow("Niobium Triangle Example", 640, 480, SDL_WindowFlags.SDL_WINDOW_RESIZABLE | SDL_WindowFlags.SDL_WINDOW_TRANSPARENT);
 	NioSurface surface = window.surfaceFromWindow();
 	surface.device = device;
 	surface.framesInFlight = 3;
 	surface.presentMode = NioPresentMode.vsync;
 	surface.size = NioExtent2D(640, 480);
 	surface.format = NioPixelFormat.bgra8UnormSRGB;
+	surface.transparent = true;
 
 	// Create shaders
 	NirLibrary shaderLibrary = nogc_new!NirLibrary();
@@ -138,7 +139,7 @@ void main() {
 					texture: drawable.texture,
 					loadAction: NioLoadAction.clear,
 					storeAction: NioStoreAction.store,
-					clearColor: NioColor(0, 0, 0, 1)
+					clearColor: NioColor(0, 0, 0, 0)
 				)
 			];
 			if (auto cmdbuffer = queue.fetch()) {

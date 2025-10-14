@@ -10,6 +10,7 @@
         Luna Nielsen
 */
 module niobium.device;
+import niobium.depthstencil;
 import niobium.pipeline;
 import niobium.sampler;
 import niobium.texture;
@@ -292,6 +293,18 @@ public:
             $(D null) otherwise.
     */
     abstract NioSampler createSampler(NioSamplerDescriptor desc);
+
+    /**
+        Creates a new depth-stencil state object.
+
+        Params:
+            desc = Descriptor for the depth-stencil state object.
+        
+        Returns:
+            A new $(D NioDepthStencilState) on success,
+            $(D null) otherwise.
+    */
+    abstract NioDepthStencilState createDepthStencilState(NioDepthStencilStateDescriptor desc);
 }
 
 /**

@@ -44,25 +44,52 @@ private:
 
     // State
     bool isRecording_;
+    Mutex encoderMutex_;
 
     // Handles
+    VkDescriptorPool descriptorPool_;
     VkCommandBuffer handle_;
-    Mutex encoderMutex_;
 
     /**
         Resets this command buffer, allowing it to be reused.
     */
     void reset() {
+        auto vkDevice = (cast(NioVkDevice)queue.device).handle;
+
         if (isRecording_)
             return;
         
         vkResetCommandBuffer(handle_, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+        vkResetDescriptorPool(vkDevice, descriptorPool_, 0);
         if (drawable) {
             drawable.reset();
             
             drawable.release();
             drawable = null;
         }
+    }
+
+    VkDescriptorPool createPool() {
+        auto nvkDevice = (cast(NioVkDevice)device);
+
+        VkDescriptorPool pool;
+        static const VkDescriptorPoolSize[] sizes = [
+            VkDescriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 8),
+            VkDescriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLER, 8),
+            VkDescriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 8),
+            VkDescriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8),
+        ];
+
+        auto descPoolCreateInfo = VkDescriptorPoolCreateInfo(
+            flags: VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
+            maxSets: 8,
+            poolSizeCount: cast(uint)sizes.length,
+            pPoolSizes: sizes.ptr
+        );
+
+        vkCreateDescriptorPool(nvkDevice.handle, &descPoolCreateInfo, null, &pool);
+        vkResetDescriptorPool(nvkDevice.handle, pool, 0);
+        return pool;
     }
 
 protected:
@@ -89,6 +116,11 @@ public:
     @property VkCommandBuffer handle() => handle_;
 
     /**
+        Handle of the descriptor pool.
+    */
+    final @property VkDescriptorPool descriptorPool() => descriptorPool_;
+
+    /**
         Completion fence.
     */
     VkFence fence;
@@ -105,6 +137,9 @@ public:
     NioVkDrawable drawable;
 
     ~this() {
+        auto vkDevice = (cast(NioVkDevice)queue.device).handle;
+        vkDestroyDescriptorPool(vkDevice, descriptorPool_, null);
+
         nogc_delete(encoderMutex_);
     }
 
@@ -119,6 +154,7 @@ public:
         super(queue);
         this.handle_ = buffer;
         this.encoderMutex_ = nogc_new!Mutex();
+        this.descriptorPool_ = this.createPool();
     }
 
     /**
@@ -303,6 +339,11 @@ mixin template VkCommandEncoderFunctions() {
         Vulkan command buffer.
     */
     protected @property VkCommandBuffer vkcmdbuffer() => (cast(NioVkCommandBuffer)commandBuffer).handle;
+
+    /**
+        Vulkan descriptor pool.
+    */
+    protected @property VkDescriptorPool vkdescpool() => (cast(NioVkCommandBuffer)commandBuffer).descriptorPool;
 
     /**
         Pushes a debug group.

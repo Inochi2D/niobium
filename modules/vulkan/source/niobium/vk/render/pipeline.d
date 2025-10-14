@@ -13,6 +13,7 @@ module niobium.vk.render.pipeline;
 import niobium.vk.resource;
 import niobium.vk.device;
 import niobium.vk.shader;
+import niobium.vk.shader.table;
 import vulkan.core;
 import vulkan.eh;
 import numem;
@@ -20,8 +21,10 @@ import nulib;
 
 public import niobium.pipeline;
 public import niobium.vk.formats;
-public import nir.library; 
+public import nir.library;
 public import nir.types;
+public import nir.ir.binding;
+import niobium.vk.shader.shader;
 
 /**
     A render pipeline that can be attached to a 
@@ -33,10 +36,102 @@ private:
     // Handles
     VkPipeline handle_;
     VkPipelineLayout layout_;
+    VkDescriptorSetLayout[] descriptorLayouts_;
+
+    // Layout Info
+    NioArgumentTable vertTable_;
+    NioArgumentTable fragTable_;
 
     void setup(NioRenderPipelineDescriptor desc) {
+        this.generateBindings(desc);
         this.layout_ = this.createLayout(desc);
         this.handle_ = this.createPipeline(desc, layout_);
+    }
+
+    void generateBindings(NioRenderPipelineDescriptor desc) {
+        auto nvkDevice = (cast(NioVkDevice)device);
+        weak_vector!NirBinding allBindings;
+        allBindings ~= (cast(NioVkShaderFunction)desc.vertexFunction).bindings;
+        allBindings ~= (cast(NioVkShaderFunction)desc.fragmentFunction).bindings;
+
+        // 2.   Filter bindings to remove overlapping bindings.
+        weak_vector!NirBinding filteredBindings;
+        outer: foreach(i, ref NirBinding binding; allBindings) {
+            if (binding.bindingType <= NirBindingType.stageOutput)
+                continue;
+
+            foreach(ref NirBinding fbinding; filteredBindings) {
+                bool isCompatible = 
+                    (fbinding.stages & binding.stages) &&
+                    fbinding.set == binding.set &&
+                    fbinding.location == binding.location &&
+                    fbinding.bindingType == binding.bindingType;
+
+                if (isCompatible)
+                    continue;
+                
+                filteredBindings ~= binding;
+                continue outer;
+            }
+            filteredBindings ~= binding;
+        }
+
+        // 1.   Fill out the argument table and figure out the biggest set
+        //      index, to be used for descriptor set generation.
+        uint setCount = 0;
+        this.vertTable_ = nogc_new!NioArgumentTable();
+        this.fragTable_ = nogc_new!NioArgumentTable();
+        foreach(i, ref NirBinding binding; allBindings) {
+            if (binding.set+1 > setCount)
+                setCount = binding.set+1;
+            
+            if (binding.stages & NirShaderStage.vertex)
+                vertTable_.addBinding(binding.bindingType, NioArgumentBinding(binding.location, binding.set, binding.location));
+
+            if (binding.stages & NirShaderStage.fragment)
+                fragTable_.addBinding(binding.bindingType, NioArgumentBinding(binding.location, binding.set, binding.location));
+
+        }
+
+        // 2.   Generate descriptor set layouts for each set.
+        this.descriptorLayouts_ = nu_malloca!VkDescriptorSetLayout(setCount);
+        foreach(i, ref layout; descriptorLayouts_) {
+            weak_vector!VkDescriptorSetLayoutBinding setBindings;
+            foreach(j, ref NirBinding binding; filteredBindings) {
+                if (i != binding.set)
+                    continue;
+
+                setBindings ~= VkDescriptorSetLayoutBinding(
+                    binding: binding.location,
+                    descriptorType: binding.bindingType.toVkDescriptorType(),
+                    descriptorCount: 1,
+                    stageFlags: binding.stages.toVkShaderStage(),
+                    pImmutableSamplers: null
+                );
+            }
+
+            auto createInfo = VkDescriptorSetLayoutCreateInfo(
+                bindingCount: cast(uint)setBindings.length,
+                pBindings: setBindings.ptr
+            );
+            vkCreateDescriptorSetLayout(nvkDevice.handle, &createInfo, null, &layout);
+        }
+    }
+
+    VkPipelineLayout createLayout(NioRenderPipelineDescriptor desc) {
+        auto nvkDevice = (cast(NioVkDevice)device);
+        VkPipelineLayout layout;
+
+        // TODO:    Calculate layout from shaders and create a argument table
+        //          to emulate metal.
+        auto createInfo = VkPipelineLayoutCreateInfo(
+            setLayoutCount: cast(uint)descriptorLayouts_.length,
+            pSetLayouts: descriptorLayouts_.ptr,
+            pushConstantRangeCount: 0,
+            pPushConstantRanges: null
+        );
+        vkEnforce(vkCreatePipelineLayout(nvkDevice.handle, &createInfo, null, &layout));
+        return layout;
     }
 
     VkPipeline createPipeline(NioRenderPipelineDescriptor desc, VkPipelineLayout layout) {
@@ -77,22 +172,6 @@ private:
             &pipeline
         ));
         return pipeline;
-    }
-
-    VkPipelineLayout createLayout(NioRenderPipelineDescriptor desc) {
-        auto nvkDevice = (cast(NioVkDevice)device);
-        VkPipelineLayout layout;
-
-        // TODO:    Calculate layout from shaders and create a argument table
-        //          to emulate metal.
-        auto createInfo = VkPipelineLayoutCreateInfo(
-            setLayoutCount: 0,
-            pSetLayouts: null,
-            pushConstantRangeCount: 0,
-            pPushConstantRanges: null
-        );
-        vkEnforce(vkCreatePipelineLayout(nvkDevice.handle, &createInfo, null, &layout));
-        return layout;
     }
 
     /// Validates the blending state.
@@ -218,11 +297,32 @@ public:
     */
     final @property VkPipelineLayout layout() => layout_;
 
+    /**
+        Underlying descriptor sets.
+    */
+    final @property VkDescriptorSetLayout[] descriptorLayouts() => descriptorLayouts_[0..$];
+
+    /**
+        Vertex argument table.
+    */
+    final @property NioArgumentTable vertexTable() => vertTable_;
+
+    /**
+        Fragment argument table.
+    */
+    final @property NioArgumentTable fragmentTable() => fragTable_;
+
     /// Destructor
     ~this() {
         auto nvkDevice = (cast(NioVkDevice)device);
         vkDestroyPipelineLayout(nvkDevice.handle, layout_, null);
         vkDestroyPipeline(nvkDevice.handle, handle_, null);
+        
+        foreach(desc; descriptorLayouts_)
+            vkDestroyDescriptorSetLayout(nvkDevice.handle, desc, null);
+        nu_freea(descriptorLayouts_);
+        vertTable_.release();
+        fragTable_.release();
     }
 
     /**

@@ -63,7 +63,7 @@ private:
                 arrayLayers: desc.slices,
                 samples: VK_SAMPLE_COUNT_1_BIT,
                 tiling: VK_IMAGE_TILING_OPTIMAL,
-                usage: desc.usage.toVkImageUsage(),
+                usage: desc.usage.toVkImageUsage(desc_.format),
                 sharingMode: VK_SHARING_MODE_EXCLUSIVE,
                 initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
             );
@@ -105,7 +105,7 @@ private:
                 arrayLayers: desc.slices,
                 samples: VK_SAMPLE_COUNT_1_BIT,
                 tiling: VK_IMAGE_TILING_OPTIMAL,
-                usage: desc.usage.toVkImageUsage(),
+                usage: desc.usage.toVkImageUsage(desc_.format),
                 sharingMode: VK_SHARING_MODE_EXCLUSIVE,
                 initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
             );
@@ -119,7 +119,7 @@ private:
             VkMemoryAllocateFlags flags = desc.storage.toVkMemoryProperties();
             ptrdiff_t type = allocator_.getTypeForMasked(flags, vkmemreq_.memoryTypeBits);
             
-            allocation_ = allocator_.malloc(vkmemreq_.size, cast(uint)type);
+            allocation_ = allocator_.malloc(vkmemreq_.size, cast(uint)type, vkmemreq_.alignment);
             if (allocation_.memory) {
                 vkBindImageMemory(
                     nvkDevice.handle, 
@@ -173,7 +173,7 @@ private:
             arrayLayers: desc.slices,
             samples: VK_SAMPLE_COUNT_1_BIT,
             tiling: VK_IMAGE_TILING_OPTIMAL,
-            usage: desc.usage.toVkImageUsage(),
+            usage: desc.usage.toVkImageUsage(desc.format),
             sharingMode: VK_SHARING_MODE_EXCLUSIVE,
             initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
         );
@@ -510,7 +510,7 @@ VkImageViewType toVkImageViewType(NioTextureType type) @nogc {
         The $(D VkImageUsageFlags) equivalent.
 */
 pragma(inline, true)
-VkImageUsageFlags toVkImageUsage(NioTextureUsage usage) @nogc {
+VkImageUsageFlags toVkImageUsage(NioTextureUsage usage, NioPixelFormat format) @nogc {
     VkImageUsageFlags result = 0;
     if (usage & NioTextureUsage.transfer)
         result |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
@@ -518,8 +518,18 @@ VkImageUsageFlags toVkImageUsage(NioTextureUsage usage) @nogc {
     if (usage & NioTextureUsage.sampled)
         result |= VK_IMAGE_USAGE_SAMPLED_BIT;
 
-    if (usage & NioTextureUsage.attachment)
-        result |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    if (usage & NioTextureUsage.attachment) {
+        switch(format) with(NioPixelFormat) {
+            case depth24Stencil8:       result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT; break;
+            case depth32Stencil8:       result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT; break;
+            case x24Stencil8:           result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT; break;
+            case x32Stencil8:           result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT; break;
+            case stencil8:              result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT; break;
+            case depth16Unorm:          result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT; break;
+            case depth32Float:          result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT; break;
+            default:                    result |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; break;
+        }
+    }
 
     if (usage & NioTextureUsage.videoEncode)
         result |= VK_IMAGE_USAGE_VIDEO_ENCODE_SRC_BIT_KHR | VK_IMAGE_USAGE_VIDEO_ENCODE_DST_BIT_KHR;
