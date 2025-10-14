@@ -72,7 +72,7 @@ jobs:
     - uses: MrcSnm/setup-dlang@v2
       with:
         compiler: ldc-latest
-        redub: 1.25.2
+        redub: 1.25.4
 
     # Install Vulkan SDK
     - name: 'Install Vulkan SDK...'

@@ -496,7 +496,6 @@ private:
                     if (atom.operands[2] !in bindingMap)
                         continue;
                     
-                    
                     auto target = &bindings_[bindingMap[atom.operands[2]]];
                     target.stages |= stage;
                     break;
