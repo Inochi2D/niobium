@@ -43,6 +43,7 @@ private:
     NioDeviceType       deviceType_;
     NioDeviceFeatures   deviceFeatures_;
     NioDeviceLimits     deviceLimits_;
+    bool                supportsSwapchainFence_;
 
     // Memory related data
     VkPhysicalDeviceMemoryProperties memoryProps_;
@@ -118,7 +119,8 @@ private:
         this.deviceName_ = nstring(vkp.properties.deviceName.ptr).take();
 
         // Build features
-        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dyn3 = VkPhysicalDeviceExtendedDynamicState3FeaturesEXT();
+        VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR swap = VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR();
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dyn3 = VkPhysicalDeviceExtendedDynamicState3FeaturesEXT(pNext: &swap);
         VkPhysicalDeviceVulkan13Features vk13 = VkPhysicalDeviceVulkan13Features(pNext: &dyn3);
         VkPhysicalDeviceVulkan12Features vk12 = VkPhysicalDeviceVulkan12Features(pNext: &vk13);
         VkPhysicalDeviceVulkan11Features vk11 = VkPhysicalDeviceVulkan11Features(pNext: &vk12);
@@ -134,6 +136,7 @@ private:
         this.deviceFeatures_.presentation = deviceExtensions.hasExtension("VK_KHR_swapchain");
         this.deviceFeatures_.meshShaders  = deviceExtensions.hasExtension("VK_EXT_mesh_shader");
         this.deviceFeatures_.externalMemory = deviceExtensions.hasExtension("VK_KHR_external_memory");
+        this.supportsSwapchainFence_ = deviceExtensions.hasExtension("VK_KHR_swapchain_maintenance1") || deviceExtensions.hasExtension("VK_EXT_swapchain_maintenance1");
 
         // Check device limits.
         this.deviceLimits_.maxBufferSize = vk13p.maxBufferSize;
@@ -163,12 +166,19 @@ private:
             if (deviceExtensions.hasExtension("VK_KHR_external_memory_win32"))
                 extensions ~= nstring("VK_KHR_external_memory_win32").take().ptr;
 
-            if (deviceExtensions.hasExtension("VK_EXT_external_memory_dma_buf"))
-                extensions ~= nstring("VK_EXT_external_memory_dma_buf").take().ptr;
-
             if (deviceExtensions.hasExtension("VK_KHR_external_memory_fd"))
                 extensions ~= nstring("VK_KHR_external_memory_fd").take().ptr;
+
+            if (deviceExtensions.hasExtension("VK_EXT_external_memory_dma_buf"))
+                extensions ~= nstring("VK_EXT_external_memory_dma_buf").take().ptr;
         }
+
+        // Swapchain fences.
+        if (deviceExtensions.hasExtension("VK_KHR_swapchain_maintenance1"))
+            extensions ~= nstring("VK_KHR_swapchain_maintenance1").take().ptr;
+
+        if (deviceExtensions.hasExtension("VK_EXT_swapchain_maintenance1"))
+            extensions ~= nstring("VK_EXT_swapchain_maintenance1").take().ptr;
 
         // Create Device
         auto createInfo = VkDeviceCreateInfo(
@@ -242,6 +252,11 @@ public:
         Low level handle for the physical device.
     */
     final @property VkPhysicalDevice vkPhysicalDevice() => physicalDevice_;
+
+    /**
+        Whether swapchain fences are supported.
+    */
+    final @property bool supportsSwapchainFence() => supportsSwapchainFence_;
 
     /**
         Name of the device.
@@ -1030,4 +1045,14 @@ struct VkPhysicalDeviceExtendedDynamicState3PropertiesEXT {
     VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_PROPERTIES_EXT;
     void*              pNext;
     VkBool32           dynamicPrimitiveTopologyUnrestricted;
+}
+
+
+//
+//              VK_KHR_swapchain_maintenance1
+//
+struct VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR {
+    VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT;
+    void*              pNext;
+    VkBool32           swapchainMaintenance1;
 }

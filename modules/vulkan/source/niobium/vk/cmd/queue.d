@@ -59,6 +59,7 @@ private:
     }
 
     void commitImpl(NioVkCommandBuffer buffer) {
+        auto nvkDevice = (cast(NioVkDevice)device);
 
         // Don't allow null buffers or other-queue submission.
         if (!buffer || buffer.queue !is this)
@@ -99,17 +100,37 @@ private:
                 pWaitSemaphoreInfos: &cmdWaitInfo,
                 pCommandBufferInfos: &cmdBufferInfo,
             );
-            vkQueueSubmit2(handle_, 1, &submitInfo, buffer.fence);
 
-            auto presentInfo = VkPresentInfoKHR(
-                waitSemaphoreCount: 1,
-                pWaitSemaphores: &buffer.semaphore,
-                swapchainCount: 1,
-                pSwapchains: &swapchain,
-                pImageIndices: &index,
-                pResults: null
-            );
-            swapFuncs.vkQueuePresentKHR(handle_, &presentInfo);
+            if (nvkDevice.supportsSwapchainFence()) {
+                vkQueueSubmit2(handle_, 1, &submitInfo, null);
+
+                auto fenceInfo = VkSwapchainPresentFenceInfoEXT(
+                    swapchainCount: 1,
+                    pFences: &buffer.fence
+                );
+                auto presentInfo = VkPresentInfoKHR(
+                    pNext: &fenceInfo,
+                    waitSemaphoreCount: 1,
+                    pWaitSemaphores: &buffer.semaphore,
+                    swapchainCount: 1,
+                    pSwapchains: &swapchain,
+                    pImageIndices: &index,
+                    pResults: null
+                );
+                swapFuncs.vkQueuePresentKHR(handle_, &presentInfo);
+            } else {
+                vkQueueSubmit2(handle_, 1, &submitInfo, buffer.fence);
+
+                auto presentInfo = VkPresentInfoKHR(
+                    waitSemaphoreCount: 1,
+                    pWaitSemaphores: &buffer.semaphore,
+                    swapchainCount: 1,
+                    pSwapchains: &swapchain,
+                    pImageIndices: &index,
+                    pResults: null
+                );
+                swapFuncs.vkQueuePresentKHR(handle_, &presentInfo);
+            }
             return;
         }
 
@@ -346,7 +367,7 @@ private:
                 // trampling.
                 this.idx_ = (idx_ + 1 + offset) % instances_.length;
                 if (vkGetFenceStatus(device_.handle, fences_[idx_]) == VK_SUCCESS) {
-                    vkResetFences(device_.handle, 1, &fences_[idx_]);
+                    instances_[idx_].reset();
                     return idx_;
                 }
             }
@@ -404,3 +425,10 @@ public:
     }
 }
 
+private
+struct VkSwapchainPresentFenceInfoEXT {
+    VkStructureType     sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_EXT;
+    const void*         pNext;
+    uint                swapchainCount;
+    const(VkFence)*     pFences;
+}

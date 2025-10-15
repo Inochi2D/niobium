@@ -50,23 +50,6 @@ private:
     VkDescriptorPool descriptorPool_;
     VkCommandBuffer handle_;
 
-    /**
-        Resets this command buffer, allowing it to be reused.
-    */
-    void reset() {
-        auto vkDevice = (cast(NioVkDevice)queue.device).handle;
-
-        if (isRecording_)
-            return;
-        
-        vkResetCommandBuffer(handle_, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-        vkResetDescriptorPool(vkDevice, descriptorPool_, 0);
-        if (drawable) {
-            drawable.release();
-            drawable = null;
-        }
-    }
-
     VkDescriptorPool createPool() {
         auto nvkDevice = (cast(NioVkDevice)device);
 
@@ -269,8 +252,6 @@ public:
     NioVkCommandBuffer begin() {
         if (isRecording_)
             return this;
-        
-        this.reset();
 
         auto beginInfo = VkCommandBufferBeginInfo();
         vkBeginCommandBuffer(handle_, &beginInfo);
@@ -288,6 +269,21 @@ public:
         
         vkEndCommandBuffer(handle_);
         this.isRecording_ = false;
+    }
+
+    /**
+        Resets this command buffer, allowing it to be reused.
+    */
+    void reset() {
+        auto vkDevice = (cast(NioVkDevice)queue.device).handle;
+        
+        vkResetCommandBuffer(handle_, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+        vkResetDescriptorPool(vkDevice, descriptorPool_, 0);
+        vkResetFences(vkDevice, 1, &fence);
+        if (drawable) {
+            drawable.release();
+            drawable = null;
+        }
     }
 }
 

@@ -403,7 +403,7 @@ public:
                 drawable.semaphore = semaphores_[currentFrame_];
                 drawable.reset();
 
-                currentFrame_ = (currentFrame_ + 1) % imageCount_;
+                currentFrame_ = (currentFrame_ + 1) % semaphores_.length;
                 return drawable;
 
             case VK_ERROR_OUT_OF_DATE_KHR:
