@@ -148,7 +148,7 @@ struct NioSamplerDescriptor {
             * Be either 1D or 2D.
             * Have only a single layer and mip level.
     */
-    bool normalizedCoordinates;
+    bool normalizedCoordinates = true;
 }
 
 /**
