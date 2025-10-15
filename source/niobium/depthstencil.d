@@ -79,12 +79,12 @@ struct NioDepthStateDescriptor {
     /**
         Whether depth writing is enabled.
     */
-    bool depthWriteEnabled;
+    bool depthWriteEnabled = true;
 
     /**
         The comparison function to use.
     */
-    NioCompareOp compareFunction;
+    NioCompareOp compareFunction = NioCompareOp.less;
 }
 
 /**

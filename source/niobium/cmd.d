@@ -413,7 +413,7 @@ struct NioDepthAttachmentDescriptor {
     /**
         Value to clear the depth buffer to
     */
-    float clearDepth;
+    float clearDepth = 1;
 
     /**
         Texture to use for multisample resolve.

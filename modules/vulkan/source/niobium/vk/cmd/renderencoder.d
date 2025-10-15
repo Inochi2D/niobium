@@ -231,7 +231,15 @@ public:
             viewport = The viewport.
     */
     override void setViewport(NioViewport viewport) {
-        vkCmdSetViewportWithCount(vkcmdbuffer, 1, cast(VkViewport*)&viewport);
+        auto viewportInfo = VkViewport(
+            viewport.originX,
+            viewport.originY,
+            viewport.width,
+            viewport.height,
+            viewport.near,
+            viewport.far
+        );
+        vkCmdSetViewportWithCount(vkcmdbuffer, 1, &viewportInfo);
     }
 
     /**
@@ -295,10 +303,10 @@ public:
         this.pipeline = cast(NioVkRenderPipeline)niopipeline;
 
         vkCmdBindPipeline(vkcmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.handle);
-        this.setCulling(NioCulling.none);
-        this.setViewport(NioViewport(renderArea.offset.x, renderArea.offset.y, renderArea.extent.width, renderArea.extent.height, 0, 1));
+        this.setViewport(NioViewport(cast(float)renderArea.offset.x, cast(float)renderArea.offset.y, cast(float)renderArea.extent.width, cast(float)renderArea.extent.height, 0, 1));
         this.setScissor(NioScissorRect(renderArea.offset.x, renderArea.offset.y, renderArea.extent.width, renderArea.extent.height));
 
+        vkCmdSetCullMode(vkcmdbuffer, VK_CULL_MODE_BACK_BIT);
         vkCmdSetDepthBiasEnable(vkcmdbuffer, VK_TRUE);
         vkCmdSetDepthBias(vkcmdbuffer, 0, 0, 0);
         vkCmdSetDepthBoundsTestEnable(vkcmdbuffer, VK_TRUE);

@@ -67,21 +67,21 @@ const Vertex[] vertices = [
 
 	// Back face
 	Vertex(vec3(-32,-32,-32), vec3(0, 0, 1)),
-	Vertex(vec3(-32, 32,-32), vec3(0, 0, 1)),
 	Vertex(vec3( 32,-32,-32), vec3(0, 0, 1)),
+	Vertex(vec3(-32, 32,-32), vec3(0, 0, 1)),
 	Vertex(vec3( 32, 32,-32), vec3(0, 0, 1)),
 
 	// Top face
-	Vertex(vec3(-32, 32,-32), vec3(0, 1, 0)),
-	Vertex(vec3(-32, 32, 32), vec3(0, 1, 0)),
-	Vertex(vec3( 32, 32,-32), vec3(0, 1, 0)),
-	Vertex(vec3( 32, 32, 32), vec3(0, 1, 0)),
-
-	// Bottom face
 	Vertex(vec3(-32,-32,-32), vec3(0, 1, 0)),
 	Vertex(vec3(-32,-32, 32), vec3(0, 1, 0)),
 	Vertex(vec3( 32,-32,-32), vec3(0, 1, 0)),
 	Vertex(vec3( 32,-32, 32), vec3(0, 1, 0)),
+
+	// Bottom face
+	Vertex(vec3(-32, 32,-32), vec3(0, 1, 0)),
+	Vertex(vec3( 32, 32,-32), vec3(0, 1, 0)),
+	Vertex(vec3(-32, 32, 32), vec3(0, 1, 0)),
+	Vertex(vec3( 32, 32, 32), vec3(0, 1, 0)),
 
 	// Right face
 	Vertex(vec3( 32,-32,-32), vec3(1, 0, 0)),
@@ -91,8 +91,8 @@ const Vertex[] vertices = [
 
 	// Left face
 	Vertex(vec3(-32,-32,-32), vec3(1, 0, 0)),
-	Vertex(vec3(-32,-32, 32), vec3(1, 0, 0)),
 	Vertex(vec3(-32, 32,-32), vec3(1, 0, 0)),
+	Vertex(vec3(-32,-32, 32), vec3(1, 0, 0)),
 	Vertex(vec3(-32, 32, 32), vec3(1, 0, 0)),
 ];
 
@@ -204,11 +204,7 @@ void main() {
 
 	// Depth buffer
 	NioDepthStencilState depthState = device.createDepthStencilState(NioDepthStencilStateDescriptor(
-		depthTestEnabled: true,
-		depthState: NioDepthStateDescriptor(
-			depthWriteEnabled: true,
-			compareFunction: NioCompareOp.greater
-		)
+		depthTestEnabled: true
 	));
 	NioTexture depthBuffer = device.createTexture(NioTextureDescriptor(
 		type: NioTextureType.type2D,
@@ -267,15 +263,12 @@ void main() {
 				texture: depthBuffer,
 				loadAction: NioLoadAction.clear,
 				storeAction: NioStoreAction.store,
-				clearDepth: 0,
 			);
 
+			vec3 cameraPos = (vec4(0, 0, -72, 1) * mat4.xRotation(radians(45)) * mat4.yRotation(t*5)).xyz;
 			uniformData.mvp = (
-				mat4.orthographic01(0, drawable.texture.width, drawable.texture.height, 0, 0, ushort.max) *
-				mat4.translation((drawable.texture.width/2), (drawable.texture.height/2), ushort.max/2) * 
-				mat4.scaling(3, 3, 3) *
-				mat4.xRotation(radians(24)) *
-				mat4.yRotation(t*5)
+				mat4.perspective01(drawable.texture.width, drawable.texture.height, 120.0, 0.0001, 1000) *
+				mat4.lookAt(cameraPos, vec3(0, 0, 0), vec3(0, 1, 0))
 			).transposed;
 
 			if (auto cmdbuffer = queue.fetch()) {
