@@ -37,6 +37,11 @@ private:
 public:
 
     /**
+        Underlying Vulkan handle.
+    */
+    override @property void* handle() => null;
+
+    /**
         Size of the resource in bytes.
     */
     override @property uint size() => cast(uint)allocator.size;

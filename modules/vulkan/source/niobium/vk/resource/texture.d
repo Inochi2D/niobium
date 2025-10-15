@@ -148,9 +148,9 @@ private:
         this.isView_ = true;
         this.desc_ = desc;
         this.vkdesc_ = parent.vkdesc_;
-        this.image_ = parent.handle;
+        this.image_ = cast(VkImage)parent.handle;
         this.vkviewdesc_ = VkImageViewCreateInfo(
-            image: parent.handle,
+            image: cast(VkImage)parent.handle,
             viewType: desc.type.toVkImageViewType(),
             format: desc.format.toVkFormat(),
             components: VkComponentMapping(VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY),
@@ -214,7 +214,7 @@ public:
     /**
         Underlying Vulkan handle.
     */
-    final @property VkImage handle() => image_;
+    override @property void* handle() => cast(void*)image_;
 
     /**
         Underlying Vulkan Image View.

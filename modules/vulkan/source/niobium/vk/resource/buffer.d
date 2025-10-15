@@ -86,7 +86,7 @@ public:
     /**
         Underlying Vulkan handle.
     */
-    final @property VkBuffer handle() => handle_;
+    override @property void* handle() => cast(void*)handle_;
 
     /// Destructor
     ~this() {

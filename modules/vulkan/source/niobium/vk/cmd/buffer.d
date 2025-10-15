@@ -216,7 +216,7 @@ public:
                     oldLayout: nvkDrawTexture.layout,
                     newLayout: VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                     subresourceRange: VkImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS),
-                    image: nvkDrawTexture.handle,
+                    image: cast(VkImage)nvkDrawTexture.handle,
                 );
                 auto depInfo = VkDependencyInfo(
                     imageMemoryBarrierCount: 1,
@@ -308,7 +308,7 @@ mixin template VkCommandEncoderFunctions() {
                 oldLayout: texture.layout,
                 newLayout: layout,
                 subresourceRange: VkImageSubresourceRange(texture.format.toVkAspect, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS),
-                image: texture.handle,
+                image: cast(VkImage)texture.handle,
             );
             auto depInfo = VkDependencyInfo(
                 imageMemoryBarrierCount: 1,

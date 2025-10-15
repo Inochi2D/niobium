@@ -127,8 +127,8 @@ public:
 
         vkCmdBlitImage(
             vkcmdbuffer, 
-            nvkTexture.handle, VK_IMAGE_LAYOUT_GENERAL, 
-            nvkTexture.handle, VK_IMAGE_LAYOUT_GENERAL,
+            cast(VkImage)nvkTexture.handle, VK_IMAGE_LAYOUT_GENERAL, 
+            cast(VkImage)nvkTexture.handle, VK_IMAGE_LAYOUT_GENERAL,
             cast(uint)blits.length,
             blits.ptr,
             VK_FILTER_LINEAR
@@ -149,7 +149,7 @@ public:
     */
     override void fillBuffer(NioBuffer dst, uint value) {
         auto vkBufferDst = (cast(NioVkBuffer)dst);
-        vkCmdFillBuffer(vkcmdbuffer, vkBufferDst.handle, 0, VK_WHOLE_SIZE, value);
+        vkCmdFillBuffer(vkcmdbuffer, cast(VkBuffer)vkBufferDst.handle, 0, VK_WHOLE_SIZE, value);
     }
 
     /**
@@ -175,7 +175,7 @@ public:
         if (alignedEnd > vkBufferDst.size)
             end = alignedEnd <= vkBufferDst.size ? alignedEnd : VK_WHOLE_SIZE;
 
-        vkCmdFillBuffer(vkcmdbuffer, vkBufferDst.handle, start, end-start, value);
+        vkCmdFillBuffer(vkcmdbuffer, cast(VkBuffer)vkBufferDst.handle, start, end-start, value);
     }
 
     /**
@@ -195,8 +195,8 @@ public:
             size: src.length
         );
         auto copyInfo = VkCopyBufferInfo2(
-            srcBuffer: vkBufferSrc.handle,
-            dstBuffer: vkBufferDst.handle,
+            srcBuffer: cast(VkBuffer)vkBufferSrc.handle,
+            dstBuffer: cast(VkBuffer)vkBufferDst.handle,
             regionCount: 1, 
             pRegions: &bufferInfo
         );
@@ -223,8 +223,8 @@ public:
             imageExtent: VkExtent3D(src.extent.width, src.extent.height, src.extent.depth)
         );
         auto copyInfo = VkCopyBufferToImageInfo2(
-            srcBuffer: vkBufferSrc.handle,
-            dstImage: vkImageDst.handle,
+            srcBuffer: cast(VkBuffer)vkBufferSrc.handle,
+            dstImage: cast(VkImage)vkImageDst.handle,
             dstImageLayout: vkImageDst.layout,
             regionCount: 1,
             pRegions: &bufferImageInfo
@@ -251,9 +251,9 @@ public:
             imageExtent: VkExtent3D(src.extent.width, src.extent.height, src.extent.depth)
         );
         auto copyInfo = VkCopyImageToBufferInfo2(
-            srcImage: vkImageSrc.handle,
+            srcImage: cast(VkImage)vkImageSrc.handle,
             srcImageLayout: vkImageSrc.layout,
-            dstBuffer: vkBufferDst.handle,
+            dstBuffer: cast(VkBuffer)vkBufferDst.handle,
             regionCount: 1,
             pRegions: &bufferImageInfo
         );
@@ -282,9 +282,9 @@ public:
             extent: VkExtent3D(src.extent.width, src.extent.height, src.extent.depth)
         );
         auto copyInfo = VkCopyImageInfo2(
-            srcImage: vkImageSrc.handle, 
+            srcImage: cast(VkImage)vkImageSrc.handle, 
             srcImageLayout: vkImageSrc.layout, 
-            dstImage: vkImageDst.handle,
+            dstImage: cast(VkImage)vkImageDst.handle,
             dstImageLayout: vkImageDst.layout, 
             regionCount: 1, 
             pRegions: &imageInfo
@@ -322,9 +322,9 @@ public:
             extent: extentToCopy
         );
         auto copyInfo = VkCopyImageInfo2(
-            srcImage: vkImageSrc.handle, 
+            srcImage: cast(VkImage)vkImageSrc.handle, 
             srcImageLayout: vkImageSrc.layout, 
-            dstImage: vkImageDst.handle,
+            dstImage: cast(VkImage)vkImageDst.handle,
             dstImageLayout: vkImageDst.layout, 
             regionCount: 1, 
             pRegions: &imageInfo

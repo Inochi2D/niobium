@@ -121,7 +121,7 @@ private:
         if (index is index_ && indexType_ == indexType)
             return;
         
-        vkCmdBindIndexBuffer(vkcmdbuffer, index.handle, 0, indexType.toVkIndexType);
+        vkCmdBindIndexBuffer(vkcmdbuffer, cast(VkBuffer)index.handle, 0, indexType.toVkIndexType);
         this.indexType_ = indexType;
         this.index_ = index;
     }
@@ -233,9 +233,9 @@ public:
     override void setViewport(NioViewport viewport) {
         auto viewportInfo = VkViewport(
             viewport.originX,
-            viewport.originY,
+            viewport.height-viewport.originY,
             viewport.width,
-            viewport.height,
+            -viewport.height,
             viewport.near,
             viewport.far
         );
@@ -348,7 +348,7 @@ public:
     */
     override void setVertexBuffer(NioBuffer buffer, ulong offset, uint slot) {
         auto nvkBuffer = cast(NioVkBuffer)buffer;
-        auto handle = nvkBuffer.handle;
+        auto handle = cast(VkBuffer)nvkBuffer.handle;
 
         switch(buffer.usage & (NioBufferUsage.uniformBuffer | NioBufferUsage.storageBuffer | NioBufferUsage.vertexBuffer)) {
             default: break;
@@ -360,7 +360,7 @@ public:
             case NioBufferUsage.uniformBuffer:
                 if (auto binding = pipeline.vertexTable.getBinding(NirBindingType.uniform, slot)) {
                     auto bufferInfo = VkDescriptorBufferInfo(
-                        buffer: handle,
+                        buffer: cast(VkBuffer)handle,
                         offset: offset,
                         range: VK_WHOLE_SIZE
                     );
@@ -460,7 +460,7 @@ public:
     */
     override void setFragmentBuffer(NioBuffer buffer, ulong offset, uint slot) {
         auto nvkBuffer = cast(NioVkBuffer)buffer;
-        auto handle = nvkBuffer.handle;
+        auto handle = cast(VkBuffer)nvkBuffer.handle;
 
         switch(buffer.usage & (NioBufferUsage.uniformBuffer | NioBufferUsage.storageBuffer)) {
             default: break;
