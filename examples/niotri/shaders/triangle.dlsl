@@ -1,0 +1,22 @@
+import dlsl.stdlib;
+
+struct VertexIn {
+    @attribute(0) vec2 position;
+    @attribute(1) vec3 color;
+}
+
+struct VertexOut {
+    @position vec4 position;
+    vec3 color;
+}
+
+@vertex VertexOut vertex_main(@stageIn VertexIn in_) {
+    return VertexOut(
+        position: vec4(in_.position, 0.0, 1.0),
+        color: in_.color
+    );
+}
+
+@fragment vec4 fragment_main(VertexOut in_) {
+    return vec4(in_.color, 1.0);
+}

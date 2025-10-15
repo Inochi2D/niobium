@@ -16,7 +16,6 @@ import numem;
 import sdl;
 import sdl.timer;
 import std.file : read;
-import niobium.vk.shader.shader;
 
 NioSurface surfaceFromWindow(SDL_Window* window) {
 	import std.stdio;
@@ -265,9 +264,9 @@ void main() {
 				storeAction: NioStoreAction.store,
 			);
 
-			vec3 cameraPos = (vec4(0, 0, -72, 1) * mat4.xRotation(radians(45)) * mat4.yRotation(t*5)).xyz;
+			vec3 cameraPos = (vec4(0, 0, -128, 1) * mat4.xRotation(radians(45)) * mat4.yRotation(t*2.5)).xyz;
 			uniformData.mvp = (
-				mat4.perspective01(drawable.texture.width, drawable.texture.height, 120.0, 0.0001, 1000) *
+				mat4.perspective01(drawable.texture.width, drawable.texture.height, 60.0, 0.0001, 1000) *
 				mat4.lookAt(cameraPos, vec3(0, 0, 0), vec3(0, 1, 0))
 			).transposed;
 
