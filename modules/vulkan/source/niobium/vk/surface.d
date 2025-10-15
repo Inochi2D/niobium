@@ -59,7 +59,6 @@ private:
     NioVkDrawable[] drawables_;
 
     // Sync
-    VkFence fence_;
     uint currentFrame_;
     VkSemaphore[] semaphores_;
 
@@ -127,10 +126,7 @@ private:
         // Resize arrays.
         this.imageCount_ = cast(uint)images.length;
         this.drawables_ = nu_malloca!NioVkDrawable(images.length);
-        this.semaphores_ = semaphores_.nu_resize(images.length);
-
-        auto fenceCreateInfo = VkFenceCreateInfo();
-        vkCreateFence(device_.handle, &fenceCreateInfo, null, &fence_);
+        this.semaphores_ = semaphores_.nu_resize(imageCount_);
 
         auto semaCreateInfo = VkSemaphoreCreateInfo();
         foreach(ref semaphore; semaphores_)
@@ -145,10 +141,6 @@ private:
 
     /// Destroys the drawables.
     void destroyDrawables() {
-        
-        if (fence_)
-            vkDestroyFence(device_.handle, fence_, null);
-        
         foreach(semaphore; semaphores_)
             vkDestroySemaphore(device_.handle, semaphore, null);
 
@@ -399,20 +391,19 @@ public:
         if (!isReady)
             return null;
 
-        auto result = swapFuncs.vkAcquireNextImageKHR(device_.handle, swapchain_, 1000, semaphores_[currentFrame_], fence_, &currentImageIdx_);
+        auto result = swapFuncs.vkAcquireNextImageKHR(device_.handle, swapchain_, 1000, semaphores_[currentFrame_], null, &currentImageIdx_);
         switch(result) {
+
             case VK_SUBOPTIMAL_KHR:
                 this.needsRebuild = true;
                 goto case;
-            
-            case VK_SUCCESS:
-                vkWaitForFences(device_.handle, 1, &fence_, VK_TRUE, ulong.max);
-                vkResetFences(device_.handle, 1, &fence_);
 
+            case VK_SUCCESS:
                 auto drawable = drawables_[currentImageIdx_];
                 drawable.semaphore = semaphores_[currentFrame_];
+                drawable.reset();
 
-                currentFrame_ = (currentFrame_ + 1) % framesInFlight_;
+                currentFrame_ = (currentFrame_ + 1) % imageCount_;
                 return drawable;
 
             case VK_ERROR_OUT_OF_DATE_KHR:

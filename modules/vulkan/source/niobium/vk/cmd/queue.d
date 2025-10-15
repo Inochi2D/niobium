@@ -80,7 +80,7 @@ private:
             auto cmdWaitInfo = VkSemaphoreSubmitInfo(
                 semaphore: buffer.drawable.semaphore,
                 value: 1,
-                stageMask: VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,
+                stageMask: VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                 deviceIndex: 0
             );
             
@@ -344,11 +344,9 @@ private:
 
                 // The index is offset by 1 to avoid swapchain semaphore
                 // trampling.
-                size_t i = (idx_ + offset) % instances_.length;
-                if (vkGetFenceStatus(device_.handle, fences_[i]) == VK_SUCCESS) {
-                    idx_ = i;
-
-                    vkResetFences(device_.handle, 1, &fences_[i]);
+                this.idx_ = (idx_ + 1 + offset) % instances_.length;
+                if (vkGetFenceStatus(device_.handle, fences_[idx_]) == VK_SUCCESS) {
+                    vkResetFences(device_.handle, 1, &fences_[idx_]);
                     return idx_;
                 }
             }

@@ -53,7 +53,7 @@ void main() {
     // Create Device
 	auto device = NioDevice.systemDevices[0];
 	auto queue = device.createQueue(NioCommandQueueDescriptor(
-		maxCommandBuffers: 4
+		maxCommandBuffers: 6
 	));
 
     // Create Window and Surface

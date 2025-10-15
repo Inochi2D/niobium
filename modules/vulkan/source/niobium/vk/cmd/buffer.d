@@ -62,8 +62,6 @@ private:
         vkResetCommandBuffer(handle_, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
         vkResetDescriptorPool(vkDevice, descriptorPool_, 0);
         if (drawable) {
-            drawable.reset();
-            
             drawable.release();
             drawable = null;
         }
@@ -262,9 +260,7 @@ public:
     */
     override void await() {
         auto nvkDevice = cast(NioVkDevice)device;
-        if (fence) {
-            cast(void)vkWaitForFences(nvkDevice.handle, 1, &fence, VK_TRUE, ulong.max);
-        }
+        cast(void)vkWaitForFences(nvkDevice.handle, 1, &fence, VK_FALSE, ulong.max);
     }
 
     /**

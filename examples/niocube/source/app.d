@@ -129,7 +129,7 @@ void main() {
     // Create Device
 	auto device = NioDevice.systemDevices[0];
 	auto queue = device.createQueue(NioCommandQueueDescriptor(
-		maxCommandBuffers: 8
+		maxCommandBuffers: 6
 	));
 
     // Create Window and Surface
@@ -255,7 +255,6 @@ void main() {
 		t += cast(float)(currentFrame-lastFrame) * 0.001;
 
 		if (NioDrawable drawable = surface.next()) {
-			auto cmdbuffer = queue.fetch();
 			NioColorAttachmentDescriptor[] colorAttachments = [
 				NioColorAttachmentDescriptor(
 					texture: drawable.texture,
@@ -276,21 +275,23 @@ void main() {
 				mat4.translation((drawable.texture.width/2), (drawable.texture.height/2), ushort.max/2) * 
 				mat4.scaling(3, 3, 3) *
 				mat4.xRotation(radians(24)) *
-				mat4.yRotation(t)
+				mat4.yRotation(t*5)
 			).transposed;
-			
-			auto renderPass = cmdbuffer.beginRenderPass(NioRenderPassDescriptor(colorAttachments[], depthAttachment));
-				renderPass.setPipeline(renderPipeline);
-				renderPass.setDepthStencilState(depthState);
-				renderPass.setVertexBuffer(vtxbuffer, 0, 0);
-				renderPass.setVertexBuffer(uniforms, 0, 0);
-				renderPass.drawIndexed(NioPrimitive.triangles, idxbuffer, NioIndexType.u32, cast(uint)indices.length);
-			renderPass.endEncoding();
 
-			cmdbuffer.present(drawable);
-			queue.commit(cmdbuffer);
-			cmdbuffer.await();
-			cmdbuffer.release();
+			if (auto cmdbuffer = queue.fetch()) {
+				auto renderPass = cmdbuffer.beginRenderPass(NioRenderPassDescriptor(colorAttachments[], depthAttachment));
+					renderPass.setPipeline(renderPipeline);
+					renderPass.setDepthStencilState(depthState);
+					renderPass.setVertexBuffer(vtxbuffer, 0, 0);
+					renderPass.setVertexBuffer(uniforms, 0, 0);
+					renderPass.drawIndexed(NioPrimitive.triangles, idxbuffer, NioIndexType.u32, cast(uint)indices.length);
+				renderPass.endEncoding();
+
+				cmdbuffer.present(drawable);
+				queue.commit(cmdbuffer);
+				cmdbuffer.await();
+				cmdbuffer.release();
+			}
 		}
 	}
 

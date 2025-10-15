@@ -305,6 +305,8 @@ public:
         vkCmdSetDepthBounds(vkcmdbuffer, 0, 1);
         vkCmdSetFrontFace(vkcmdbuffer, VK_FRONT_FACE_COUNTER_CLOCKWISE);
         vkCmdSetPrimitiveRestartEnable(vkcmdbuffer, VK_FALSE);
+        vkCmdSetStencilTestEnable(vkcmdbuffer, VK_FALSE);
+        vkCmdSetDepthTestEnable(vkcmdbuffer, VK_FALSE);
         dyn3.vkCmdSetDepthClampEnableEXT(vkcmdbuffer, VK_FALSE);
         dyn3.vkCmdSetPolygonModeEXT(vkcmdbuffer, VK_POLYGON_MODE_FILL);
 
