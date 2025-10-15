@@ -10,12 +10,12 @@
         Luna Nielsen
 */
 module nir.ir.atom;
-import spirv.reflection;
+import nir.ir.spirv.reflection;
 import nulib.io.stream;
 import nulib;
 import numem;
 
-public import spirv.spv;
+public import nir.ir.spirv.spv;
 
 /**
     Represents an "atom" in the Niobium bytestream,

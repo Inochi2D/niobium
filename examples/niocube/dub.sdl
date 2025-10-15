@@ -11,6 +11,8 @@ targetPath "out/"
 
 workingDirectory "out/"
 
+lflags "-rpath" "." "-rpath" "out/" platform="osx"
+
 postBuildCommands "" \
     "cp shaders/cube.metal out/cube.metal" \
     platform="osx"

@@ -116,12 +116,12 @@ enum NioIndexType : uint {
     /**
         Indices are 16-bit unsigned integers.
     */
-    u16,
+    u16 = 0x00000000U,
 
     /**
         Indices are 32-bit unsigned integers.
     */
-    u32
+    u32 = 0x00000001U
 }
 
 /**

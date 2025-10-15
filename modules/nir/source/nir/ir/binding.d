@@ -13,10 +13,9 @@ module nir.ir.binding;
 import nir.ir.type;
 import nir.library;
 import nir.types;
-import vulkan.core;
 import numem;
 
-import spirv.spv : StorageClass;
+import nir.ir.spirv.spv : StorageClass;
 
 /**
     Different types of binding.
@@ -98,27 +97,5 @@ NirBindingType toBindingType(StorageClass storage, NirTypePointer type = null) @
                 }
             }
             return NirBindingType.uniform;
-    }
-}
-
-/**
-    Converts a $(D VkDescriptorType) format to its $(D NirBindingType) equivalent.
-
-    Params:
-        type = The $(D NirBindingType)
-    
-    Returns:
-        The $(D VkDescriptorType) equivalent.
-*/
-pragma(inline, true)
-VkDescriptorType toVkDescriptorType(NirBindingType type) @nogc {
-    final switch(type) with(NirBindingType) {
-        case unknown:
-        case stageInput:
-        case stageOutput:               return uint.max;
-        case sampler:                   return VK_DESCRIPTOR_TYPE_SAMPLER;
-        case texture:                   return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        case storage:                   return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        case uniform:                   return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     }
 }

@@ -170,9 +170,9 @@ public:
             offset =    Offset into the buffer to upload the data.
     */
     override NioBuffer upload(void[] data, size_t offset) {
-        if (allocation_.memory && allocation_.memory.isMappable) {
+        import nulib.math : min;
 
-            import nulib.math : min;
+        if (allocation_.memory && allocation_.memory.isMappable) {
             if (void[] mapped = this.map()) {
                 size_t start = min(offset, mapped.length);
                 size_t end = min(offset+data.length, mapped.length);
@@ -200,9 +200,9 @@ public:
             $(D null) otherwise.
     */
     override void[] download(size_t offset, size_t length) {
+        import nulib.math : min;
+        
         if (allocation_.memory && allocation_.memory.isMappable) {
-
-            import nulib.math : min;
             if (void[] mapped = this.map()) {
                 size_t start = min(offset, mapped.length);
                 size_t end = min(offset+length, mapped.length);

@@ -3,7 +3,7 @@ description "Metal backend for Niobium."
 
 targetPath "out/"
 targetName "niobium-mtl"
-importPaths "../../source"
+importPaths "../../source" "../nir/source"
 
 dependency "metal-d" path="../../../metal-d"
 dependency "numem" version="~>1.3"

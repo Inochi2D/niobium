@@ -46,6 +46,11 @@ private:
 
 public:
 
+    /**
+        The underlying Metal handle
+    */
+    final @property MTLSamplerState handle() => handle_;
+
     /// Destructor
     ~this() {
         handle_.release();
@@ -62,11 +67,6 @@ public:
         super(device, desc);
         this.setup(desc);
     }
-
-    /**
-        The underlying Metal handle
-    */
-    final @property MTLSamplerState handle() => handle_;
 }
 
 /**

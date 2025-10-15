@@ -56,6 +56,11 @@ protected:
 public:
 
     /**
+        Native backend handle of the resource
+    */
+    abstract @property void* handle();
+
+    /**
         Storage mode of the resource.
     */
     abstract @property NioStorageMode storageMode();

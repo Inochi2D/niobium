@@ -41,8 +41,10 @@ NioSurface surfaceFromWindow(SDL_Window* window) {
 		} else return null;
 		
 	} else version(OSX) {
+		import sdl.metal : SDL_Metal_CreateView, SDL_Metal_GetLayer;
+
 		auto view = SDL_Metal_CreateView(window);
-		return NioSurface.createForLayer(DL_Metal_GetLayer(view));
+		return NioSurface.createForLayer(SDL_Metal_GetLayer(view));
 	}
 }
 
@@ -176,7 +178,7 @@ void main() {
 				format: surface.format,
 				blending: true,
 			)],
-			depthFormat: NioPixelFormat.depth24Stencil8
+			depthFormat: NioPixelFormat.depth32Stencil8
 		)
 	);
 
@@ -208,7 +210,7 @@ void main() {
 	));
 	NioTexture depthBuffer = device.createTexture(NioTextureDescriptor(
 		type: NioTextureType.type2D,
-		format: NioPixelFormat.depth24Stencil8,
+		format: NioPixelFormat.depth32Stencil8,
 		storage: NioStorageMode.privateStorage,
 		usage: NioTextureUsage.attachment,
 		width: 640,
@@ -227,7 +229,6 @@ void main() {
 		height: logoimg.h,
 	)).upload(NioRegion3D(0, 0, 0, logoimg.w, logoimg.h, 1), 0, 0, logoimg.buf8, 0);
 	logoimg.free();
-
 
 	bool closeRequested;
 	SDL_Event ev;
@@ -250,7 +251,7 @@ void main() {
 					depthBuffer.release();
 					depthBuffer = device.createTexture(NioTextureDescriptor(
 						type: NioTextureType.type2D,
-						format: NioPixelFormat.depth24Stencil8,
+						format: NioPixelFormat.depth32Stencil8,
 						storage: NioStorageMode.privateStorage,
 						usage: NioTextureUsage.attachment,
 						width: ev.window.data1,
@@ -281,7 +282,7 @@ void main() {
 
 			vec3 cameraPos = (vec4(0, 0, -128, 1) * mat4.xRotation(radians(45)) * mat4.yRotation(t*2.5)).xyz;
 			uniformData.mvp = (
-				mat4.perspective01(drawable.texture.width, drawable.texture.height, 60.0, 0.0001, 1000) *
+				mat4.perspective01(drawable.texture.width, drawable.texture.height, 60.0, 0.01, 1000) *
 				mat4.lookAt(cameraPos, vec3(0, 0, 0), vec3(0, 1, 0))
 			).transposed;
 
@@ -292,7 +293,7 @@ void main() {
 					renderPass.setFragmentSampler(niosampler, 0);
 					renderPass.setFragmentTexture(niologo, 0);
 					renderPass.setVertexBuffer(vtxbuffer, 0, 0);
-					renderPass.setVertexBuffer(uniforms, 0, 0);
+					renderPass.setVertexBuffer(uniforms, 0, 1);
 					renderPass.drawIndexed(NioPrimitive.triangles, idxbuffer, NioIndexType.u32, cast(uint)indices.length);
 				renderPass.endEncoding();
 

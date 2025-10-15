@@ -83,6 +83,17 @@ public:
     }
 
     /**
+        Whether to enable transparent composition for the surface.
+        
+        Note:
+            This only applies to platforms where the app controls
+            composition mode, some platforms may let you request
+            transparent composition elsewhere.
+    */
+    override @property bool transparent() => false;
+    override @property void transparent(bool value) { }
+
+    /**
         The amount of frames that can be in-flight.
     */
     override @property uint framesInFlight() => framesInFlight_;

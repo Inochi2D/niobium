@@ -10,13 +10,14 @@
         Luna Nielsen
 */
 module niobium.mtl.cmd.buffer;
+import niobium.mtl.device;
 import niobium.mtl.surface;
+import niobium.mtl.sync;
 import niobium.mtl.cmd;
-import niobium.cmd;
 import niobium.queue;
-import niobium.device;
-import niobium.surface;
+import niobium.cmd;
 import metal.commandbuffer;
+import metal.commandencoder;
 import foundation;
 import numem;
 import nulib;
@@ -82,7 +83,7 @@ public:
             device = The device that "owns" this command buffer.
     */
     this(NioDevice device, NioMTLCommandQueue queue) {
-        super(device, queue);
+        super(queue);
         this.handle_ = queue.handle.commandBuffer();
         this.encoderMutex_ = nogc_new!Mutex();
     }
@@ -107,8 +108,9 @@ public:
             return null;
 
         // TODO: Create NioRenderCommandEncoder here.
+        this.activeEncoder = nogc_new!NioMTLRenderCommandEncoder(this, desc);
         encoderMutex_.unlock();
-        return null;
+        return cast(NioMTLRenderCommandEncoder)activeEncoder;
     }
 
     /**
@@ -168,6 +170,7 @@ public:
     to make them conform to the NioCommandEncoder class interface.
 */
 mixin template MTLCommandEncoderFunctions(EncoderT) {
+    import foundation : NSString, NSError;
 
     /**
         Command encoder handle
@@ -205,5 +208,19 @@ mixin template MTLCommandEncoderFunctions(EncoderT) {
     override void endEncoding() {
         handle.endEncoding();
         this.finishEncoding();
+    }
+
+
+    /**
+        Inserts a barrier that ensures that subsequent commands 
+        of type $(D afterStages) submitted to the command queue does 
+        not proceed until the work in $(D beforeStages) completes.
+
+        Params:
+            afterStages =   A mask that defines the stages of work to wait for.
+            beforeStages =  A mask that defines the work that must wait.
+    */
+    override void insertBarrier(NioPipelineStage afterStages, NioPipelineStage beforeStages) {
+        handle.barrier(afterStages.toMTLStages(), beforeStages.toMTLStages());
     }
 }

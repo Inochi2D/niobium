@@ -74,17 +74,17 @@ struct NioRenderPipelineDescriptor {
     /**
         Whether alpha-to-coverage is enabled.
     */
-    bool alphaToCoverage;
+    bool alphaToCoverage = false;
 
     /**
         Whether alpha-to-one is enabled.
     */
-    bool alphaToOne;
+    bool alphaToOne = false;
 
     /**
         The amount of multisample samples to use.
     */
-    uint sampleCount;
+    uint sampleCount = 1;
 }
 
 /**

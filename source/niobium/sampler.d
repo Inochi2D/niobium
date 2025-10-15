@@ -94,52 +94,52 @@ struct NioSamplerDescriptor {
     /**
         Wrapping mode for U (horizontal) axis.
     */
-    NioSamplerWrap wrapU;
+    NioSamplerWrap wrapU = NioSamplerWrap.clampToEdge;
 
     /**
         Wrapping mode for V (vertical) axis.
     */
-    NioSamplerWrap wrapV;
+    NioSamplerWrap wrapV = NioSamplerWrap.clampToEdge;
 
     /**
         Wrapping mode for W (forward) axis.
     */
-    NioSamplerWrap wrapW;
+    NioSamplerWrap wrapW = NioSamplerWrap.clampToEdge;
 
     /**
         Minification filter.
     */
-    NioMinMagFilter minFilter;
+    NioMinMagFilter minFilter = NioMinMagFilter.linear;
 
     /**
         Magnification filter.
     */
-    NioMinMagFilter magFilter;
+    NioMinMagFilter magFilter = NioMinMagFilter.linear;
 
     /**
         Mipmap filter.
     */
-    NioMipFilter mipFilter;
+    NioMipFilter mipFilter = NioMipFilter.none;
 
     /**
         Minimum level-of-detal
     */
-    float minLod;
+    float minLod = 0;
 
     /**
         Maximum level-of-detal
     */
-    float maxLod;
+    float maxLod = 1;
 
     /**
         Bias to apply to level-of-detal calculations.
     */
-    float mipLodBias;
+    float mipLodBias = 0;
 
     /**
         Max anisotropy to apply.
     */
-    float maxAnisotropy;
+    float maxAnisotropy = 1;
 
     /**
         Whether the sampler uses normalized coordinates.

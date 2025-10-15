@@ -19,7 +19,7 @@ import metal.buffer;
 import numem;
 
 public import niobium.buffer;
-public import niobium.vertexformat;
+public import niobium.mtl.formats;
 
 /**
     Metal Buffer
@@ -38,7 +38,7 @@ private:
             desc.size,
             cast(MTLResourceOptions)(
                 MTLResourceOptions.CacheModeDefaultCache |
-                desc.storage.toMTLStorageMode() << MTLResourceStorageModeShift |
+                (desc.storage.toMTLStorageMode() << MTLResourceStorageModeShift) |
                 MTLResourceOptions.HazardTrackingModeDefault
             )
         );
@@ -65,7 +65,7 @@ public:
     /**
         The underlying metal handle.
     */
-    final @property MTLBuffer handle() => handle_;
+    override @property void* handle() => cast(void*)handle_;
 
     /**
         Size of the resource in bytes.
@@ -107,10 +107,10 @@ public:
             The mapped buffer.
     */
     override void[] map() {
-        if (desc_.storage.privateStorage)
+        if (desc_.storage == NioStorageMode.privateStorage)
             return null;
         
-        return handle_.contents[0..handle_.length];
+        return handle_.contents()[0..handle_.length];
     }
 
     
@@ -140,15 +140,19 @@ public:
     override NioBuffer upload(void[] data, size_t offset) {
         import nulib.math : min;
 
-        if (desc_.storage.privateStorage)
-            return this;
-        
-        void[] mapped = this.map();
-            size_t start = min(offset, mapped.length);
-            size_t end = min(offset+data.length, mapped.length);
-            size_t srcEnd = mapped.length-end;
-            mapped[start..end] = data[0..srcEnd];
-        this.unmap();
+        if (desc_.storage != NioStorageMode.privateStorage) {
+            if (void[] mapped = this.map()) {
+                size_t start = min(offset, mapped.length);
+                size_t end = min(offset+data.length, mapped.length);
+                size_t srcEnd = min(data.length, end-start);
+                
+                mapped[start..end] = data[0..srcEnd];
+
+                this.unmap();
+            }
+        } else {
+            (cast(NioMTLDevice)device).uploadDataToBuffer(this, offset, data);
+        }
         return this;
     }
 
@@ -164,7 +168,20 @@ public:
             $(D null) otherwise.
     */
     override void[] download(size_t offset, size_t length) {
-        // TODO: Implement a staging buffer just for private resources.
-        return null; 
+        import nulib.math : min;
+
+        if (desc_.storage != NioStorageMode.privateStorage) {
+            if (void[] mapped = this.map()) {
+                size_t start = min(offset, mapped.length);
+                size_t end = min(offset+length, mapped.length);
+
+                auto result = mapped[start..end].nu_dup();
+                this.unmap();
+                return result;
+            }
+        } else {
+            return (cast(NioMTLDevice)device).downloadDataFromBuffer(this, offset, length);
+        }
+        return null;
     }
 }

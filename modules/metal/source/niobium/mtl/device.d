@@ -11,7 +11,10 @@
 */
 module niobium.mtl.device;
 import niobium.mtl.resource;
+import niobium.mtl.depthstencil;
+import niobium.mtl.render;
 import niobium.mtl.sampler;
+import niobium.mtl.shader;
 import niobium.mtl.video;
 import niobium.mtl.cmd;
 import niobium.mtl.sync;
@@ -38,6 +41,10 @@ private:
     // Handles
     MTLDevice handle_;
 
+    // Internal immediate upload queue
+    NioCommandQueue uploadQueue;
+    NioBuffer stagingBuffer;
+
     void setup(MTLDevice device) {
         this.handle_ = device;
         this.deviceName_ = device.name.toString().nu_dup();
@@ -62,6 +69,26 @@ private:
                 this.deviceLimits_.maxSamples = 1 << i;
                 break;
             }
+        }
+
+        // Internal upload queue.
+        this.uploadQueue = this.createQueue(NioCommandQueueDescriptor(maxCommandBuffers: 4));
+    }
+
+    /// Updates the staging buffer to fit a new size if it's greater
+    /// than its current size.
+    void updateStagingBuffer(uint size) {
+        if (!stagingBuffer || size > stagingBuffer.size) {
+            if (stagingBuffer) {
+                stagingBuffer.release();
+                stagingBuffer = null;
+            }
+
+            stagingBuffer = this.createBuffer(NioBufferDescriptor(
+                usage: NioBufferUsage.transfer,
+                storage: NioStorageMode.sharedStorage,
+                size: size
+            ));
         }
     }
 
@@ -198,18 +225,18 @@ public:
     }
 
     /**
-        Creates a new texture which reinterprets the data of another
-        texture.
+        Creates a new texture which can be shared between process
+        boundaries.
 
         Params:
-            texture =   Texture to create a view of.
-            desc =      Descriptor for the texture.
+            desc = Descriptor for the texture.
         
         Returns:
-            A new $(D NioTexture) or $(D null) on failure.
+            A new $(D NioTexture) on success,
+            $(D null) otherwise.
     */
-    override NioTexture createTextureView(NioTexture texture, NioTextureDescriptor desc) {
-        return nogc_new!NioMTLTexture(this, texture, desc);
+    override NioTexture createSharedTexture(NioTextureDescriptor desc) {
+        return null;
     }
 
     /**
@@ -229,6 +256,20 @@ public:
     }
 
     /**
+        Creates a new shader from a library.
+
+        Params:
+            library = The NIR Library.
+        
+        Returns:
+            A new $(D NioShader) on success,
+            $(D null) otherwise.
+    */
+    override NioShader createShader(NirLibrary library) {
+        return nogc_new!NioMTLShader(this, library);
+    }
+
+    /**
         Creates a new render pipeline object.
 
         Params:
@@ -239,7 +280,7 @@ public:
             $(D null) otherwise.
     */
     override NioRenderPipeline createRenderPipeline(NioRenderPipelineDescriptor desc) {
-        return null;
+        return nogc_new!NioMTLRenderPipeline(this, desc);
     }
 
     /**
@@ -254,6 +295,99 @@ public:
     */
     override NioSampler createSampler(NioSamplerDescriptor desc) {
         return nogc_new!NioMTLSampler(this, desc);
+    }
+
+    /**
+        Creates a new depth-stencil state object.
+
+        Params:
+            desc = Descriptor for the depth-stencil state object.
+        
+        Returns:
+            A new $(D NioDepthStencilState) on success,
+            $(D null) otherwise.
+    */
+    override NioDepthStencilState createDepthStencilState(NioDepthStencilStateDescriptor desc) {
+        return nogc_new!NioMTLDepthStencilState(this, desc);
+    }
+    
+    /**
+        Uploads data to the buffer using a device-internal
+        transfer queue.
+
+        Params:
+            buffer =    Target buffer
+            offset =    Offset into buffer to write to
+            data =      The data to write.
+    */
+    void uploadDataToBuffer(NioBuffer buffer, size_t offset, void[] data) {
+        this.updateStagingBuffer(buffer.size);
+
+        stagingBuffer.upload(data, 0);
+        if (auto cmdbuffer = uploadQueue.fetch()) {
+            auto transferPass = cmdbuffer.beginTransferPass();
+                transferPass.insertBarrier(NioPipelineStage.transfer, NioPipelineStage.all);
+                transferPass.copy(
+                    NioBufferSrcInfo(
+                        buffer: stagingBuffer, 
+                        offset: 0,
+                        length: cast(uint)data.length
+                    ), 
+                    NioBufferDstInfo(
+                        buffer: buffer,
+                        offset: offset,
+                    )
+                );
+            transferPass.endEncoding();
+
+            uploadQueue.commit(cmdbuffer);
+            cmdbuffer.await();
+            cmdbuffer.release();
+        }
+    }
+    
+    /**
+        Uploads data to the texture using a device-internal
+        transfer queue.
+
+        Params:
+            buffer =    Source buffer
+            offset =    Offset into the buffer to download.
+            length =    Length of the data to download, in bytes.
+    
+        Returns:
+            A nogc slice of the data from the buffer,
+            or $(D null) on failure.
+    */
+    void[] downloadDataFromBuffer(NioBuffer buffer, size_t offset, size_t length) {
+        void[] result;
+        this.updateStagingBuffer(buffer.size);
+
+        if (auto cmdbuffer = uploadQueue.fetch()) {
+            auto transferPass = cmdbuffer.beginTransferPass();
+                transferPass.insertBarrier(NioPipelineStage.transfer, NioPipelineStage.all);
+                transferPass.copy(
+                    NioBufferSrcInfo(
+                        buffer: buffer,
+                        offset: offset,
+                        length: length
+                    ),
+                    NioBufferDstInfo(
+                        buffer: stagingBuffer,
+                        offset: 0,
+                    )
+                );
+            transferPass.endEncoding();
+
+            uploadQueue.commit(cmdbuffer);
+            cmdbuffer.await();
+            cmdbuffer.release();
+
+            result = nu_malloc(buffer.size)[0..buffer.size];
+            result[0..$] = stagingBuffer.map()[0..result.length];
+        }
+
+        return result;
     }
 
     /// Stringification override

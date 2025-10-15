@@ -576,3 +576,34 @@ public:
         this.parse(bytecode);
     }
 }
+
+/**
+    Converts a $(D NirShaderStage) format to its $(D VkShaderStageFlags) equivalent.
+
+    Params:
+        stage = The $(D NirShaderStage)
+    
+    Returns:
+        The $(D VkShaderStageFlags) equivalent.
+*/
+pragma(inline, true)
+VkShaderStageFlags toVkShaderStage(NirShaderStage stage) @nogc {
+    VkShaderStageFlags result = 0;
+    
+    if (stage & NirShaderStage.vertex)
+        result |= VK_SHADER_STAGE_VERTEX_BIT;
+    
+    if (stage & NirShaderStage.task)
+        result |= VK_SHADER_STAGE_TASK_BIT_EXT;
+    
+    if (stage & NirShaderStage.mesh)
+        result |= VK_SHADER_STAGE_MESH_BIT_EXT;
+    
+    if (stage & NirShaderStage.fragment)
+        result |= VK_SHADER_STAGE_FRAGMENT_BIT;
+    
+    if (stage & NirShaderStage.kernel)
+        result |= VK_SHADER_STAGE_COMPUTE_BIT;
+
+    return result;
+}

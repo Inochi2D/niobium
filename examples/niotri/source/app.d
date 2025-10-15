@@ -38,8 +38,10 @@ NioSurface surfaceFromWindow(SDL_Window* window) {
 		} else return null;
 		
 	} else version(OSX) {
+		import sdl.metal : SDL_Metal_CreateView, SDL_Metal_GetLayer;
+
 		auto view = SDL_Metal_CreateView(window);
-		return NioSurface.createForLayer(DL_Metal_GetLayer(view));
+		return NioSurface.createForLayer(SDL_Metal_GetLayer(view));
 	}
 }
 

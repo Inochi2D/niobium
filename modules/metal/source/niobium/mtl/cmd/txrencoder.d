@@ -17,6 +17,8 @@ import foundation;
 import metal.blitcommandencoder;
 import metal.commandencoder;
 import metal.commandbuffer;
+import metal.texture;
+import metal.buffer;
 import metal.types;
 import numem;
 
@@ -76,7 +78,7 @@ public:
         given that it's a color texture with mipmaps allocated.
     */
     override void generateMipmapsFor(NioTexture dst) {
-        handle.generateMipmapsForTexture((cast(NioMTLTexture)dst).handle);
+        handle.generateMipmapsForTexture(cast(MTLTexture)dst.handle);
     }
 
     /**
@@ -91,7 +93,7 @@ public:
             value =     The value to write to the buffer.
     */
     override void fillBuffer(NioBuffer dst, uint value) {
-        handle.fillBuffer((cast(NioMTLBuffer)dst).handle, NSRange(0, dst.size-(dst.size%4)), cast(ubyte)value);
+        handle.fillBuffer(cast(MTLBuffer)dst.handle, NSRange(0, dst.size-(dst.size%4)), cast(ubyte)value);
     }
 
     /**
@@ -108,7 +110,7 @@ public:
             value =     The value to write to the buffer.
     */
     override void fillBuffer(NioBuffer dst, ulong offset, ulong length, uint value) {
-        handle.fillBuffer((cast(NioMTLBuffer)dst).handle, NSRange(offset, length-(length%4)), cast(ubyte)value);
+        handle.fillBuffer(cast(MTLBuffer)dst.handle, NSRange(offset, length-(length%4)), cast(ubyte)value);
     }
 
     /**
@@ -120,9 +122,9 @@ public:
     */
     override void copy(NioBufferSrcInfo src, NioBufferDstInfo dst) {
         handle.copy(
-            (cast(NioMTLBuffer)src.buffer).handle,
+            cast(MTLBuffer)src.buffer.handle,
             src.offset,
-            (cast(NioMTLBuffer)dst.buffer).handle,
+            cast(MTLBuffer)dst.buffer.handle,
             dst.offset,
             src.length
         );
@@ -137,12 +139,12 @@ public:
     */
     override void copy(NioBufferSrcInfo src, NioTextureDstInfo dst) {
         handle.copy(
-            (cast(NioMTLBuffer)src.buffer).handle,
+            cast(MTLBuffer)src.buffer.handle,
             src.offset,
             src.rowLength,
             0,
             MTLSize(src.extent.width, src.extent.height, src.extent.depth),
-            (cast(NioMTLTexture)dst.texture).handle,
+            cast(MTLTexture)dst.texture.handle,
             dst.slice,
             dst.level,
             MTLOrigin(dst.origin.x, dst.origin.y, dst.origin.z)
@@ -158,12 +160,12 @@ public:
     */
     override void copy(NioTextureSrcInfo src, NioBufferDstInfo dst) {
         handle.copy(
-            (cast(NioMTLTexture)src.texture).handle,
+            cast(MTLTexture)src.texture.handle,
             src.slice,
             src.level,
             MTLOrigin(src.origin.x, src.origin.y, src.origin.z),
             MTLSize(src.extent.width, src.extent.height, src.extent.depth),
-            (cast(NioMTLBuffer)dst.buffer).handle,
+            cast(MTLBuffer)dst.buffer.handle,
             dst.offset,
             dst.rowLength,
             0
@@ -180,12 +182,12 @@ public:
     */
     override void copy(NioTextureSrcInfo src, NioTextureDstInfo dst) {
         handle.copy(
-            (cast(NioMTLTexture)src.texture).handle,
+            cast(MTLTexture)src.texture.handle,
             src.slice,
             src.level,
             MTLOrigin(src.origin.x, src.origin.y, src.origin.z),
             MTLSize(src.extent.width, src.extent.height, src.extent.depth),
-            (cast(NioMTLTexture)dst.texture).handle,
+            cast(MTLTexture)dst.texture.handle,
             dst.slice,
             dst.level,
             MTLOrigin(dst.origin.x, dst.origin.y, dst.origin.z)
@@ -206,8 +208,8 @@ public:
     */
     override void copy(NioTexture src, NioTexture dst) {
         handle.copy(
-            (cast(NioMTLTexture)src).handle,
-            (cast(NioMTLTexture)dst).handle
+            cast(MTLTexture)src.handle,
+            cast(MTLTexture)dst.handle,
         );
     }
 }

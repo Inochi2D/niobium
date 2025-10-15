@@ -14,13 +14,12 @@ import niobium.mtl.resource;
 import niobium.mtl.device;
 import niobium.mtl.heap;
 import numem;
-import metal.pixelformat;
 import metal.texture;
 import metal.types;
 import foundation;
 
 public import niobium.texture;
-public import niobium.pixelformat;
+public import niobium.mtl.formats;
 
 /**
     Vulkan Texture
@@ -32,7 +31,7 @@ private:
     NioTextureDescriptor    desc_;
 
     void createTexture(NioTextureDescriptor desc) {
-        auto nmtlDevice = cast(NioMTLDevice)device;
+        auto mtlDevice = cast(NioMTLDevice)device;
         this.desc_ = desc;
 
         auto createInfo = MTLTextureDescriptor.alloc.init;
@@ -52,11 +51,11 @@ private:
             MTLTextureSwizzle.Blue, 
             MTLTextureSwizzle.Alpha
         );
-        this.handle_ = nmtlDevice.handle.newTexture(createInfo);
+        this.handle_ = mtlDevice.handle.newTexture(createInfo);
         createInfo.release();
     }
 
-    void createTextureView(NioMTLTexture texture, NioTextureDescriptor desc) {
+    void createTextureView(NioMTLTexture texture, NioTextureDescriptor desc, uint baseSlice, uint baseLevel) {
         this.desc_ = NioTextureDescriptor(
             type: desc.type,
             format: desc.format,
@@ -68,11 +67,11 @@ private:
             levels: desc.levels,
             slices: desc.slices
         );
-        this.handle_ = texture.handle.newTextureView(
+        this.handle_ = (cast(MTLTexture)texture.handle).newTextureView(
             desc_.format.toMTLPixelFormat(),
             desc_.type.toMTLTextureType(),
-            NSRange(0, desc_.levels),
-            NSRange(0, desc_.slices),
+            NSRange(baseSlice, desc_.levels),
+            NSRange(baseLevel, desc_.slices),
         );
     }
 
@@ -114,7 +113,7 @@ public:
     /**
         The underlying metal handle.
     */
-    final @property MTLTexture handle() => handle_;
+    override @property void* handle() => cast(void*)handle_;
 
     /// Destructor
     ~this() {
@@ -140,10 +139,12 @@ public:
             device =    The device to create the texture on.
             texture =   Texture to create a view of.
             desc =      Descriptor used to create the texture.
+            baseSlice = Base texture slice
+            baseLevel = Base mip level
     */
-    this(NioDevice device, NioTexture texture, NioTextureDescriptor desc) {
+    this(NioDevice device, NioTexture texture, NioTextureDescriptor desc, uint baseSlice, uint baseLevel) {
         super(device);
-        this.createTextureView(cast(NioMTLTexture)texture, desc);
+        this.createTextureView(cast(NioMTLTexture)texture, desc, baseSlice, baseLevel);
     }
 
     /**
@@ -210,6 +211,16 @@ public:
     override @property uint levels() => desc_.levels;
 
     /**
+        Whether the texture can be shared between process boundaries.
+    */
+    override @property bool isShareable() => handle_.shareable;
+
+    /**
+        Exported handle for the texture.
+    */
+    override @property NioSharedResourceHandle sharedHandle() => null;
+
+    /**
         Uploads data to the texture using a device-internal
         transfer queue.
 
@@ -231,13 +242,16 @@ public:
             MTLOrigin(region.x, region.y, region.z),
             MTLSize(region.width, region.height, region.depth),
         );
+        uint rRowStride = rowStride > 0 ? rowStride*format.toStride() : region.width*format.toStride();
+        uint rImageStride = region.depth > 1 ? rRowStride*region.height : 0;
+
         this.handle_.replace(
             mtlregion,
             level,
             slice,
             data.ptr,
-            rowStride*format.toStride(),
-            0
+            rRowStride,
+            rImageStride
         );
         return this;
     }
@@ -265,141 +279,40 @@ public:
         handle_.getBytes(result.ptr, rowStride, 0, mtlregion, level, slice);
         return result;
     }
-}
 
-/**
-    Converts a $(D NioPixelFormat) format to its $(D MTLPixelFormat) equivalent.
+    /**
+        Creates a new texture which reinterprets the data of this
+        texture.
 
-    Params:
-        format = The $(D NioPixelFormat)
-    
-    Returns:
-        The $(D MTLPixelFormat) equivalent.
-*/
-pragma(inline, true)
-MTLPixelFormat toMTLPixelFormat(NioPixelFormat format) @nogc {
-    final switch(format) with(NioPixelFormat) {
-        case unknown:               return MTLPixelFormat.Invalid;
-        case a8Unorm:               return MTLPixelFormat.A8Unorm;
-        case r8Unorm:               return MTLPixelFormat.R8Unorm;
-        case r8UnormSRGB:           return MTLPixelFormat.R8Unorm_sRGB;
-        case r8Snorm:               return MTLPixelFormat.R8Snorm;
-        case r8Uint:                return MTLPixelFormat.R8Uint;
-        case r8Sint:                return MTLPixelFormat.R8Sint;
-        case r16Unorm:              return MTLPixelFormat.R16Unorm;
-        case r16Uint:               return MTLPixelFormat.R16Uint;
-        case r16Sint:               return MTLPixelFormat.R16Sint;
-        case r16Float:              return MTLPixelFormat.R16Float;
-        case r32Uint:               return MTLPixelFormat.R32Uint;
-        case r32Sint:               return MTLPixelFormat.R32Sint;
-        case r32Float:              return MTLPixelFormat.R32Float;
-        case rg8Unorm:              return MTLPixelFormat.RG8Unorm;
-        case rg8UnormSRGB:          return MTLPixelFormat.RG8Unorm_sRGB;
-        case rg8Snorm:              return MTLPixelFormat.RG8Snorm;
-        case rg8Uint:               return MTLPixelFormat.RG8Uint;
-        case rg8Sint:               return MTLPixelFormat.RG8Sint;
-        case rg16Unorm:             return MTLPixelFormat.RG16Unorm;
-        case rg16Snorm:             return MTLPixelFormat.RG16Snorm;
-        case rg16Uint:              return MTLPixelFormat.RG16Uint;
-        case rg16Sint:              return MTLPixelFormat.RG16Sint;
-        case rg16Float:             return MTLPixelFormat.RG16Float;
-        case rg32Uint:              return MTLPixelFormat.RG32Uint;
-        case rg32Sint:              return MTLPixelFormat.RG32Sint;
-        case rg32Float:             return MTLPixelFormat.RG32Float;
-        case rgba8Unorm:            return MTLPixelFormat.RGBA8Unorm;
-        case rgba8UnormSRGB:        return MTLPixelFormat.RGBA8Unorm_sRGB;
-        case rgba8Snorm:            return MTLPixelFormat.RGBA8Snorm;
-        case rgba8Uint:             return MTLPixelFormat.RGBA8Uint;
-        case rgba8Sint:             return MTLPixelFormat.RGBA8Sint;
-        case rgba16Unorm:           return MTLPixelFormat.RGBA16Unorm;
-        case rgba16Snorm:           return MTLPixelFormat.RGBA16Snorm;
-        case rgba16Uint:            return MTLPixelFormat.RGBA16Uint;
-        case rgba16Sint:            return MTLPixelFormat.RGBA16Sint;
-        case rgba32Uint:            return MTLPixelFormat.RGBA32Uint;
-        case rgba32Sint:            return MTLPixelFormat.RGBA32Sint;
-        case rgba32Float:           return MTLPixelFormat.RGBA32Float;
-        case bgra8Unorm:            return MTLPixelFormat.BGRA8Unorm;
-        case bgra8UnormSRGB:        return MTLPixelFormat.BGRA8Unorm_sRGB;
-        case rgbaUnorm_BC1:         return MTLPixelFormat.BC1_RGBA;
-        case rgbaUnormSRGB_BC1:     return MTLPixelFormat.BC1_RGBA_sRGB;
-        case rgbaUnorm_BC2:         return MTLPixelFormat.BC2_RGBA;
-        case rgbaUnormSRGB_BC2:     return MTLPixelFormat.BC2_RGBA_sRGB;
-        case rgbaUnorm_BC3:         return MTLPixelFormat.BC3_RGBA;
-        case rgbaUnormSRGB_BC3:     return MTLPixelFormat.BC3_RGBA_sRGB;
-        case rgbaUnorm_BC7:         return MTLPixelFormat.BC7_RGBAUnorm;
-        case rgbaUnormSRGB_BC7:     return MTLPixelFormat.BC7_RGBAUnorm_sRGB;
-        case depth24Stencil8:       return MTLPixelFormat.Depth24Unorm_Stencil8;
-        case depth32Stencil8:       return MTLPixelFormat.Depth32Float_Stencil8;
-        case x24Stencil8:           return MTLPixelFormat.X24_Stencil8;
-        case x32Stencil8:           return MTLPixelFormat.X32_Stencil8;
+        Params:
+            format =    Pixel format to interpret the texture as.
+        
+        Returns:
+            A new $(D NioTexture) on success,
+            $(D null) otherwise.
+    */
+    override NioTexture createView(NioPixelFormat format) {
+        return nogc_new!NioMTLTexture(device, this, NioTextureDescriptor(format: format), 0, 0);
     }
-}
 
-/**
-    Converts a $(D MTLPixelFormat) format to its $(D NioPixelFormat) equivalent.
+    /**
+        Creates a new texture which reinterprets the data of this
+        texture.
 
-    Params:
-        format = The $(D MTLPixelFormat)
-    
-    Returns:
-        The $(D NioPixelFormat) equivalent.
-*/
-pragma(inline, true)
-NioPixelFormat toNioPixelFormat(MTLPixelFormat format) @nogc {
-    switch(format) with(MTLPixelFormat) {
-        default:                        return NioPixelFormat.unknown;
-        case A8Unorm:                   return NioPixelFormat.a8Unorm;
-        case R8Unorm:                   return NioPixelFormat.r8Unorm;
-        case R8Unorm_sRGB:              return NioPixelFormat.r8UnormSRGB;
-        case R8Snorm:                   return NioPixelFormat.r8Snorm;
-        case R8Uint:                    return NioPixelFormat.r8Uint;
-        case R8Sint:                    return NioPixelFormat.r8Sint;
-        case R16Unorm:                  return NioPixelFormat.r16Unorm;
-        case R16Uint:                   return NioPixelFormat.r16Uint;
-        case R16Sint:                   return NioPixelFormat.r16Sint;
-        case R16Float:                  return NioPixelFormat.r16Float;
-        case R32Uint:                   return NioPixelFormat.r32Uint;
-        case R32Sint:                   return NioPixelFormat.r32Sint;
-        case R32Float:                  return NioPixelFormat.r32Float;
-        case RG8Unorm:                  return NioPixelFormat.rg8Unorm;
-        case RG8Unorm_sRGB:             return NioPixelFormat.rg8UnormSRGB;
-        case RG8Snorm:                  return NioPixelFormat.rg8Snorm;
-        case RG8Uint:                   return NioPixelFormat.rg8Uint;
-        case RG8Sint:                   return NioPixelFormat.rg8Sint;
-        case RG16Unorm:                 return NioPixelFormat.rg16Unorm;
-        case RG16Snorm:                 return NioPixelFormat.rg16Snorm;
-        case RG16Uint:                  return NioPixelFormat.rg16Uint;
-        case RG16Sint:                  return NioPixelFormat.rg16Sint;
-        case RG16Float:                 return NioPixelFormat.rg16Float;
-        case RG32Uint:                  return NioPixelFormat.rg32Uint;
-        case RG32Sint:                  return NioPixelFormat.rg32Sint;
-        case RG32Float:                 return NioPixelFormat.rg32Float;
-        case RGBA8Unorm:                return NioPixelFormat.rgba8Unorm;
-        case RGBA8Unorm_sRGB:           return NioPixelFormat.rgba8UnormSRGB;
-        case RGBA8Snorm:                return NioPixelFormat.rgba8Snorm;
-        case RGBA8Uint:                 return NioPixelFormat.rgba8Uint;
-        case RGBA8Sint:                 return NioPixelFormat.rgba8Sint;
-        case RGBA16Unorm:               return NioPixelFormat.rgba16Unorm;
-        case RGBA16Snorm:               return NioPixelFormat.rgba16Snorm;
-        case RGBA16Uint:                return NioPixelFormat.rgba16Uint;
-        case RGBA16Sint:                return NioPixelFormat.rgba16Sint;
-        case RGBA32Uint:                return NioPixelFormat.rgba32Uint;
-        case RGBA32Sint:                return NioPixelFormat.rgba32Sint;
-        case RGBA32Float:               return NioPixelFormat.rgba32Float;
-        case BGRA8Unorm:                return NioPixelFormat.bgra8Unorm;
-        case BGRA8Unorm_sRGB:           return NioPixelFormat.bgra8UnormSRGB;
-        case BC1_RGBA:                  return NioPixelFormat.rgbaUnorm_BC1;
-        case BC1_RGBA_sRGB:             return NioPixelFormat.rgbaUnormSRGB_BC1;
-        case BC2_RGBA:                  return NioPixelFormat.rgbaUnorm_BC2;
-        case BC2_RGBA_sRGB:             return NioPixelFormat.rgbaUnormSRGB_BC2;
-        case BC3_RGBA:                  return NioPixelFormat.rgbaUnorm_BC3;
-        case BC3_RGBA_sRGB:             return NioPixelFormat.rgbaUnormSRGB_BC3;
-        case BC7_RGBAUnorm:             return NioPixelFormat.rgbaUnorm_BC7;
-        case BC7_RGBAUnorm_sRGB:        return NioPixelFormat.rgbaUnormSRGB_BC7;
-        case Depth24Unorm_Stencil8:     return NioPixelFormat.depth24Stencil8;
-        case Depth32Float_Stencil8:     return NioPixelFormat.depth32Stencil8;
-        case X24_Stencil8:              return NioPixelFormat.x24Stencil8;
-        case X32_Stencil8:              return NioPixelFormat.x32Stencil8;
+        Params:
+            format =        Pixel format to interpret the texture as.
+            type =          The texture type to interpret the texture as.
+            baseLevel =     The base mip level to interpret
+            baseSlice =     The base array slice to interpret
+            levels =        The levels to interpret.
+            slices =        The slices to interpret.
+        
+        Returns:
+            A new $(D NioTexture) on success,
+            $(D null) otherwise.
+    */
+    override NioTexture createView(NioPixelFormat format, NioTextureType type, uint baseLevel, uint baseSlice, uint levels, uint slices) {
+        return nogc_new!NioMTLTexture(device, this, NioTextureDescriptor(type: type, format: format, levels: levels, slices: slices), baseSlice, baseLevel);
     }
 }
 

@@ -515,7 +515,7 @@ struct NioRenderPassDescriptor {
     /**
         Stencil attachment, optional.
     */
-    NioDepthAttachmentDescriptor stencilAttachment;
+    NioStencilAttachmentDescriptor stencilAttachment;
 }
 
 /**

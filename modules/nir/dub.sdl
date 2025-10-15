@@ -4,10 +4,8 @@ authors "luna"
 copyright "Copyright © 2025, luna"
 license "BSL-1.0"
 
-importPaths "../../source" "../nir/source"
-
-dependency "nuvk:spirv" path="../../../nuvk"
-dependency "nuvk:vulkan" path="../../../nuvk"
+dependency "numem" version="~>1.3"
+dependency "nulib" version="~>0.3"
 
 targetPath "out/"
 targetName "nir"

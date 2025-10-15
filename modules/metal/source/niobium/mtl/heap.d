@@ -42,6 +42,11 @@ private:
 public:
 
     /**
+        Native backend handle of the resource
+    */
+    override @property void* handle() => cast(void*)handle_;
+
+    /**
         Size of the resource in bytes.
     */
     override @property uint size() => cast(uint)desc_.size;
