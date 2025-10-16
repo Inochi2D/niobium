@@ -86,10 +86,9 @@ protected:
 public:
 
     /**
-        Whether the command buffer is currently in the
-        recording state.
+        Whether the command buffer is still recording.
     */
-    @property bool isRecording() => isRecording_; 
+    override @property bool isRecording() => isRecording_;
 
     /**
         Handle of the command buffer.

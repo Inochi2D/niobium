@@ -12,11 +12,13 @@
 module niobium.mtl.surface;
 import niobium.mtl.device;
 import niobium.mtl.resource;
+import niobium.mtl.memory;
 import metal.pixelformat;
 import metal.drawable;
 import foundation;
 import coregraphics.cggeometry;
 import nulib.threading.mutex;
+import objc.autorelease;
 import nulib;
 import numem;
 
@@ -164,21 +166,23 @@ public:
             drawable surface, or $(D null).
     */
     override NioDrawable next() {
-        if (!isReady)
-            return null;
-
-        auto currSize = handle_.drawableSize;
-        if (currSize.width != lastSize_.width || currSize.height != lastSize_.height) {
-            this.lastSize_ = handle_.drawableSize;
-            this.size_ = NioExtent2D(cast(uint)lastSize_.width, cast(uint)lastSize_.height);
-        }
+        if (!isReady) return null;
 
         mutex_.lock();
-        scope(exit) mutex_.unlock();
-        if (auto mtldrawable = handle_.next()) {
-            return nogc_new!NioMTLDrawable(this, mtldrawable);
-        }
-        return null;
+        CAMetalDrawable drawable;
+        .autorelease(() {
+            auto currSize = handle_.drawableSize;
+            if (currSize.width != lastSize_.width || currSize.height != lastSize_.height) {
+                this.lastSize_ = handle_.drawableSize;
+                this.size_ = NioExtent2D(cast(uint)lastSize_.width, cast(uint)lastSize_.height);
+            }
+            
+            drawable = handle_.next();
+            if (drawable)
+                drawable.retain();
+        });
+        mutex_.unlock();
+        return drawable !is null ? nogc_new!NioMTLDrawable(this, drawable) : null;
     }
 }
 

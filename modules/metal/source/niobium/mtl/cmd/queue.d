@@ -10,6 +10,7 @@
         Luna Nielsen
 */
 module niobium.mtl.cmd.queue;
+import niobium.mtl.memory;
 import niobium.mtl.surface;
 import niobium.mtl.device;
 import niobium.mtl.cmd;
@@ -41,6 +42,7 @@ private:
         this.desc_ = desc;
         this.handle_ = device.handle.newCommandQueue(desc.maxCommandBuffers);
     }
+
 protected:
 
     /**
@@ -88,7 +90,12 @@ public:
         the queue may contain an internal pool of command buffers.
     */
     override NioCommandBuffer fetch() {
-        return nogc_new!NioMTLCommandBuffer(device, this);
+        MTLCommandBuffer cmdbuffer;
+        .autorelease(() {
+            cmdbuffer = handle_.commandBuffer();
+            cmdbuffer.retain();
+        });
+        return nogc_new!NioMTLCommandBuffer(this, cmdbuffer);
     }
 
     /**
@@ -99,6 +106,8 @@ public:
             buffer = The buffer to enqueue.
     */
     override void enqueue(NioCommandBuffer buffer) {
+        if (!buffer.isRecording()) return;
+        
         if (auto mtlcmdbuffer = cast(NioMTLCommandBuffer)buffer) {
             if (mtlcmdbuffer.handle.status == MTLCommandBufferStatus.NotEnqueued)
                 mtlcmdbuffer.handle.enqueue();
@@ -114,10 +123,7 @@ public:
     */
     override void enqueue(NioCommandBuffer[] buffers) {
         foreach(buffer; buffers) {
-            if (auto mtlcmdbuffer = cast(NioMTLCommandBuffer)buffer) {
-                if (mtlcmdbuffer.handle.status == MTLCommandBufferStatus.NotEnqueued)
-                    mtlcmdbuffer.handle.enqueue();
-            }
+            this.enqueue(buffer);
         }
     }
 
@@ -128,10 +134,8 @@ public:
             buffer = The buffer to enqueue.
     */
     override void commit(NioCommandBuffer buffer) {
+        if (!buffer.isRecording()) return;
         if (auto mtlcmdbuffer = cast(NioMTLCommandBuffer)buffer) {
-            if (mtlcmdbuffer.handle.status >= MTLCommandBufferStatus.Committed)
-                return;
-            
             mtlcmdbuffer.handle.commit();
         }
     }
@@ -144,12 +148,7 @@ public:
     */
     override void commit(NioCommandBuffer[] buffers) {
         foreach(buffer; buffers) {
-            if (auto mtlcmdbuffer = cast(NioMTLCommandBuffer)buffer) {
-                if (mtlcmdbuffer.handle.status >= MTLCommandBufferStatus.Committed)
-                    return;
-                
-                mtlcmdbuffer.handle.commit();
-            }
+            this.commit(buffer);
         }
     }
 }

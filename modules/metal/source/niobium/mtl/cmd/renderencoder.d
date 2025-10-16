@@ -14,6 +14,7 @@ import niobium.mtl.cmd.buffer;
 import niobium.mtl.depthstencil;
 import niobium.mtl.resource;
 import niobium.mtl.sampler;
+import niobium.mtl.memory;
 import niobium.mtl.render;
 import niobium.mtl.sync;
 import niobium.types;
@@ -41,7 +42,7 @@ private:
 @nogc:
 
     void setup(NioRenderPassDescriptor desc) {
-        MTLRenderPassDescriptor mtldesc = MTLRenderPassDescriptor.create();
+        MTLRenderPassDescriptor mtldesc = MTLRenderPassDescriptor.alloc.init;
         NioViewport vp;
 
         // Color Attachments
@@ -94,7 +95,10 @@ private:
         stencildesc.storeAction = desc.stencilAttachment.storeAction.toMTLStoreAction();
         stencildesc.clearStencil = desc.stencilAttachment.clearStencil;
 
-        this.handle = mtlcmdbuffer.renderCommandEncoder(mtldesc);
+        .autorelease(() {
+            this.handle = mtlcmdbuffer.renderCommandEncoder(mtldesc);
+            this.handle.retain();
+        });
         mtldesc.release();
     }
 

@@ -65,6 +65,11 @@ protected:
 public:
 
     /**
+        Whether the command buffer is still recording.
+    */
+    abstract @property bool isRecording();
+
+    /**
         The queue the buffer belongs to.
     */
     final @property NioCommandQueue queue() => queue_;

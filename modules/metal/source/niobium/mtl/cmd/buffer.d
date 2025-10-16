@@ -10,6 +10,7 @@
         Luna Nielsen
 */
 module niobium.mtl.cmd.buffer;
+import niobium.mtl.memory;
 import niobium.mtl.device;
 import niobium.mtl.surface;
 import niobium.mtl.sync;
@@ -22,6 +23,7 @@ import foundation;
 import numem;
 import nulib;
 import nulib.threading.mutex;
+import objc.autorelease;
 
 public import niobium.cmd;
 public import niobium.mtl.cmd.txrencoder;
@@ -40,8 +42,6 @@ public import niobium.mtl.cmd.renderencoder;
 class NioMTLCommandBuffer : NioCommandBuffer {
 private:
 @nogc:
-    // State
-    bool isRecording_ = true;
 
     // Handles
     MTLCommandBuffer handle_;
@@ -66,6 +66,11 @@ protected:
 public:
 
     /**
+        Whether the command buffer is still recording.
+    */
+    override @property bool isRecording() => handle_.status < MTLCommandBufferStatus.Committed;
+
+    /**
         The underlying metal handle.
     */
     final @property MTLCommandBuffer handle() => handle_;
@@ -82,9 +87,9 @@ public:
         Params:
             device = The device that "owns" this command buffer.
     */
-    this(NioDevice device, NioMTLCommandQueue queue) {
+    this(NioMTLCommandQueue queue, MTLCommandBuffer handle) {
         super(queue);
-        this.handle_ = queue.handle.commandBuffer();
+        this.handle_ = handle;
         this.encoderMutex_ = nogc_new!Mutex();
     }
 
@@ -104,8 +109,10 @@ public:
     */
     override NioRenderCommandEncoder beginRenderPass(NioRenderPassDescriptor desc) {
         encoderMutex_.lock();
-        if (this.activeEncoder)
+        if (this.activeEncoder) {
+            encoderMutex_.unlock();
             return null;
+        }
 
         // TODO: Create NioRenderCommandEncoder here.
         this.activeEncoder = nogc_new!NioMTLRenderCommandEncoder(this, desc);
@@ -126,8 +133,10 @@ public:
     */
     override NioTransferCommandEncoder beginTransferPass() {
         encoderMutex_.lock();
-        if (this.activeEncoder)
+        if (this.activeEncoder) {
+            encoderMutex_.unlock();
             return null;
+        }
         
         this.activeEncoder = nogc_new!NioMTLTransferCommandEncoder(this);
         encoderMutex_.unlock();
@@ -142,16 +151,13 @@ public:
             drawable = The drawable to present.
     */
     override void present(NioDrawable drawable) {
-        if (!isRecording_)
+        if (drawable.queue)
             return;
-        
-        if (auto mtldrawable = cast(NioMTLDrawable)drawable) {
-            if (mtldrawable.queue)
-                return;
-            
-            mtldrawable.queue = this.queue;
-            handle_.present(mtldrawable.handle);
-        }
+
+        .autorelease(() {
+            handle_.present((cast(NioMTLDrawable)drawable).handle);
+            drawable.release();
+        });
     }
 
     /**
@@ -190,7 +196,9 @@ mixin template MTLCommandEncoderFunctions(EncoderT) {
             color = The color of the debug group (optional)
     */
     override void pushDebugGroup(string name, float[4] color) {
-        mtlcmdbuffer.pushDebugGroup(NSString.create(name));
+        .autorelease(() {
+            mtlcmdbuffer.pushDebugGroup(NSString.create(name));
+        });
     }
 
     /**

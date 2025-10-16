@@ -126,15 +126,14 @@ const uint[] indices = [
 ];
 
 void main() {
-	import std.stdio;
 
-    // Create Device
+	// Create Device
 	auto device = NioDevice.systemDevices[0];
 	auto queue = device.createQueue(NioCommandQueueDescriptor(
 		maxCommandBuffers: 6
 	));
 
-    // Create Window and Surface
+	// Create Window and Surface
 	SDL_Init(SDL_INIT_EVERYTHING);
 	SDL_Window* window = SDL_CreateWindow("Niobium Cube", 640, 480, SDL_WindowFlags.SDL_WINDOW_RESIZABLE);
 
@@ -182,23 +181,23 @@ void main() {
 		)
 	);
 
-    // Vertex Data
-    NioBuffer vtxbuffer = device.createBuffer(NioBufferDescriptor(
-        usage: NioBufferUsage.transfer | NioBufferUsage.vertexBuffer,
+	// Vertex Data
+	NioBuffer vtxbuffer = device.createBuffer(NioBufferDescriptor(
+		usage: NioBufferUsage.transfer | NioBufferUsage.vertexBuffer,
 		storage: NioStorageMode.privateStorage,
-        size: cast(uint)(vertices.length*Vertex.sizeof)
-    )).upload(cast(void[])vertices[0..$], 0);
+		size: cast(uint)(vertices.length*Vertex.sizeof)
+	)).upload(cast(void[])vertices[0..$], 0);
 
-    NioBuffer idxbuffer = device.createBuffer(NioBufferDescriptor(
-        usage: NioBufferUsage.transfer | NioBufferUsage.indexBuffer,
+	NioBuffer idxbuffer = device.createBuffer(NioBufferDescriptor(
+		usage: NioBufferUsage.transfer | NioBufferUsage.indexBuffer,
 		storage: NioStorageMode.privateStorage,
-        size: cast(uint)(indices.length * uint.sizeof)
-    )).upload(cast(void[])indices[0..$], 0);
+		size: cast(uint)(indices.length * uint.sizeof)
+	)).upload(cast(void[])indices[0..$], 0);
 
 	// Uniform data
 	Uniform* uniformData;
 	NioBuffer uniforms = device.createBuffer(NioBufferDescriptor(
-        usage: NioBufferUsage.uniformBuffer,
+		usage: NioBufferUsage.uniformBuffer,
 		storage: NioStorageMode.sharedStorage,
 		size: cast(uint)(Uniform.sizeof)
 	));
@@ -246,8 +245,8 @@ void main() {
 					break;
 				
 				case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-					version(linux)
-					surface.size = NioExtent2D(ev.window.data1, ev.window.data2);
+					version(linux) surface.size = NioExtent2D(ev.window.data1, ev.window.data2);
+
 					depthBuffer.release();
 					depthBuffer = device.createTexture(NioTextureDescriptor(
 						type: NioTextureType.type2D,
@@ -308,8 +307,8 @@ void main() {
 	renderPipeline.release();
 	shader.release();
 	uniforms.release();
-    vtxbuffer.release();
-    idxbuffer.release();
+	vtxbuffer.release();
+	idxbuffer.release();
 	queue.release();
 	surface.release();
 	SDL_DestroyWindow(window);

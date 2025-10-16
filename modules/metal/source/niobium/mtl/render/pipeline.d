@@ -56,6 +56,7 @@ private:
             attribdesc.format = attrib.format.toMTLVertexFormat();
 
             mtldesc.vertexDescriptor.attributes.set(attribdesc, i);
+            attribdesc.release();
         }
         foreach(i, layout; desc.vertexDescriptor.bindings) {
             MTLVertexBufferLayoutDescriptor layoutdesc = MTLVertexBufferLayoutDescriptor.alloc.init;
@@ -64,6 +65,7 @@ private:
             layoutdesc.stepRate = 1;
 
             mtldesc.vertexDescriptor.layouts.set(layoutdesc, i);
+            layoutdesc.release();
         }
 
         // Color attachments

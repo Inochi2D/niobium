@@ -77,7 +77,6 @@ private:
 
     void referenceTexture(MTLTexture texture) {
         texture.retain();
-
         this.desc_ = NioTextureDescriptor(
             type: texture.textureType.toNioTextureType(),
             format: texture.pixelFormat.toNioPixelFormat(),

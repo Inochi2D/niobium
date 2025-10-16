@@ -35,7 +35,13 @@ private:
         NSError error;
         foreach(ref shader; library.shaders) {
             if (shader.type == NirShaderType.msl) {
-                handle_ = mtlDevice.handle.newLibrary(NSString.create(cast(string)shader.code), MTLCompileOptions.alloc.init, error);
+                auto source = NSString.create(cast(string)shader.code);
+                auto compileOptions = MTLCompileOptions.alloc.init;
+                
+                handle_ = mtlDevice.handle.newLibrary(source, compileOptions, error);
+                
+                source.release();
+                compileOptions.release();
                 if (error) {
                     string errText = error.toString();
                     error.release();

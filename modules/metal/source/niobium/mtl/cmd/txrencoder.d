@@ -11,6 +11,7 @@
 */
 module niobium.mtl.cmd.txrencoder;
 import niobium.mtl.resource;
+import niobium.mtl.memory;
 import niobium.mtl.sync;
 import niobium.mtl.cmd;
 import foundation;
@@ -44,7 +45,11 @@ public:
     */
     this(NioCommandBuffer buffer) {
         super(buffer);
-        this.handle = mtlcmdbuffer.blitCommandEncoder();
+
+        .autorelease(() {
+            this.handle = mtlcmdbuffer.blitCommandEncoder();
+            this.handle.retain();
+        });
     }
 
     /// Command Encoder Functions
