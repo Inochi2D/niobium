@@ -106,7 +106,7 @@ public:
                 handle: nativeHandle,
             );
             auto allocInfo = VkMemoryAllocateInfo(pNext: &importInfo);
-            vkAllocateMemory(nvkDevice.handle, &allocInfo, null, &deviceMemory_);
+            vkAllocateMemory(nvkDevice.handle, &allocInfo, null, deviceMemory_);
         } else version(linux) {
 
             auto importInfo = VkImportMemoryFdInfoKHR(
@@ -114,7 +114,7 @@ public:
                 fd: cast(int)*cast(ptrdiff_t*)&nativeHandle,
             );
             auto allocInfo = VkMemoryAllocateInfo(pNext: &importInfo);
-            vkAllocateMemory(nvkDevice.handle, &allocInfo, null, &deviceMemory_);
+            vkAllocateMemory(nvkDevice.handle, &allocInfo, null, deviceMemory_);
         } else {
 
             auto importInfo = VkImportMemoryFdInfoKHR(
@@ -122,7 +122,7 @@ public:
                 fd: cast(int)*cast(ptrdiff_t*)&nativeHandle,
             );
             auto allocInfo = VkMemoryAllocateInfo(pNext: &importInfo);
-            vkAllocateMemory(nvkDevice.handle, &allocInfo, null, &deviceMemory_);
+            vkAllocateMemory(nvkDevice.handle, &allocInfo, null, deviceMemory_);
         }
     }
 }

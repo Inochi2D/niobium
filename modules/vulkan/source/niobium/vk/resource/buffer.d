@@ -46,7 +46,7 @@ private:
             usage: desc.usage.toVkBufferUsage(),
             sharingMode: VK_SHARING_MODE_EXCLUSIVE
         );
-        vkEnforce(vkCreateBuffer(nvkDevice.handle, &vkdesc_, null, &handle_));
+        vkEnforce(vkCreateBuffer(nvkDevice.handle, &vkdesc_, null, handle_));
 
         // Allocate memory for our texture.
         VkMemoryRequirements vkmemreq_;

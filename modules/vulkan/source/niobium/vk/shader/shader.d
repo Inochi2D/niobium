@@ -66,7 +66,7 @@ private:
             codeSize: bytecode.length*4,
             pCode: bytecode.ptr,
         );
-        vkCreateShaderModule(nvkDevice.handle, &createInfo, null, &handle_);
+        vkCreateShaderModule(nvkDevice.handle, &createInfo, null, handle_);
     }
 
 public:
@@ -622,7 +622,7 @@ VkDescriptorType toVkDescriptorType(NirBindingType type) @nogc {
     final switch(type) with(NirBindingType) {
         case unknown:
         case stageInput:
-        case stageOutput:               return uint.max;
+        case stageOutput:               return cast(VkDescriptorType)uint.max;
         case sampler:                   return VK_DESCRIPTOR_TYPE_SAMPLER;
         case texture:                   return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         case storage:                   return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;

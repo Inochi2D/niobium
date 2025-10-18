@@ -61,7 +61,7 @@ public:
             allocationSize: desc.size,
             memoryTypeIndex: desc.type
         );
-        vkEnforce(vkAllocateMemory(device_, &createInfo, null, &handle_));
+        vkEnforce(vkAllocateMemory(device_, &createInfo, null, handle_));
     }
 
     /**
@@ -79,7 +79,7 @@ public:
         );
 
         auto createInfo = allocInfo;
-        vkEnforce(vkAllocateMemory(device_, &createInfo, null, &handle_));
+        vkEnforce(vkAllocateMemory(device_, &createInfo, null, handle_));
     }
 
     /**

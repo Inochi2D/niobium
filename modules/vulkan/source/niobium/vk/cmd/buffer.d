@@ -68,7 +68,7 @@ private:
             pPoolSizes: sizes.ptr
         );
 
-        vkCreateDescriptorPool(nvkDevice.handle, &descPoolCreateInfo, null, &pool);
+        vkCreateDescriptorPool(nvkDevice.handle, &descPoolCreateInfo, null, pool);
         vkResetDescriptorPool(nvkDevice.handle, pool, 0);
         return pool;
     }

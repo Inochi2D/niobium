@@ -29,7 +29,7 @@ private:
     void setup() {
         auto nvkDevice = cast(NioVkDevice)device;
         auto createInfo = VkEventCreateInfo();
-        vkCreateEvent(nvkDevice.handle, &createInfo, null, &handle_);
+        vkCreateEvent(nvkDevice.handle, &createInfo, null, handle_);
     }
 
 protected:

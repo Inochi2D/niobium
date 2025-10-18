@@ -114,7 +114,7 @@ private:
                 bindingCount: cast(uint)setBindings.length,
                 pBindings: setBindings.ptr
             );
-            vkCreateDescriptorSetLayout(nvkDevice.handle, &createInfo, null, &layout);
+            vkCreateDescriptorSetLayout(nvkDevice.handle, &createInfo, null, layout);
         }
     }
 
@@ -130,7 +130,7 @@ private:
             pushConstantRangeCount: 0,
             pPushConstantRanges: null
         );
-        vkEnforce(vkCreatePipelineLayout(nvkDevice.handle, &createInfo, null, &layout));
+        vkEnforce(vkCreatePipelineLayout(nvkDevice.handle, &createInfo, null, layout));
         return layout;
     }
 
@@ -218,7 +218,7 @@ private:
     /// Validates the multisample state.
     VkPipelineMultisampleStateCreateInfo validateMultisampleState(NioRenderPipelineDescriptor desc) {
         return VkPipelineMultisampleStateCreateInfo(
-            rasterizationSamples: 1 >> desc.sampleCount,
+            rasterizationSamples: cast(VkSampleCountFlagBits)(1 >> desc.sampleCount),
             alphaToCoverageEnable: cast(VkBool32)desc.alphaToCoverage,
             alphaToOneEnable: cast(VkBool32)desc.alphaToOne,
         );

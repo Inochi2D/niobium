@@ -67,7 +67,7 @@ private:
                 sharingMode: VK_SHARING_MODE_EXCLUSIVE,
                 initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
             );
-            vkEnforce(vkCreateImage(nvkDevice.handle, &vkdesc_, null, &image_));
+            vkEnforce(vkCreateImage(nvkDevice.handle, &vkdesc_, null, image_));
             this.layout = vkdesc_.initialLayout;
 
             // Allocate memory for our texture.
@@ -109,7 +109,7 @@ private:
                 sharingMode: VK_SHARING_MODE_EXCLUSIVE,
                 initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
             );
-            vkEnforce(vkCreateImage(nvkDevice.handle, &vkdesc_, null, &image_));
+            vkEnforce(vkCreateImage(nvkDevice.handle, &vkdesc_, null, image_));
             this.layout = vkdesc_.initialLayout;
 
             // Allocate memory for our texture.
@@ -138,7 +138,7 @@ private:
             components: VkComponentMapping(VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY),
             subresourceRange: VkImageSubresourceRange(desc.format.toVkAspect(), 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS)
         );
-        vkEnforce(vkCreateImageView(nvkDevice.handle, &vkviewdesc_, null, &view_));
+        vkEnforce(vkCreateImageView(nvkDevice.handle, &vkviewdesc_, null, view_));
     }
 
     void createImageView(NioVkTexture parent, NioTextureDescriptor desc, uint baseLevel, uint baseSlice) {
@@ -156,7 +156,7 @@ private:
             components: VkComponentMapping(VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY),
             subresourceRange: VkImageSubresourceRange(desc.format.toVkAspect(), baseLevel, desc_.levels, baseSlice, desc_.slices)
         );
-        vkEnforce(vkCreateImageView(nvkDevice.handle, &vkviewdesc_, null, &view_));
+        vkEnforce(vkCreateImageView(nvkDevice.handle, &vkviewdesc_, null, view_));
     }
 
     void createImageView(VkImage image, NioTextureDescriptor desc) {
@@ -185,7 +185,7 @@ private:
             components: VkComponentMapping(VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY),
             subresourceRange: VkImageSubresourceRange(desc.format.toVkAspect(), 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS)
         );
-        vkEnforce(vkCreateImageView(nvkDevice.handle, &vkviewdesc_, null, &view_));
+        vkEnforce(vkCreateImageView(nvkDevice.handle, &vkviewdesc_, null, view_));
     }
 
 protected:

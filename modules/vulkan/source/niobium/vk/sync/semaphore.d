@@ -35,7 +35,7 @@ private:
         auto createInfo = VkSemaphoreCreateInfo(
             pNext: &semaphoreInfo
         );
-        vkCreateSemaphore(nvkDevice.handle, &createInfo, null, &handle_);
+        vkCreateSemaphore(nvkDevice.handle, &createInfo, null, handle_);
     }
 
     pragma(inline, true)

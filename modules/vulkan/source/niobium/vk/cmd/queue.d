@@ -320,7 +320,7 @@ private:
             flags: VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
             queueFamilyIndex: queue_.queueFamily
         );
-        vkEnforce(vkCreateCommandPool(device_.handle, &createInfo, null, &handle_));
+        vkEnforce(vkCreateCommandPool(device_.handle, &createInfo, null, handle_));
 
         // Allocate
         this.buffers_ =     nu_malloca!VkCommandBuffer(poolSize);
@@ -339,10 +339,10 @@ private:
         // Fill sync primitives and instances
         foreach(i; 0..poolSize) {
             auto fenceCreateInfo = VkFenceCreateInfo(flags: VK_FENCE_CREATE_SIGNALED_BIT);
-            vkCreateFence(device_.handle, &fenceCreateInfo, null, &fences_[i]);
+            vkCreateFence(device_.handle, &fenceCreateInfo, null, fences_[i]);
 
             auto semapCreateInfo = VkSemaphoreCreateInfo();
-            vkCreateSemaphore(device_.handle, &semapCreateInfo, null, &semaphores_[i]);
+            vkCreateSemaphore(device_.handle, &semapCreateInfo, null, semaphores_[i]);
 
             // Fill out instances.
             this.instances_[i] =            nogc_new!NioVkCommandBuffer(queue_, buffers_[i]);

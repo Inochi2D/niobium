@@ -701,7 +701,7 @@ VkAttachmentStoreOp toVkStoreOp(NioStoreAction action) @nogc {
         The $(D VkAttachmentStoreOp) equivalent.
 */
 pragma(inline, true)
-VkAttachmentStoreOp toVkResolveMode(NioStoreAction action) @nogc {
+VkResolveModeFlagBits toVkResolveMode(NioStoreAction action) @nogc {
     final switch(action) with(NioStoreAction) {
         case dontCare:          return VK_RESOLVE_MODE_NONE;
         case store:             return VK_RESOLVE_MODE_NONE;

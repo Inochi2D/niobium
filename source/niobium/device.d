@@ -77,6 +77,11 @@ struct NioDeviceFeatures {
         Whether sharing memory between processes is supported.
     */
     bool externalMemory;
+
+    /**
+        Whether the framebuffer may be read from, then written to.
+    */
+    bool framebufferFetch;
 }
 
 /**

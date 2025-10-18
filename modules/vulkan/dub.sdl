@@ -12,7 +12,7 @@ dependency "nulib" version="~>0.3"
 
 configuration "vulkan" {
     targetType "staticLibrary"
-    versions "VULKAN_1_1" "VULKAN_1_2" "VULKAN_1_3"
+    versions "VK_VERSION_1_1" "VK_VERSION_1_2" "VK_VERSION_1_3"
 }
 
 configuration "none" {

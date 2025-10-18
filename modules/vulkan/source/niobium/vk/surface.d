@@ -97,7 +97,7 @@ private:
         }
 
         swapCreateInfo.oldSwapchain = swapchain_;
-        auto result = swapFuncs.vkCreateSwapchainKHR(device_.handle, &swapCreateInfo, null, &swapchain_);
+        auto result = swapFuncs.vkCreateSwapchainKHR(device_.handle, &swapCreateInfo, null, swapchain_);
         if (result == VK_SUCCESS) {
 
             // Recreate drawables.
@@ -130,7 +130,7 @@ private:
 
         auto semaCreateInfo = VkSemaphoreCreateInfo();
         foreach(ref semaphore; semaphores_)
-            vkCreateSemaphore(device_.handle, &semaCreateInfo, null, &semaphore);
+            vkCreateSemaphore(device_.handle, &semaCreateInfo, null, semaphore);
 
         // Create new drawables.
         foreach(i; 0..images.length) {
@@ -247,7 +247,7 @@ public:
     override @property bool transparent() => transparent_;
     override @property void transparent(bool value) {
         if (supportedAlphaMode_ != VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) {
-            swapCreateInfo.compositeAlpha = value ? supportedAlphaMode_ : VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+            swapCreateInfo.compositeAlpha = cast(VkCompositeAlphaFlagBitsKHR)(value ? supportedAlphaMode_ : VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR);
             this.transparent_ = value;
             this.needsRebuild = true;
         }
@@ -307,14 +307,15 @@ public:
     */
     version(Windows)
     this(void* hinstance, void* hwnd) {
-        VK_KHR_win32_surface procs = __nio_surface_procs.get().win32;
+        import vulkan.platforms.windows;
 
+        VK_KHR_win32_surface procs = __nio_surface_procs.get().win32;
         if (procs.vkCreateWin32SurfaceKHR) {
             auto createInfo = VkWin32SurfaceCreateInfoKHR(
                 hinstance: hinstance,
                 hwnd: hwnd
             );
-            vkEnforce(procs.vkCreateWin32SurfaceKHR(__nio_vk_instance, &createInfo, null, &handle_));
+            vkEnforce(procs.vkCreateWin32SurfaceKHR(__nio_vk_instance, &createInfo, null, handle_));
             this.setup();
         }
     }
@@ -328,16 +329,15 @@ public:
     */
     version(Posix)
     this(void* display, void* surface) {
-        import std.stdio;
+        import vulkan.platforms.wayland;
 
         VK_KHR_wayland_surface procs = __nio_surface_procs.get().wayland;
-
         if (procs.vkCreateWaylandSurfaceKHR) {
             auto createInfo = VkWaylandSurfaceCreateInfoKHR(
                 display: cast(wl_display*)display,
                 surface: cast(wl_surface*)surface
             );
-            vkEnforce(procs.vkCreateWaylandSurfaceKHR(__nio_vk_instance, &createInfo, null, &handle_));
+            vkEnforce(procs.vkCreateWaylandSurfaceKHR(__nio_vk_instance, &createInfo, null, handle_));
             this.setup();
         }
     }
@@ -351,13 +351,15 @@ public:
     */
     version(Posix)
     this(void* display, uint window) {
+        import vulkan.platforms.xlib;
+
         VK_KHR_xlib_surface procs = __nio_surface_procs.get().xlib;
         if (procs.vkCreateXlibSurfaceKHR) {
             auto createInfo = VkXlibSurfaceCreateInfoKHR(
-                display: cast(Display*)display,
+                dpy: cast(Display*)display,
                 window: window
             );
-            vkEnforce(procs.vkCreateXlibSurfaceKHR(__nio_vk_instance, &createInfo, null, &handle_));
+            vkEnforce(procs.vkCreateXlibSurfaceKHR(__nio_vk_instance, &createInfo, null, handle_));
             this.setup();
         }
     }

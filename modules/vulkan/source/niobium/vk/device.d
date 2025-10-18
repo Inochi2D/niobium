@@ -31,6 +31,13 @@ import niobium.pipeline;
 public import niobium.device;
 public import niobium.types;
 
+import vulkan.ext.debug_utils;
+import vulkan.ext.extended_dynamic_state;
+import vulkan.ext.extended_dynamic_state2;
+import vulkan.ext.extended_dynamic_state3;
+import vulkan.khr.swapchain_maintenance1;
+import vulkan.ext.mesh_shader;
+
 /**
     A device which is capable of doing 3D rendering and/or
     GPGPU computations.
@@ -188,7 +195,7 @@ private:
             enabledExtensionCount: cast(uint)extensions.length,
             ppEnabledExtensionNames: extensions.ptr
         );
-        vkEnforce(vkCreateDevice(physicalDevice_, &createInfo, null, &handle_));
+        vkEnforce(vkCreateDevice(physicalDevice_, &createInfo, null, handle_));
         nu_freea(tmpQueuePriorities);
         
         // Free the pointers we allocated.
@@ -220,7 +227,7 @@ private:
 
     VkQueue getQueue(uint queueFamily, uint index) {
         VkQueue queue_;
-        vkGetDeviceQueue(handle_, queueFamily, index, &queue_);
+        vkGetDeviceQueue(handle_, queueFamily, index, queue_);
         return queue_;
     }
 
@@ -972,87 +979,3 @@ const(char)*[] getInstanceExtensions() @nogc nothrow {
 //              DEBUG TAGS IMPLEMENTATION DETAILS
 //
 VK_EXT_debug_utils __nio_vk_debug_utils;
-
-struct VkDebugUtilsObjectNameInfoEXT {
-    VkStructureType    sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-    const(void)*       pNext;
-    VkObjectType       objectType;
-    ulong              objectHandle;
-    const(char)*       pObjectName;
-}
-
-struct VkDebugUtilsLabelEXT {
-    VkStructureType    sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-    const(void)*       pNext;
-    const(char)*       pLabelName;
-    float[4]           color;
-} 
-
-struct VK_EXT_debug_utils {
-extern(System) @nogc nothrow:
-
-    @VkProcName("vkSetDebugUtilsObjectNameEXT")
-    VkResult function(VkDevice, const(VkDebugUtilsObjectNameInfoEXT)*) vkSetDebugUtilsObjectNameEXT;
-    
-    @VkProcName("vkCmdBeginDebugUtilsLabelEXT")
-    void function (VkCommandBuffer, const(VkDebugUtilsLabelEXT)*) vkCmdBeginDebugUtilsLabelEXT;
-    
-    @VkProcName("vkCmdEndDebugUtilsLabelEXT")
-    void function (VkCommandBuffer) vkCmdEndDebugUtilsLabelEXT;
-}
-
-
-//
-//              VK_EXT_extended_dynamic_state3
-//
-struct VkPhysicalDeviceExtendedDynamicState3FeaturesEXT {
-    VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
-    void*              pNext;
-    VkBool32           extendedDynamicState3TessellationDomainOrigin;
-    VkBool32           extendedDynamicState3DepthClampEnable;
-    VkBool32           extendedDynamicState3PolygonMode;
-    VkBool32           extendedDynamicState3RasterizationSamples;
-    VkBool32           extendedDynamicState3SampleMask;
-    VkBool32           extendedDynamicState3AlphaToCoverageEnable;
-    VkBool32           extendedDynamicState3AlphaToOneEnable;
-    VkBool32           extendedDynamicState3LogicOpEnable;
-    VkBool32           extendedDynamicState3ColorBlendEnable;
-    VkBool32           extendedDynamicState3ColorBlendEquation;
-    VkBool32           extendedDynamicState3ColorWriteMask;
-    VkBool32           extendedDynamicState3RasterizationStream;
-    VkBool32           extendedDynamicState3ConservativeRasterizationMode;
-    VkBool32           extendedDynamicState3ExtraPrimitiveOverestimationSize;
-    VkBool32           extendedDynamicState3DepthClipEnable;
-    VkBool32           extendedDynamicState3SampleLocationsEnable;
-    VkBool32           extendedDynamicState3ColorBlendAdvanced;
-    VkBool32           extendedDynamicState3ProvokingVertexMode;
-    VkBool32           extendedDynamicState3LineRasterizationMode;
-    VkBool32           extendedDynamicState3LineStippleEnable;
-    VkBool32           extendedDynamicState3DepthClipNegativeOneToOne;
-    VkBool32           extendedDynamicState3ViewportWScalingEnable;
-    VkBool32           extendedDynamicState3ViewportSwizzle;
-    VkBool32           extendedDynamicState3CoverageToColorEnable;
-    VkBool32           extendedDynamicState3CoverageToColorLocation;
-    VkBool32           extendedDynamicState3CoverageModulationMode;
-    VkBool32           extendedDynamicState3CoverageModulationTableEnable;
-    VkBool32           extendedDynamicState3CoverageModulationTable;
-    VkBool32           extendedDynamicState3CoverageReductionMode;
-    VkBool32           extendedDynamicState3RepresentativeFragmentTestEnable;
-    VkBool32           extendedDynamicState3ShadingRateImageEnable;
-}
-
-struct VkPhysicalDeviceExtendedDynamicState3PropertiesEXT {
-    VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_PROPERTIES_EXT;
-    void*              pNext;
-    VkBool32           dynamicPrimitiveTopologyUnrestricted;
-}
-
-
-//
-//              VK_KHR_swapchain_maintenance1
-//
-struct VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR {
-    VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT;
-    void*              pNext;
-    VkBool32           swapchainMaintenance1;
-}

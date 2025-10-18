@@ -43,7 +43,7 @@ private:
             maxAnisotropy: desc.maxAnisotropy,
             unnormalizedCoordinates: cast(VkBool32)!desc.normalizedCoordinates
         );
-        vkCreateSampler(nvkDevice.handle, &createInfo, null, &handle_);
+        vkCreateSampler(nvkDevice.handle, &createInfo, null, handle_);
     }
 
 protected:
