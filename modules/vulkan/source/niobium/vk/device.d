@@ -32,11 +32,14 @@ public import niobium.device;
 public import niobium.types;
 
 import vulkan.ext.debug_utils;
+import vulkan.ext.attachment_feedback_loop_layout;
 import vulkan.ext.extended_dynamic_state;
 import vulkan.ext.extended_dynamic_state2;
 import vulkan.ext.extended_dynamic_state3;
-import vulkan.khr.swapchain_maintenance1;
 import vulkan.ext.mesh_shader;
+import vulkan.ext.swapchain_maintenance1;
+import vulkan.khr.swapchain_maintenance1;
+import vulkan.khr.external_memory;
 
 /**
     A device which is capable of doing 3D rendering and/or
@@ -113,6 +116,27 @@ private:
         VkPhysicalDeviceMemoryProperties memoryProperties;
         vkGetPhysicalDeviceMemoryProperties(physicalDevice_, &memoryProperties);
 
+        // Check extensions
+        const(char)*[] extensions;
+        this.deviceFeatures_.presentation = extensions.addIfHas(deviceExtensions, 
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        );
+        this.deviceFeatures_.meshShaders = extensions.addIfHas(deviceExtensions, 
+            VK_EXT_MESH_SHADER_EXTENSION_NAME
+        );
+        this.deviceFeatures_.externalMemory = extensions.addIfHas(deviceExtensions, 
+            VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+            "VK_KHR_external_memory_win32",
+            "VK_KHR_external_memory_fd",
+            "VK_EXT_external_memory_dma_buf"
+        );
+        this.deviceFeatures_.framebufferFetch = extensions.addIfHas(deviceExtensions, VK_EXT_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_EXTENSION_NAME);
+        this.supportsSwapchainFence_ = extensions.addIfHasOne( deviceExtensions, 
+            VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
+            VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME
+        );
+        assert(extensions.addIfHas(deviceExtensions, VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME), "Dynamic state mismatch!");
+
         // Build Properties.
         VkPhysicalDeviceExtendedDynamicState3PropertiesEXT dyn3p = VkPhysicalDeviceExtendedDynamicState3PropertiesEXT();
         VkPhysicalDeviceVulkan13Properties vk13p = VkPhysicalDeviceVulkan13Properties(pNext: &dyn3p);
@@ -126,24 +150,14 @@ private:
         this.deviceName_ = nstring(vkp.properties.deviceName.ptr).take();
 
         // Build features
-        VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR swap = VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR();
+        VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT fdbk = VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT();
+        VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR swap = VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR(pNext: &fdbk);
         VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dyn3 = VkPhysicalDeviceExtendedDynamicState3FeaturesEXT(pNext: &swap);
         VkPhysicalDeviceVulkan13Features vk13 = VkPhysicalDeviceVulkan13Features(pNext: &dyn3);
         VkPhysicalDeviceVulkan12Features vk12 = VkPhysicalDeviceVulkan12Features(pNext: &vk13);
         VkPhysicalDeviceVulkan11Features vk11 = VkPhysicalDeviceVulkan11Features(pNext: &vk12);
         VkPhysicalDeviceFeatures2 vkf =         VkPhysicalDeviceFeatures2(pNext: &vk11);
         vkGetPhysicalDeviceFeatures2(physicalDevice_, &vkf);
-
-        // Check features & extensions
-        this.deviceFeatures_.dualSourceBlend = cast(bool)vkf.features.dualSrcBlend;
-        this.deviceFeatures_.geometryShaders = cast(bool)vkf.features.geometryShader;
-        this.deviceFeatures_.tesselationShaders = cast(bool)vkf.features.tessellationShader;
-        this.deviceFeatures_.anisotropicFiltering = cast(bool)vkf.features.samplerAnisotropy;
-        this.deviceFeatures_.alphaToCoverage = cast(bool)vkf.features.alphaToOne;
-        this.deviceFeatures_.presentation = deviceExtensions.hasExtension("VK_KHR_swapchain");
-        this.deviceFeatures_.meshShaders  = deviceExtensions.hasExtension("VK_EXT_mesh_shader");
-        this.deviceFeatures_.externalMemory = deviceExtensions.hasExtension("VK_KHR_external_memory");
-        this.supportsSwapchainFence_ = deviceExtensions.hasExtension("VK_KHR_swapchain_maintenance1") || deviceExtensions.hasExtension("VK_EXT_swapchain_maintenance1");
 
         // Check device limits.
         this.deviceLimits_.maxBufferSize = vk13p.maxBufferSize;
@@ -160,32 +174,12 @@ private:
             }
         }
 
-        // Build extensions list.
-        vector!(const(char)*) extensions;
-        extensions ~= nstring("VK_EXT_extended_dynamic_state3").take().ptr;
-        if (deviceFeatures_.presentation)
-            extensions ~= nstring("VK_KHR_swapchain").take().ptr;
-        if (deviceFeatures_.meshShaders)
-            extensions ~= nstring("VK_EXT_mesh_shader").take().ptr;
-        
-        if (deviceFeatures_.externalMemory) {
-            extensions ~= nstring("VK_KHR_external_memory").take().ptr;
-            if (deviceExtensions.hasExtension("VK_KHR_external_memory_win32"))
-                extensions ~= nstring("VK_KHR_external_memory_win32").take().ptr;
-
-            if (deviceExtensions.hasExtension("VK_KHR_external_memory_fd"))
-                extensions ~= nstring("VK_KHR_external_memory_fd").take().ptr;
-
-            if (deviceExtensions.hasExtension("VK_EXT_external_memory_dma_buf"))
-                extensions ~= nstring("VK_EXT_external_memory_dma_buf").take().ptr;
-        }
-
-        // Swapchain fences.
-        if (deviceExtensions.hasExtension("VK_KHR_swapchain_maintenance1"))
-            extensions ~= nstring("VK_KHR_swapchain_maintenance1").take().ptr;
-
-        if (deviceExtensions.hasExtension("VK_EXT_swapchain_maintenance1"))
-            extensions ~= nstring("VK_EXT_swapchain_maintenance1").take().ptr;
+        // Check features
+        this.deviceFeatures_.dualSourceBlend = cast(bool)vkf.features.dualSrcBlend;
+        this.deviceFeatures_.geometryShaders = cast(bool)vkf.features.geometryShader;
+        this.deviceFeatures_.tesselationShaders = cast(bool)vkf.features.tessellationShader;
+        this.deviceFeatures_.anisotropicFiltering = cast(bool)vkf.features.samplerAnisotropy;
+        this.deviceFeatures_.alphaToCoverage = cast(bool)vkf.features.alphaToOne;
 
         // Create Device
         auto createInfo = VkDeviceCreateInfo(
@@ -202,7 +196,7 @@ private:
         foreach(ext; deviceExtensions) nu_free(cast(void*)ext);
         foreach(ext; extensions) nu_free(cast(void*)ext);
         nu_freea(deviceExtensions);
-        extensions.clear();
+        nu_freea(extensions);
 
         // Create queues
         this.createQueues(queueTable);
@@ -736,26 +730,19 @@ void popDebugGroup(VkCommandBuffer buffer) @nogc {
     }
 }
 
-struct VK_EXT_extended_dynamic_state3 {
-extern(System) @nogc nothrow:
-    
-    @VkProcName("vkCmdSetDepthClampEnableEXT")
-    void function(VkCommandBuffer, VkBool32) vkCmdSetDepthClampEnableEXT;
-    
-    @VkProcName("vkCmdSetPolygonModeEXT")
-    void function(VkCommandBuffer, VkPolygonMode) vkCmdSetPolygonModeEXT;
-}
-
 /**
     Global Vulkan Instance.
 */
 package(niobium.vk)
 extern(C) __gshared VkInstance __nio_vk_instance;
 
+
+
 //
 //          IMPLEMENTATION DETAILS
 //
 private:
+__gshared VK_EXT_debug_utils __nio_vk_debug_utils;
 
 /// Gets device extensions.
 const(char)*[] fetchDeviceExtensions(VkPhysicalDevice device) @nogc nothrow {
@@ -974,8 +961,28 @@ const(char)*[] getInstanceExtensions() @nogc nothrow {
     return names;
 }
 
+/// Adds extension if it is available, returning the availability of the extension(s)
+bool addIfHas(Args...)(ref const(char)*[] extensions, const(char)*[] deviceExtensions, Args args) {
+    bool result;
+    static foreach(arg; args) {
+        if (deviceExtensions.hasExtension(arg)) {
+            extensions = extensions.nu_resize(extensions.length+1);
+            extensions[$-1] = nstring(arg).take.ptr;
 
-//
-//              DEBUG TAGS IMPLEMENTATION DETAILS
-//
-VK_EXT_debug_utils __nio_vk_debug_utils;
+            result = true;
+        }
+    }
+    return result;
+}
+
+/// Adds extension if it is available, returning the availability of the extension(s)
+bool addIfHasOne(Args...)(ref const(char)*[] extensions, const(char)*[] deviceExtensions, Args args) {
+    static foreach(arg; args) {
+        if (deviceExtensions.hasExtension(arg)) {
+            extensions = extensions.nu_resize(extensions.length+1);
+            extensions[$-1] = nstring(arg).take.ptr;
+            return true;
+        }
+    }
+    return false;
+}

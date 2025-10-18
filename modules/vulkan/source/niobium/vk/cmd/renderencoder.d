@@ -26,6 +26,8 @@ import vulkan.eh;
 import nulib.math : min, max;
 import numem;
 
+import vulkan.ext.extended_dynamic_state3;
+
 /**
     A short-lived object which encodes rendering commands 
     into a $(D NioCommandBuffer).
