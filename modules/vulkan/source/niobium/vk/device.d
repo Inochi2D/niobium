@@ -131,7 +131,7 @@ private:
             "VK_EXT_external_memory_dma_buf"
         );
         this.deviceFeatures_.framebufferFetch = extensions.addIfHas(deviceExtensions, VK_EXT_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_EXTENSION_NAME);
-        this.supportsSwapchainFence_ = extensions.addIfHasOne( deviceExtensions, 
+        this.supportsSwapchainFence_ = extensions.addIfHasOne(deviceExtensions, 
             VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
             VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME
         );
@@ -453,6 +453,27 @@ public:
     */
     override NioShader createShader(NirLibrary library) {
         return nogc_new!NioVkShader(this, library);
+    }
+
+    /**
+        Creates a new shader from source, the type of the source
+        depends on the backend and platform.
+
+        Params:
+            name =      Name of the implicit library to create
+            source =    Source code to compile.
+        
+        Notes:
+            On most platforms source will be in the form of SPIR-V
+            bytecode, on macOS and derivatives, the source will be
+            in the form of metal shader language.
+
+        Returns:
+            A new $(D NioShader) on success,
+            $(D null) otherwise.
+    */
+    override NioShader createShaderFromNativeSource(string name, ubyte[] source) {
+        return nogc_new!NioVkShader(this, name, source);
     }
 
     /**

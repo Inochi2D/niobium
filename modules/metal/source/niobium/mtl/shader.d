@@ -30,25 +30,29 @@ private:
     NioMTLShaderFunction[] functions_;
     
     void setup(NirLibrary library) {
+        foreach(ref shader; library.shaders) {
+            if (shader.type == NirShaderType.msl) {
+                this.setup(shader.name, shader.code);
+                return;
+            }
+        }
+    }
+    
+    void setup(string name, ubyte[] source) {
         auto mtlDevice = cast(NioMTLDevice)device;
 
         NSError error;
-        foreach(ref shader; library.shaders) {
-            if (shader.type == NirShaderType.msl) {
-                auto source = NSString.create(cast(string)shader.code);
-                auto compileOptions = MTLCompileOptions.alloc.init;
-                
-                handle_ = mtlDevice.handle.newLibrary(source, compileOptions, error);
-                
-                source.release();
-                compileOptions.release();
-                if (error) {
-                    string errText = error.toString();
-                    error.release();
-                    throw nogc_new!NuException(errText);
-                }
-                break;
-            }
+        auto nssource = NSString.create(cast(string)source);
+        auto compileOptions = MTLCompileOptions.alloc.init;
+        
+        handle_ = mtlDevice.handle.newLibrary(nssource, compileOptions, error);
+        
+        nssource.release();
+        compileOptions.release();
+        if (error) {
+            string errText = error.toString();
+            error.release();
+            throw nogc_new!NuException(errText);
         }
 
         auto funcNames = handle_.functionNames;
@@ -77,6 +81,14 @@ public:
     this(NioDevice device, NirLibrary library) {
         super(device, library);
         this.setup(library);
+    }
+
+    /**
+        Constructs a new shader from source.
+    */
+    this(NioDevice device, string name, ubyte[] source) {
+        super(device, null);
+        this.setup(name, source);
     }
 
     /**

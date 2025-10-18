@@ -70,21 +70,8 @@ void main() {
 	surface.transparent = true;
 
 	// Create shaders
-	NirLibrary shaderLibrary = nogc_new!NirLibrary();
-	version(OSX) {
-		shaderLibrary.addShader(NirShader(
-			name: "triangle",
-			type: NirShaderType.msl,
-			code: cast(ubyte[])read("triangle.metal")
-		));
-	} else {
-		shaderLibrary.addShader(NirShader(
-			name: "triangle",
-			type: NirShaderType.nir,
-			code: cast(ubyte[])read("triangle.spv")
-		));
-	}
-	NioShader shader = device.createShader(shaderLibrary);
+	version(OSX) NioShader shader = device.createShaderFromNativeSource("triangle", cast(ubyte[])read("triangle.metal"));
+	else NioShader shader = device.createShaderFromNativeSource("triangle", cast(ubyte[])read("triangle.spv"));
 
 	// Create pipeline
 	NioRenderPipeline renderPipeline = device.createRenderPipeline(
@@ -107,9 +94,9 @@ void main() {
 
     // Create Vertex Buffer
     Vertex[3] vertices = [
-        Vertex(vec2(-1,  1), vec3(1, 0, 0)),
-        Vertex(vec2( 1,  1), vec3(0, 1, 0)),
-        Vertex(vec2( 0, -1), vec3(0, 0, 1)), 
+        Vertex(vec2(-1,  -1), vec3(1, 0, 0)),
+        Vertex(vec2( 1,  -1), vec3(0, 1, 0)),
+        Vertex(vec2( 0,   1), vec3(0, 0, 1)), 
     ];
     NioBuffer buffer = device.createBuffer(NioBufferDescriptor(
         usage: NioBufferUsage.transfer | NioBufferUsage.vertexBuffer,

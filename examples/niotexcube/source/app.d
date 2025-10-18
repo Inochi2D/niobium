@@ -145,21 +145,8 @@ void main() {
 	surface.format = NioPixelFormat.bgra8UnormSRGB;
 
 	// Create shaders
-	NirLibrary shaderLibrary = nogc_new!NirLibrary();
-	version(OSX) {
-		shaderLibrary.addShader(NirShader(
-			name: "cube",
-			type: NirShaderType.msl,
-			code: cast(ubyte[])read("cube.metal")
-		));
-	} else {
-		shaderLibrary.addShader(NirShader(
-			name: "cube",
-			type: NirShaderType.nir,
-			code: cast(ubyte[])read("cube.spv")
-		));
-	}
-	NioShader shader = device.createShader(shaderLibrary);
+	version(OSX) NioShader shader = device.createShaderFromNativeSource("cube", cast(ubyte[])read("cube.metal"));
+	else NioShader shader = device.createShaderFromNativeSource("cube", cast(ubyte[])read("cube.spv"));
 
 	// Create pipeline
 	NioRenderPipeline renderPipeline = device.createRenderPipeline(

@@ -40,14 +40,16 @@ protected:
     */
     this(NioDevice device, NirLibrary library) {
         super(device);
-        this.library_ = library.retained();
+        if (library)
+            this.library_ = library.retained();
     }
 
 public:
 
     /// Destructor
     ~this() {
-        library_.release();
+        if (library_)
+            library_.release();
     }
 
     /**

@@ -119,8 +119,9 @@ public:
         Params:
             shader = The shader to add.
     */
-    void addShader(NirShader shader) {
+    NirLibrary addShader(NirShader shader) {
         this.addShaderImpl(shader);
+        return this;
     }
 
     /**

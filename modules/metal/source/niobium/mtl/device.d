@@ -270,6 +270,27 @@ public:
     }
 
     /**
+        Creates a new shader from source, the type of the source
+        depends on the backend and platform.
+
+        Params:
+            name =      Name of the implicit library to create
+            source =    Source code to compile.
+        
+        Notes:
+            On most platforms source will be in the form of SPIR-V
+            bytecode, on macOS and derivatives, the source will be
+            in the form of metal shader language.
+
+        Returns:
+            A new $(D NioShader) on success,
+            $(D null) otherwise.
+    */
+    override NioShader createShaderFromNativeSource(string name, ubyte[] source) {
+        return nogc_new!NioMTLShader(this, name, source);
+    }
+
+    /**
         Creates a new render pipeline object.
 
         Params:

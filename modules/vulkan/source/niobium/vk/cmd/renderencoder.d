@@ -309,11 +309,11 @@ public:
         this.setScissor(NioScissorRect(renderArea.offset.x, renderArea.offset.y, renderArea.extent.width, renderArea.extent.height));
 
         vkCmdSetCullMode(vkcmdbuffer, VK_CULL_MODE_BACK_BIT);
+        vkCmdSetFrontFace(vkcmdbuffer, VK_FRONT_FACE_COUNTER_CLOCKWISE);
         vkCmdSetDepthBiasEnable(vkcmdbuffer, VK_TRUE);
         vkCmdSetDepthBias(vkcmdbuffer, 0, 0, 0);
         vkCmdSetDepthBoundsTestEnable(vkcmdbuffer, VK_TRUE);
         vkCmdSetDepthBounds(vkcmdbuffer, 0, 1);
-        vkCmdSetFrontFace(vkcmdbuffer, VK_FRONT_FACE_COUNTER_CLOCKWISE);
         vkCmdSetPrimitiveRestartEnable(vkcmdbuffer, VK_FALSE);
         vkCmdSetStencilTestEnable(vkcmdbuffer, VK_FALSE);
         vkCmdSetDepthTestEnable(vkcmdbuffer, VK_FALSE);

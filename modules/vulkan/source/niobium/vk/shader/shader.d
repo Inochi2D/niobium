@@ -41,23 +41,26 @@ private:
     VkShaderModule handle_;
 
     void setup(NirLibrary library) {
-        auto nvkDevice = (cast(NioVkDevice)device);
-
-        weak_vector!NioVkShaderFunction funcs;
         foreach(ref shader; library.shaders) {
             if (shader.type == NirShaderType.nir) {
-                this.shader_ = NirShader(
-                    name: nstring(shader.name).take(),
-                    type: shader.type,
-                    code: shader.code.nu_dup()
-                );
-
-                this.moduleInfo_ = nogc_new!SpirvModuleInfo(bytecode);
-                foreach(entrypoint; bytecode.getEntrypoints()) {
-                    funcs ~= nogc_new!NioVkShaderFunction(device, this, entrypoint);
-                }
-                break;
+                this.setup(shader.name, shader.code);
+                return;
             }
+        }
+    }
+
+    void setup(string name, ubyte[] source) {
+        auto nvkDevice = (cast(NioVkDevice)device);
+        this.shader_ = NirShader(
+            name: nstring(name).take(),
+            type: NirShaderType.nir,
+            code: source.nu_dup()
+        );
+
+        this.moduleInfo_ = nogc_new!SpirvModuleInfo(bytecode);
+        weak_vector!NioVkShaderFunction funcs;
+        foreach(entrypoint; bytecode.getEntrypoints()) {
+            funcs ~= nogc_new!NioVkShaderFunction(device, this, entrypoint);
         }
 
         // Parse module and generate layout from it.
@@ -101,6 +104,14 @@ public:
     this(NioDevice device, NirLibrary library) {
         super(device, library);
         this.setup(library);
+    }
+
+    /**
+        Constructs a new shader from a Nir library.
+    */
+    this(NioDevice device, string name, ubyte[] source) {
+        super(device, null);
+        this.setup(name, source);
     }
 
     /**
