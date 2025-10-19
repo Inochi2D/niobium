@@ -247,11 +247,9 @@ private extern(C):
 version(Windows)
 extern extern(C) NioSurface nio_surface_create_for_win32_window(void* hinstance, void* hwnd) @nogc;
 
-version(Posix)
-extern extern(C) NioSurface nio_surface_create_for_wl_window(void* display, void* surface) @nogc;
-
-version(Posix)
-extern extern(C) NioSurface nio_surface_create_for_x11_window(void* display, uint window) @nogc;
-
-version(Darwin)
-extern extern(C) NioSurface nio_surface_create_for_mtl_layer(void* layer) @nogc;
+version(Darwin) {
+    extern extern(C) NioSurface nio_surface_create_for_mtl_layer(void* layer) @nogc;
+} else version(Posix) {
+    extern extern(C) NioSurface nio_surface_create_for_wl_window(void* display, void* surface) @nogc;
+    extern extern(C) NioSurface nio_surface_create_for_x11_window(void* display, uint window) @nogc;
+}
