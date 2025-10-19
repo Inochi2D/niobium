@@ -124,7 +124,7 @@ jobs:
             else
               redub build --root=$_file --build=${{ inputs.build_type }} || true
             fi
-            cp $_file/out/* out/tools/
+            cp $_file/out/* out/tools/ || true
           fi
         done
     
