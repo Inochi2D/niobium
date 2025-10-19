@@ -10,6 +10,7 @@
         Luna Nielsen
 */
 module niobium.mtl.resource;
+import niobium.mtl.device;
 
 public import niobium.resource;
 public import niobium.mtl.resource.texture;
