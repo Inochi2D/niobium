@@ -147,39 +147,41 @@ public:
         return nio_surface_create_for_win32_window(hinstance, hwnd);
     }
     
-    /**
-        Creates a Niobium Surface from a Wayland window.
-        
-        Params:
-            display = The wayland display to create the surface for.
-            surface = The wayland surface (window) to create the surface for.
-    */
-    version(Posix)
-    static NioSurface createForWindow(void* display, void* surface) @nogc {
-        return nio_surface_create_for_wl_window(display, surface);
-    }
+    version(Darwin) {
 
-    /**
-        Creates a Niobium Surface from an X11 window.
+        /**
+            Creates a Niobium Surface from a $(D CAMetalLayer).
+            
+            Params:
+                drawable = The $(D CAMetalLayer) to create the surface for.
+        */
+        static NioSurface createForLayer(void* layer) @nogc {
+            return nio_surface_create_for_mtl_layer(layer);
+        }
+    } else version(Posix) {
+    
+        /**
+            Creates a Niobium Surface from a Wayland window.
+            
+            Params:
+                display = The wayland display to create the surface for.
+                surface = The wayland surface (window) to create the surface for.
+        */
         
-        Params:
-            display =   The X11 Display to create the surface for.
-            window =    The X11 window to create the surface for.
-    */
-    version(Posix)
-    static NioSurface createForWindow(void* display, uint window) @nogc {
-        return nio_surface_create_for_x11_window(display, window);
-    }
+        static NioSurface createForWindow(void* display, void* surface) @nogc {
+            return nio_surface_create_for_wl_window(display, surface);
+        }
 
-    /**
-        Creates a Niobium Surface from a $(D CAMetalLayer).
-        
-        Params:
-            drawable = The $(D CAMetalLayer) to create the surface for.
-    */
-    version(Darwin)
-    static NioSurface createForLayer(void* layer) @nogc {
-        return nio_surface_create_for_mtl_layer(layer);
+        /**
+            Creates a Niobium Surface from an X11 window.
+            
+            Params:
+                display =   The X11 Display to create the surface for.
+                window =    The X11 window to create the surface for.
+        */
+        static NioSurface createForWindow(void* display, uint window) @nogc {
+            return nio_surface_create_for_x11_window(display, window);
+        }
     }
 }
 
