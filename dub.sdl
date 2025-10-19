@@ -28,7 +28,7 @@ configuration "metal-dynamic" {
     targetType "dynamicLibrary"
 
     dependency ":metal" version="*"
-    dependency "nurt" version=">=0.2.1"
+    dependency "nurt" path="../nurt"
 }
 
 configuration "vulkan" {
@@ -41,5 +41,5 @@ configuration "vulkan-dynamic" {
     targetType "dynamicLibrary"
 
     dependency ":vulkan" version="*"
-    dependency "nurt" version=">=0.2.1"
+    dependency "nurt" path="../nurt"
 }

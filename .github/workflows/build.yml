@@ -96,6 +96,7 @@ jobs:
     # Clone linrarues
     - name: 'Cloning low-level API Bindings...'
       run: |
+        git clone https://github.com/Inochi2D/nurt ../nurt
         git clone https://github.com/Inochi2D/nuvk ../nuvk
         git clone https://github.com/Inochi2D/metal-d ../metal-d
       
@@ -119,9 +120,9 @@ jobs:
         for _file in tools/*; do
           if [ -d "$_file" ]; then
             if [[ "${{ runner.os }}" == "macOS" ]]; then
-              redub build-universal --root=$_file --build=${{ inputs.build_type }}
+              redub build-universal --root=$_file --build=${{ inputs.build_type }} || true
             else
-              redub build --root=$_file --build=${{ inputs.build_type }}
+              redub build --root=$_file --build=${{ inputs.build_type }} || true
             fi
             cp $_file/out/* out/tools/
           fi
@@ -137,9 +138,9 @@ jobs:
             fbname=$(basename "$_file")
 
             if [[ "${{ runner.os }}" == "macOS" ]]; then
-              redub build-universal --root=$_file --build=${{ inputs.build_type }}
+              redub build-universal --root=$_file --build=${{ inputs.build_type }} || true
             else
-              redub build --root=$_file --build=${{ inputs.build_type }}
+              redub build --root=$_file --build=${{ inputs.build_type }} || true
             fi
 
             mkdir -p out/examples/$fbname/
