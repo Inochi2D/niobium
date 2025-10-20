@@ -110,7 +110,6 @@ private:
                 initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
             );
             vkEnforce(vkCreateImage(nvkDevice.handle, &vkdesc_, null, image_));
-            this.layout = vkdesc_.initialLayout;
 
             // Allocate memory for our texture.
             VkMemoryRequirements vkmemreq_;
@@ -209,7 +208,10 @@ public:
     /**
         Underlying Vulkan Image Layout.
     */
-    VkImageLayout layout;
+    final @property VkImageLayout layout() => vkdesc_.initialLayout;
+    final @property void layout(VkImageLayout value) {
+        vkdesc_.initialLayout = value;
+    }
 
     /**
         Underlying Vulkan handle.
@@ -220,6 +222,66 @@ public:
         Underlying Vulkan Image View.
     */
     final @property VkImageView view() => view_;
+
+    /**
+        Size of the resource in bytes.
+    */
+    override @property uint size() => cast(uint)allocation_.size;
+
+    /**
+        The pixel format of the texture.
+    */
+    override @property NioPixelFormat format() => desc_.format;
+
+    /**
+        The type of the texture.
+    */
+    override @property NioTextureType type() => desc_.type;
+
+    /**
+        The usage flags of the texture.
+    */
+    override @property NioTextureUsage usage() => desc_.usage;
+
+    /**
+        Storage mode of the resource.
+    */
+    override @property NioStorageMode storageMode() => desc_.storage;
+
+    /**
+        Width of the texture in pixels.
+    */
+    override @property uint width() => desc_.width;
+
+    /**
+        Height of the texture in pixels.
+    */
+    override @property uint height() => desc_.height;
+
+    /**
+        Depth of the texture in pixels.
+    */
+    override @property uint depth() => desc_.depth;
+
+    /**
+        Array layer count of the texture.
+    */
+    override @property uint slices() => desc_.slices;
+
+    /**
+        Mip level count of the texture.
+    */
+    override @property uint levels() => desc_.levels;
+
+    /**
+        Whether the texture can be shared between process boundaries.
+    */
+    override @property bool isShareable() => sharedHandle_ !is null;
+
+    /**
+        Exported handle for the texture.
+    */
+    override @property NioSharedResourceHandle sharedHandle() => sharedHandle_;
 
     /// Destructor
     ~this() {
@@ -296,66 +358,6 @@ public:
 
         this.createImageView(handle, desc);
     }
-
-    /**
-        Size of the resource in bytes.
-    */
-    override @property uint size() => cast(uint)allocation_.size;
-
-    /**
-        The pixel format of the texture.
-    */
-    override @property NioPixelFormat format() => desc_.format;
-
-    /**
-        The type of the texture.
-    */
-    override @property NioTextureType type() => desc_.type;
-
-    /**
-        The usage flags of the texture.
-    */
-    override @property NioTextureUsage usage() => desc_.usage;
-
-    /**
-        Storage mode of the resource.
-    */
-    override @property NioStorageMode storageMode() => desc_.storage;
-
-    /**
-        Width of the texture in pixels.
-    */
-    override @property uint width() => desc_.width;
-
-    /**
-        Height of the texture in pixels.
-    */
-    override @property uint height() => desc_.height;
-
-    /**
-        Depth of the texture in pixels.
-    */
-    override @property uint depth() => desc_.depth;
-
-    /**
-        Array layer count of the texture.
-    */
-    override @property uint slices() => desc_.slices;
-
-    /**
-        Mip level count of the texture.
-    */
-    override @property uint levels() => desc_.levels;
-
-    /**
-        Whether the texture can be shared between process boundaries.
-    */
-    override @property bool isShareable() => sharedHandle_ !is null;
-
-    /**
-        Exported handle for the texture.
-    */
-    override @property NioSharedResourceHandle sharedHandle() => sharedHandle_;
 
     /**
         Uploads data to the texture using a device-internal

@@ -57,7 +57,6 @@ private:
         static const VkDescriptorPoolSize[] sizes = [
             VkDescriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 8),
             VkDescriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLER, 8),
-            VkDescriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 8),
             VkDescriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8),
         ];
 

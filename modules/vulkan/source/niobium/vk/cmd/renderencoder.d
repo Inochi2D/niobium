@@ -251,7 +251,11 @@ public:
             scissor = The scissor rectangle.
     */
     override void setScissor(NioScissorRect scissor) {
-        vkCmdSetScissorWithCount(vkcmdbuffer, 1, cast(VkRect2D*)&scissor);
+        auto rect = VkRect2D(
+            VkOffset2D(cast(int)scissor.x, cast(int)scissor.y),
+            VkExtent2D(cast(int)scissor.width, cast(int)scissor.height)
+        );
+        vkCmdSetScissorWithCount(vkcmdbuffer, 1, &rect);
     }
 
     /**
@@ -349,6 +353,9 @@ public:
             slot =      The slot in the argument table to set.
     */
     override void setVertexBuffer(NioBuffer buffer, ulong offset, uint slot) {
+        if (!buffer)
+            return;
+        
         auto nvkBuffer = cast(NioVkBuffer)buffer;
         auto handle = cast(VkBuffer)nvkBuffer.handle;
 
@@ -406,6 +413,9 @@ public:
             slot =      The slot in the argument table to set.
     */
     override void setVertexTexture(NioTexture texture, uint slot) {
+        if (!texture)
+            return;
+        
         auto nvkTexture = cast(NioVkTexture)texture;
         auto handle = nvkTexture.view;
 
@@ -433,6 +443,9 @@ public:
             slot =      The slot in the argument table to set.
     */
     override void setVertexSampler(NioSampler sampler, uint slot) {
+        if (!sampler)
+            return;
+        
         auto nvkSampler = cast(NioVkSampler)sampler;
         auto handle = nvkSampler.handle;
 
@@ -461,6 +474,9 @@ public:
             slot =      The slot in the argument table to set.
     */
     override void setFragmentBuffer(NioBuffer buffer, ulong offset, uint slot) {
+        if (!buffer)
+            return;
+        
         auto nvkBuffer = cast(NioVkBuffer)buffer;
         auto handle = cast(VkBuffer)nvkBuffer.handle;
 
@@ -514,6 +530,9 @@ public:
             slot =      The slot in the argument table to set.
     */
     override void setFragmentTexture(NioTexture texture, uint slot) {
+        if (!texture)
+            return;
+        
         auto nvkTexture = cast(NioVkTexture)texture;
         auto handle = nvkTexture.view;
 

@@ -97,6 +97,7 @@ private:
         this.descriptorLayouts_ = nu_malloca!VkDescriptorSetLayout(setCount);
         foreach(i, ref layout; descriptorLayouts_) {
             weak_vector!VkDescriptorSetLayoutBinding setBindings;
+            weak_vector!VkFlags flags;
             foreach(j, ref NirBinding binding; filteredBindings) {
                 if (i != binding.set)
                     continue;
@@ -108,9 +109,16 @@ private:
                     stageFlags: binding.stages.toVkShaderStage(),
                     pImmutableSamplers: null
                 );
+                flags ~= VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
             }
 
+            auto flagsInfo = VkDescriptorSetLayoutBindingFlagsCreateInfo(
+                bindingCount: cast(uint)flags.length,
+                pBindingFlags: flags.ptr
+            );
             auto createInfo = VkDescriptorSetLayoutCreateInfo(
+                pNext: &flagsInfo,
+                flags: VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
                 bindingCount: cast(uint)setBindings.length,
                 pBindings: setBindings.ptr
             );
@@ -218,7 +226,7 @@ private:
     /// Validates the multisample state.
     VkPipelineMultisampleStateCreateInfo validateMultisampleState(NioRenderPipelineDescriptor desc) {
         return VkPipelineMultisampleStateCreateInfo(
-            rasterizationSamples: cast(VkSampleCountFlagBits)(1 >> desc.sampleCount),
+            rasterizationSamples: cast(VkSampleCountFlagBits)(1 << (desc.sampleCount-1)),
             alphaToCoverageEnable: cast(VkBool32)desc.alphaToCoverage,
             alphaToOneEnable: cast(VkBool32)desc.alphaToOne,
         );

@@ -214,8 +214,7 @@ public:
         auto vkBufferSrc = (cast(NioVkBuffer)src.buffer);
         auto vkImageDst = (cast(NioVkTexture)dst.texture);
 
-        this.transitionTextureTo(vkImageDst, VK_IMAGE_LAYOUT_GENERAL);
-
+        this.transitionTextureTo(vkImageDst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         auto bufferImageInfo = VkBufferImageCopy2(
             bufferOffset: src.offset,
             bufferRowLength: cast(uint)src.rowLength,
@@ -230,6 +229,7 @@ public:
             pRegions: &bufferImageInfo
         );
         vkCmdCopyBufferToImage2(vkcmdbuffer, &copyInfo);
+        this.transitionTextureTo(vkImageDst, VK_IMAGE_LAYOUT_GENERAL);
     }
 
     /**
@@ -242,7 +242,7 @@ public:
     override void copy(NioTextureSrcInfo src, NioBufferDstInfo dst) {
         auto vkImageSrc = (cast(NioVkTexture)src.texture);
         auto vkBufferDst = (cast(NioVkBuffer)dst.buffer);
-        this.transitionTextureTo(vkImageSrc, VK_IMAGE_LAYOUT_GENERAL);
+        this.transitionTextureTo(vkImageSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
         auto bufferImageInfo = VkBufferImageCopy2(
             bufferOffset: dst.offset,
@@ -258,6 +258,7 @@ public:
             pRegions: &bufferImageInfo
         );
         vkCmdCopyImageToBuffer2(vkcmdbuffer, &copyInfo);
+        this.transitionTextureTo(vkImageSrc, VK_IMAGE_LAYOUT_GENERAL);
     }
 
     /**
@@ -271,8 +272,8 @@ public:
     override void copy(NioTextureSrcInfo src, NioTextureDstInfo dst) {
         auto vkImageSrc = (cast(NioVkTexture)src.texture);
         auto vkImageDst = (cast(NioVkTexture)dst.texture);
-        this.transitionTextureTo(vkImageSrc, VK_IMAGE_LAYOUT_GENERAL);
-        this.transitionTextureTo(vkImageDst, VK_IMAGE_LAYOUT_GENERAL);
+        this.transitionTextureTo(vkImageSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        this.transitionTextureTo(vkImageDst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
         auto imageInfo = VkImageCopy2(
             srcSubresource: VkImageSubresourceLayers(vkImageSrc.format.toVkAspect(), src.level, src.slice, 1),
@@ -290,6 +291,8 @@ public:
             pRegions: &imageInfo
         );
         vkCmdCopyImage2(vkcmdbuffer, &copyInfo);
+        this.transitionTextureTo(vkImageSrc, VK_IMAGE_LAYOUT_GENERAL);
+        this.transitionTextureTo(vkImageDst, VK_IMAGE_LAYOUT_GENERAL);
     }
 
     /**
@@ -313,6 +316,9 @@ public:
             min(vkImageSrc.height, vkImageDst.height),
             min(vkImageSrc.depth, vkImageDst.depth),
         );
+        
+        this.transitionTextureTo(vkImageSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        this.transitionTextureTo(vkImageDst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
         auto imageInfo = VkImageCopy2(
             srcSubresource: VkImageSubresourceLayers(vkImageSrc.format.toVkAspect(), 0, 0, slicesToCopy),
@@ -330,5 +336,7 @@ public:
             pRegions: &imageInfo
         );
         vkCmdCopyImage2(vkcmdbuffer, &copyInfo);
+        this.transitionTextureTo(vkImageSrc, VK_IMAGE_LAYOUT_GENERAL);
+        this.transitionTextureTo(vkImageDst, VK_IMAGE_LAYOUT_GENERAL);
     }
 }
