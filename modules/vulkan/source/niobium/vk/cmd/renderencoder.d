@@ -421,7 +421,8 @@ public:
 
         if (auto binding = pipeline.vertexTable.getBinding(NirBindingType.texture, slot)) {
             auto imageInfo = VkDescriptorImageInfo(
-                imageView: handle
+                imageView: handle,
+                imageLayout: nvkTexture.layout
             );
             auto writeInfo = VkWriteDescriptorSet(
                 dstSet: descriptorSets[binding.bindingSet],
@@ -538,7 +539,8 @@ public:
 
         if (auto binding = pipeline.fragmentTable.getBinding(NirBindingType.texture, slot)) {
             auto imageInfo = VkDescriptorImageInfo(
-                imageView: handle
+                imageView: handle,
+                imageLayout: nvkTexture.layout
             );
             auto writeInfo = VkWriteDescriptorSet(
                 dstSet: descriptorSets[binding.bindingSet],
