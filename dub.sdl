@@ -10,7 +10,7 @@ subPackage "modules/nir"
 subPackage "tools/dlslc"
 
 dependency ":nir" version="*"
-dependency "numem" version="~>1.3"
+dependency "numem" version="~>1.4"
 dependency "nulib" version="~>0.3"
 
 targetName "niobium"

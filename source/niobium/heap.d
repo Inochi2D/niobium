@@ -46,21 +46,6 @@ struct NioHeapDescriptor {
 }
 
 /**
-    Aligns the given size to the given alignment.
-
-    Params:
-        size =      The size to align, in bytes.
-        alignment = The byte alignment, in bytes.
-    
-    Returns:
-        The size aligned to the given alignment.
-*/
-pragma(inline, true)
-T alignTo(T)(T size, T alignment) @nogc if (__traits(isIntegral, T)) {
-    return alignment > 0 ? size + (alignment - (size % alignment)) : size;
-}
-
-/**
     A heap which can suballocate resources from itself.
 */
 abstract

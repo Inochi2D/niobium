@@ -297,8 +297,8 @@ private:
         auto offset = pools[type].blocks[index.blockIdx].layout[index.spanIdx].offset;
 
         // Find the next aligned subarea, allocate enough space for it.
-        VkDeviceSize reqSizeAligned = size.alignTo(alignment);
-        VkDeviceSize reqOffsetAligned = offset.alignTo(alignment);
+        VkDeviceSize reqSizeAligned = nu_alignup(size, alignment);
+        VkDeviceSize reqOffsetAligned = nu_alignup(offset, alignment);
         pools[type].blocks[index.blockIdx].layout[index.spanIdx].offset += reqSizeAligned;
         pools[type].blocks[index.blockIdx].layout[index.spanIdx].length -= reqSizeAligned;
 
@@ -359,8 +359,8 @@ public:
 
         // Page size must be a multiple of the bufferImageGranularity.
         auto granularity = deviceProperties.limits.bufferImageGranularity;
-        this.pageSize = max(desc.pageSize, granularity).alignTo(granularity);
-        this.blockMinSize = desc.size.alignTo(pageSize);
+        this.pageSize = nu_alignup(max(desc.pageSize, granularity), granularity);
+        this.blockMinSize = nu_alignup(desc.size, pageSize);
         this.mutex_ = nogc_new!Mutex();
     }
 
@@ -461,7 +461,7 @@ public:
         scope(exit) mutex_.unlock();
 
         auto pool = pools[obj.memory.type];
-        VkDeviceSize reqSize = (size + (size % pageSize)).alignTo(obj.alignment);
+        VkDeviceSize reqSize = nu_alignup((size + (size % pageSize)), obj.alignment);
 
         Span span = Span(obj.offset, reqSize);
 
