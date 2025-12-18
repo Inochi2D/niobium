@@ -11,6 +11,7 @@
 */
 module niobium.mtl.sync.semaphore;
 import niobium.mtl.device;
+import niobium.mtl.utils;
 import metal.event;
 import foundation;
 import numem;
@@ -27,8 +28,10 @@ private:
     MTLSharedEvent handle_;
 
     void setup() {
-        auto mtlDevice = cast(NioMTLDevice)device;
-        this.handle_ = mtlDevice.handle.newSharedEvent();
+        .autorelease(() {
+            auto mtlDevice = cast(NioMTLDevice)device;
+            this.handle_ = mtlDevice.handle.newSharedEvent();
+        });
     }
 
 protected:

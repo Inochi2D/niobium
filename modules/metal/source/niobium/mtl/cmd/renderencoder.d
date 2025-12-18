@@ -14,9 +14,9 @@ import niobium.mtl.cmd.buffer;
 import niobium.mtl.depthstencil;
 import niobium.mtl.resource;
 import niobium.mtl.sampler;
-import niobium.mtl.memory;
 import niobium.mtl.render;
 import niobium.mtl.sync;
+import niobium.mtl.utils;
 import niobium.types;
 import niobium.cmd;
 import numem;
@@ -42,64 +42,66 @@ private:
 @nogc:
 
     void setup(NioRenderPassDescriptor desc) {
-        MTLRenderPassDescriptor mtldesc = MTLRenderPassDescriptor.alloc.init;
-        NioViewport vp;
-
-        // Color Attachments
-        foreach(i, attachment; desc.colorAttachments) {
-            MTLRenderPassColorAttachmentDescriptor colordesc = mtldesc.colorAttachments.get(i);
-            colordesc.texture = attachment.texture ? cast(MTLTexture)attachment.texture.handle : null;
-            colordesc.level = attachment.level;
-            colordesc.slice = attachment.slice;
-            colordesc.depthPlane = attachment.depth;
-            colordesc.resolveTexture = attachment.resolveTexture ? cast(MTLTexture)attachment.resolveTexture.handle : null;
-            colordesc.resolveLevel = attachment.resolveLevel;
-            colordesc.resolveSlice = attachment.resolveSlice;
-            colordesc.resolveDepthPlane = attachment.resolveDepth;
-            colordesc.loadAction = attachment.loadAction.toMTLLoadAction();
-            colordesc.storeAction = attachment.storeAction.toMTLStoreAction();
-            colordesc.clearColor = MTLClearColor(attachment.clearColor.r, attachment.clearColor.g, attachment.clearColor.b, attachment.clearColor.a);
-
-            if (colordesc.texture.width > vp.width)
-                vp.width = colordesc.texture.width;
-
-            if (colordesc.texture.height > vp.height)
-                vp.height = colordesc.texture.height;
-        }
-
-        // Depth Attachment
-        MTLRenderPassDepthAttachmentDescriptor depthdesc = mtldesc.depthAttachment;
-        depthdesc.texture = desc.depthAttachment.texture ? cast(MTLTexture)desc.depthAttachment.texture.handle : null;
-        depthdesc.level = desc.depthAttachment.level;
-        depthdesc.slice = desc.depthAttachment.slice;
-        depthdesc.depthPlane = desc.depthAttachment.depth;
-        depthdesc.resolveTexture = desc.depthAttachment.resolveTexture ? cast(MTLTexture)desc.depthAttachment.resolveTexture.handle : null;
-        depthdesc.resolveLevel = desc.depthAttachment.resolveLevel;
-        depthdesc.resolveSlice = desc.depthAttachment.resolveSlice;
-        depthdesc.resolveDepthPlane = desc.depthAttachment.resolveDepth;
-        depthdesc.loadAction = desc.depthAttachment.loadAction.toMTLLoadAction();
-        depthdesc.storeAction = desc.depthAttachment.storeAction.toMTLStoreAction();
-        depthdesc.clearDepth = desc.depthAttachment.clearDepth;
-
-        // Stencil Attachment
-        MTLRenderPassStencilAttachmentDescriptor stencildesc = mtldesc.stencilAttachment;
-        stencildesc.texture = desc.stencilAttachment.texture ? cast(MTLTexture)desc.stencilAttachment.texture.handle : null;
-        stencildesc.level = desc.stencilAttachment.level;
-        stencildesc.slice = desc.stencilAttachment.slice;
-        stencildesc.depthPlane = desc.stencilAttachment.depth;
-        stencildesc.resolveTexture = desc.stencilAttachment.resolveTexture ? cast(MTLTexture)desc.stencilAttachment.resolveTexture.handle : null;
-        stencildesc.resolveLevel = desc.stencilAttachment.resolveLevel;
-        stencildesc.resolveSlice = desc.stencilAttachment.resolveSlice;
-        stencildesc.resolveDepthPlane = desc.stencilAttachment.resolveDepth;
-        stencildesc.loadAction = desc.stencilAttachment.loadAction.toMTLLoadAction();
-        stencildesc.storeAction = desc.stencilAttachment.storeAction.toMTLStoreAction();
-        stencildesc.clearStencil = desc.stencilAttachment.clearStencil;
-
         .autorelease(() {
-            this.handle = mtlcmdbuffer.renderCommandEncoder(mtldesc);
-            this.handle.retain();
+            MTLRenderPassDescriptor mtldesc = MTLRenderPassDescriptor.alloc.init;
+            NioViewport vp;
+
+            // Color Attachments
+            foreach(i, attachment; desc.colorAttachments) {
+                MTLRenderPassColorAttachmentDescriptor colordesc = mtldesc.colorAttachments.get(i);
+                colordesc.texture = attachment.texture ? cast(MTLTexture)attachment.texture.handle : null;
+                colordesc.level = attachment.level;
+                colordesc.slice = attachment.slice;
+                colordesc.depthPlane = attachment.depth;
+                colordesc.resolveTexture = attachment.resolveTexture ? cast(MTLTexture)attachment.resolveTexture.handle : null;
+                colordesc.resolveLevel = attachment.resolveLevel;
+                colordesc.resolveSlice = attachment.resolveSlice;
+                colordesc.resolveDepthPlane = attachment.resolveDepth;
+                colordesc.loadAction = attachment.loadAction.toMTLLoadAction();
+                colordesc.storeAction = attachment.storeAction.toMTLStoreAction();
+                colordesc.clearColor = MTLClearColor(attachment.clearColor.r, attachment.clearColor.g, attachment.clearColor.b, attachment.clearColor.a);
+
+                if (colordesc.texture.width > vp.width)
+                    vp.width = colordesc.texture.width;
+
+                if (colordesc.texture.height > vp.height)
+                    vp.height = colordesc.texture.height;
+            }
+
+            // Depth Attachment
+            MTLRenderPassDepthAttachmentDescriptor depthdesc = mtldesc.depthAttachment;
+            depthdesc.texture = desc.depthAttachment.texture ? cast(MTLTexture)desc.depthAttachment.texture.handle : null;
+            depthdesc.level = desc.depthAttachment.level;
+            depthdesc.slice = desc.depthAttachment.slice;
+            depthdesc.depthPlane = desc.depthAttachment.depth;
+            depthdesc.resolveTexture = desc.depthAttachment.resolveTexture ? cast(MTLTexture)desc.depthAttachment.resolveTexture.handle : null;
+            depthdesc.resolveLevel = desc.depthAttachment.resolveLevel;
+            depthdesc.resolveSlice = desc.depthAttachment.resolveSlice;
+            depthdesc.resolveDepthPlane = desc.depthAttachment.resolveDepth;
+            depthdesc.loadAction = desc.depthAttachment.loadAction.toMTLLoadAction();
+            depthdesc.storeAction = desc.depthAttachment.storeAction.toMTLStoreAction();
+            depthdesc.clearDepth = desc.depthAttachment.clearDepth;
+
+            // Stencil Attachment
+            MTLRenderPassStencilAttachmentDescriptor stencildesc = mtldesc.stencilAttachment;
+            stencildesc.texture = desc.stencilAttachment.texture ? cast(MTLTexture)desc.stencilAttachment.texture.handle : null;
+            stencildesc.level = desc.stencilAttachment.level;
+            stencildesc.slice = desc.stencilAttachment.slice;
+            stencildesc.depthPlane = desc.stencilAttachment.depth;
+            stencildesc.resolveTexture = desc.stencilAttachment.resolveTexture ? cast(MTLTexture)desc.stencilAttachment.resolveTexture.handle : null;
+            stencildesc.resolveLevel = desc.stencilAttachment.resolveLevel;
+            stencildesc.resolveSlice = desc.stencilAttachment.resolveSlice;
+            stencildesc.resolveDepthPlane = desc.stencilAttachment.resolveDepth;
+            stencildesc.loadAction = desc.stencilAttachment.loadAction.toMTLLoadAction();
+            stencildesc.storeAction = desc.stencilAttachment.storeAction.toMTLStoreAction();
+            stencildesc.clearStencil = desc.stencilAttachment.clearStencil;
+
+            .autorelease(() {
+                this.handle = mtlcmdbuffer.renderCommandEncoder(mtldesc);
+                this.handle.retain();
+            });
+            mtldesc.release();
         });
-        mtldesc.release();
     }
 
 public:

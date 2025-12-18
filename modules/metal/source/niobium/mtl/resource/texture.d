@@ -13,6 +13,7 @@ module niobium.mtl.resource.texture;
 import niobium.mtl.resource;
 import niobium.mtl.device;
 import niobium.mtl.heap;
+import niobium.mtl.utils;
 import numem;
 import metal.texture;
 import metal.types;
@@ -31,64 +32,70 @@ private:
     NioTextureDescriptor    desc_;
 
     void createTexture(NioTextureDescriptor desc) {
-        auto mtlDevice = cast(NioMTLDevice)device;
-        this.desc_ = desc;
+        .autorelease(() {
+            auto mtlDevice = cast(NioMTLDevice)device;
+            this.desc_ = desc;
 
-        auto createInfo = MTLTextureDescriptor.alloc.init;
-        createInfo.textureType = desc.type.toMTLTextureType();
-        createInfo.pixelFormat = desc.format.toMTLPixelFormat();
-        createInfo.width = desc.width;
-        createInfo.height = desc.height;
-        createInfo.depth = desc.depth;
-        createInfo.mipmapLevelCount = desc.levels;
-        createInfo.arrayLength = desc.slices;
-        createInfo.usage = desc.usage.toMTLTextureUsage();
-        createInfo.sampleCount = 1;
-        createInfo.compressionType = MTLTextureCompressionType.Lossless;
-        createInfo.swizzle = MTLTextureSwizzleChannels(
-            MTLTextureSwizzle.Red, 
-            MTLTextureSwizzle.Green, 
-            MTLTextureSwizzle.Blue, 
-            MTLTextureSwizzle.Alpha
-        );
-        this.handle_ = mtlDevice.handle.newTexture(createInfo);
-        createInfo.release();
+            auto createInfo = MTLTextureDescriptor.alloc.init.autoreleased;
+            createInfo.textureType = desc.type.toMTLTextureType();
+            createInfo.pixelFormat = desc.format.toMTLPixelFormat();
+            createInfo.width = desc.width;
+            createInfo.height = desc.height;
+            createInfo.depth = desc.depth;
+            createInfo.mipmapLevelCount = desc.levels;
+            createInfo.arrayLength = desc.slices;
+            createInfo.usage = desc.usage.toMTLTextureUsage();
+            createInfo.sampleCount = 1;
+            createInfo.compressionType = MTLTextureCompressionType.Lossless;
+            createInfo.swizzle = MTLTextureSwizzleChannels(
+                MTLTextureSwizzle.Red, 
+                MTLTextureSwizzle.Green, 
+                MTLTextureSwizzle.Blue, 
+                MTLTextureSwizzle.Alpha
+            );
+            this.handle_ = mtlDevice.handle.newTexture(createInfo);
+        });
     }
 
     void createTextureView(NioMTLTexture texture, NioTextureDescriptor desc, uint baseSlice, uint baseLevel) {
-        this.desc_ = NioTextureDescriptor(
-            type: desc.type,
-            format: desc.format,
-            storage: texture.storageMode,
-            usage: texture.usage,
-            width: texture.width,
-            height: texture.height,
-            depth: texture.depth,
-            levels: desc.levels,
-            slices: desc.slices
-        );
-        this.handle_ = (cast(MTLTexture)texture.handle).newTextureView(
-            desc_.format.toMTLPixelFormat(),
-            desc_.type.toMTLTextureType(),
-            NSRange(baseSlice, desc_.levels),
-            NSRange(baseLevel, desc_.slices),
-        );
+        .autorelease(() {
+            this.desc_ = NioTextureDescriptor(
+                type: desc.type,
+                format: desc.format,
+                storage: texture.storageMode,
+                usage: texture.usage,
+                width: texture.width,
+                height: texture.height,
+                depth: texture.depth,
+                levels: desc.levels,
+                slices: desc.slices
+            );
+
+            this.handle_ = (cast(MTLTexture)texture.handle).newTextureView(
+                desc_.format.toMTLPixelFormat(),
+                desc_.type.toMTLTextureType(),
+                NSRange(baseSlice, desc_.levels),
+                NSRange(baseLevel, desc_.slices),
+            );
+        });
     }
 
     void referenceTexture(MTLTexture texture) {
-        texture.retain();
-        this.desc_ = NioTextureDescriptor(
-            type: texture.textureType.toNioTextureType(),
-            format: texture.pixelFormat.toNioPixelFormat(),
-            storage: texture.storageMode.toNioStorageMode(),
-            usage: texture.usage.toNioTextureUsage(),
-            width: cast(uint)texture.width,
-            height: cast(uint)texture.height,
-            depth: cast(uint)texture.depth,
-            levels: cast(uint)texture.mipmapLevelCount,
-            slices: cast(uint)texture.arrayLength
-        );
-        this.handle_ = texture;
+        .autorelease(() {
+            texture.retain();
+            this.desc_ = NioTextureDescriptor(
+                type: texture.textureType.toNioTextureType(),
+                format: texture.pixelFormat.toNioPixelFormat(),
+                storage: texture.storageMode.toNioStorageMode(),
+                usage: texture.usage.toNioTextureUsage(),
+                width: cast(uint)texture.width,
+                height: cast(uint)texture.height,
+                depth: cast(uint)texture.depth,
+                levels: cast(uint)texture.mipmapLevelCount,
+                slices: cast(uint)texture.arrayLength
+            );
+            this.handle_ = texture;
+        });
     }
 
 protected:

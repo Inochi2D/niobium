@@ -10,10 +10,10 @@
         Luna Nielsen
 */
 module niobium.mtl.cmd.queue;
-import niobium.mtl.memory;
 import niobium.mtl.surface;
 import niobium.mtl.device;
 import niobium.mtl.cmd;
+import niobium.mtl.utils;
 import niobium.device;
 import niobium.queue;
 import niobium.cmd;
@@ -39,8 +39,10 @@ private:
     MTLCommandQueue handle_;
 
     void setup(NioMTLDevice device, NioCommandQueueDescriptor desc) {
-        this.desc_ = desc;
-        this.handle_ = device.handle.newCommandQueue(desc.maxCommandBuffers);
+        .autorelease(() {
+            this.desc_ = desc;
+            this.handle_ = device.handle.newCommandQueue(desc.maxCommandBuffers);
+        });
     }
 
 protected:
@@ -90,12 +92,13 @@ public:
         the queue may contain an internal pool of command buffers.
     */
     override NioCommandBuffer fetch() {
-        MTLCommandBuffer cmdbuffer;
+        NioMTLCommandBuffer result = null;
         .autorelease(() {
-            cmdbuffer = handle_.commandBuffer();
-            cmdbuffer.retain();
+            if (auto cmdbuffer = handle_.commandBuffer()) {
+                result = nogc_new!NioMTLCommandBuffer(this, cmdbuffer);
+            }
         });
-        return nogc_new!NioMTLCommandBuffer(this, cmdbuffer);
+        return result;
     }
 
     /**
@@ -108,10 +111,12 @@ public:
     override void enqueue(NioCommandBuffer buffer) {
         if (!buffer.isRecording()) return;
         
-        if (auto mtlcmdbuffer = cast(NioMTLCommandBuffer)buffer) {
-            if (mtlcmdbuffer.handle.status == MTLCommandBufferStatus.NotEnqueued)
-                mtlcmdbuffer.handle.enqueue();
-        }
+        .autorelease(() {
+            if (auto mtlcmdbuffer = cast(NioMTLCommandBuffer)buffer) {
+                if (mtlcmdbuffer.handle.status == MTLCommandBufferStatus.NotEnqueued)
+                    mtlcmdbuffer.handle.enqueue();
+            }
+        });
     }
 
     /**
@@ -122,9 +127,16 @@ public:
             buffers = The buffers to enqueue.
     */
     override void enqueue(NioCommandBuffer[] buffers) {
-        foreach(buffer; buffers) {
-            this.enqueue(buffer);
-        }
+        .autorelease(() {
+            foreach(buffer; buffers) {
+                if (!buffer.isRecording()) continue;
+
+                if (auto mtlcmdbuffer = cast(NioMTLCommandBuffer)buffer) {
+                    if (mtlcmdbuffer.handle.status == MTLCommandBufferStatus.NotEnqueued)
+                        mtlcmdbuffer.handle.enqueue();
+                }
+            }
+        });
     }
 
     /**
@@ -135,9 +147,12 @@ public:
     */
     override void commit(NioCommandBuffer buffer) {
         if (!buffer.isRecording()) return;
-        if (auto mtlcmdbuffer = cast(NioMTLCommandBuffer)buffer) {
-            mtlcmdbuffer.handle.commit();
-        }
+
+        .autorelease(() {
+            if (auto mtlcmdbuffer = cast(NioMTLCommandBuffer)buffer) {
+                mtlcmdbuffer.handle.commit();
+            }
+        });
     }
 
     /**
@@ -147,8 +162,14 @@ public:
             buffers = The buffers to enqueue.
     */
     override void commit(NioCommandBuffer[] buffers) {
-        foreach(buffer; buffers) {
-            this.commit(buffer);
-        }
+        .autorelease(() {
+            foreach(buffer; buffers) {
+                if (!buffer.isRecording()) continue;
+
+                if (auto mtlcmdbuffer = cast(NioMTLCommandBuffer)buffer) {
+                    mtlcmdbuffer.handle.commit();
+                }
+            }
+        });
     }
 }

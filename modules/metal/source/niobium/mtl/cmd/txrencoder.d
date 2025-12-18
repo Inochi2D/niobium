@@ -11,9 +11,9 @@
 */
 module niobium.mtl.cmd.txrencoder;
 import niobium.mtl.resource;
-import niobium.mtl.memory;
 import niobium.mtl.sync;
 import niobium.mtl.cmd;
+import niobium.mtl.utils;
 import foundation;
 import metal.blitcommandencoder;
 import metal.commandencoder;

@@ -9,7 +9,8 @@
     Authors:
         Luna Nielsen
 */
-module niobium.mtl.memory;
+module niobium.mtl.utils;
 import objc.autorelease;
+import foundation;
 
 alias autorelease = autoreleasepool;

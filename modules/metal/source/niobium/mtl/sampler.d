@@ -12,6 +12,7 @@
 module niobium.mtl.sampler;
 import niobium.mtl.device;
 import niobium.mtl.heap;
+import niobium.mtl.utils;
 import metal.sampler;
 import foundation;
 import numem;
@@ -25,23 +26,25 @@ private:
     MTLSamplerState handle_;
 
     void setup(NioSamplerDescriptor desc) {
-        auto mtlDevice = cast(NioMTLDevice)device;
+        .autorelease(() {
+            auto mtlDevice = cast(NioMTLDevice)device;
 
-        MTLSamplerDescriptor mtldesc = MTLSamplerDescriptor.alloc.init;
-        mtldesc.sAddressMode = desc.wrapU.toMTLSamplerAddressMode();
-        mtldesc.tAddressMode = desc.wrapV.toMTLSamplerAddressMode();
-        mtldesc.rAddressMode = desc.wrapW.toMTLSamplerAddressMode();
-        mtldesc.lodMinClamp = desc.minLod;
-        mtldesc.lodMaxClamp = desc.maxLod;
-        mtldesc.lodBias = desc.mipLodBias;
-        mtldesc.maxAnisotropy = cast(NSUInteger)desc.maxAnisotropy;
-        mtldesc.normalizedCoordinates = desc.normalizedCoordinates;
-        mtldesc.minFilter = desc.minFilter.toMTLSamplerMinMagFilter();
-        mtldesc.magFilter = desc.magFilter.toMTLSamplerMinMagFilter();
-        mtldesc.mipFilter = desc.mipFilter.toMTLSamplerMipFilter();
-        this.handle_ = mtlDevice.handle.newSamplerState(mtldesc);
-        
-        mtldesc.release();
+            MTLSamplerDescriptor mtldesc = MTLSamplerDescriptor.alloc.init;
+            mtldesc.sAddressMode = desc.wrapU.toMTLSamplerAddressMode();
+            mtldesc.tAddressMode = desc.wrapV.toMTLSamplerAddressMode();
+            mtldesc.rAddressMode = desc.wrapW.toMTLSamplerAddressMode();
+            mtldesc.lodMinClamp = desc.minLod;
+            mtldesc.lodMaxClamp = desc.maxLod;
+            mtldesc.lodBias = desc.mipLodBias;
+            mtldesc.maxAnisotropy = cast(NSUInteger)desc.maxAnisotropy;
+            mtldesc.normalizedCoordinates = desc.normalizedCoordinates;
+            mtldesc.minFilter = desc.minFilter.toMTLSamplerMinMagFilter();
+            mtldesc.magFilter = desc.magFilter.toMTLSamplerMinMagFilter();
+            mtldesc.mipFilter = desc.mipFilter.toMTLSamplerMipFilter();
+            this.handle_ = mtlDevice.handle.newSamplerState(mtldesc);
+            
+            mtldesc.release();
+        });
     }
 
 public:

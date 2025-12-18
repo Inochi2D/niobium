@@ -1,5 +1,6 @@
 module niobium.mtl.depthstencil;
 import niobium.mtl.device;
+import niobium.mtl.utils;
 import metal.depthstencil;
 import metal.device;
 import numem;
@@ -21,39 +22,41 @@ private:
     MTLDepthStencilState handle_;
 
     void setup(NioDepthStencilStateDescriptor desc) {
-        auto mtlDevice = cast(NioMTLDevice)device;
-        MTLDepthStencilDescriptor mtldesc = MTLDepthStencilDescriptor.alloc.init;
-        
-        // Depth enable.
-        mtldesc.depthCompareFunction = desc.depthTestEnabled ? desc.depthState.compareFunction.toMTLCompareFunction() : MTLCompareFunction.Always;
-        mtldesc.depthWriteEnabled = desc.depthTestEnabled ? desc.depthState.depthWriteEnabled : false;
-
-        if (desc.stencilTestEnabled) {
+        .autorelease(() {
+            auto mtlDevice = cast(NioMTLDevice)device;
+            MTLDepthStencilDescriptor mtldesc = MTLDepthStencilDescriptor.alloc.init;
             
-            // Front-face stencil
-            auto frontFaceStencil = MTLStencilDescriptor.alloc.init;
-            frontFaceStencil.stencilCompareFunction =       desc.frontStencilState.compareFunction.toMTLCompareFunction();
-            frontFaceStencil.stencilFailureOperation =      desc.frontStencilState.failureOp.toMTLStencilOperation();
-            frontFaceStencil.depthFailureOperation =        desc.frontStencilState.depthFailureOp.toMTLStencilOperation();
-            frontFaceStencil.depthStencilPassOperation =    desc.frontStencilState.passOp.toMTLStencilOperation();
-            frontFaceStencil.readMask =                     desc.frontStencilState.readMask;
-            frontFaceStencil.writeMask =                    desc.frontStencilState.writeMask;
+            // Depth enable.
+            mtldesc.depthCompareFunction = desc.depthTestEnabled ? desc.depthState.compareFunction.toMTLCompareFunction() : MTLCompareFunction.Always;
+            mtldesc.depthWriteEnabled = desc.depthTestEnabled ? desc.depthState.depthWriteEnabled : false;
 
-            // Back-face stencil
-            auto backFaceStencil = MTLStencilDescriptor.alloc.init;
-            backFaceStencil.stencilCompareFunction =        desc.backStencilState.compareFunction.toMTLCompareFunction();
-            backFaceStencil.stencilFailureOperation =       desc.backStencilState.failureOp.toMTLStencilOperation();
-            backFaceStencil.depthFailureOperation =         desc.backStencilState.depthFailureOp.toMTLStencilOperation();
-            backFaceStencil.depthStencilPassOperation =     desc.backStencilState.passOp.toMTLStencilOperation();
-            backFaceStencil.readMask =                      desc.backStencilState.readMask;
-            backFaceStencil.writeMask =                     desc.backStencilState.writeMask;
-            
-            mtldesc.frontFaceStencil = frontFaceStencil;
-            mtldesc.backFaceStencil = backFaceStencil;
-        }
+            if (desc.stencilTestEnabled) {
+                
+                // Front-face stencil
+                auto frontFaceStencil = MTLStencilDescriptor.alloc.init;
+                frontFaceStencil.stencilCompareFunction =       desc.frontStencilState.compareFunction.toMTLCompareFunction();
+                frontFaceStencil.stencilFailureOperation =      desc.frontStencilState.failureOp.toMTLStencilOperation();
+                frontFaceStencil.depthFailureOperation =        desc.frontStencilState.depthFailureOp.toMTLStencilOperation();
+                frontFaceStencil.depthStencilPassOperation =    desc.frontStencilState.passOp.toMTLStencilOperation();
+                frontFaceStencil.readMask =                     desc.frontStencilState.readMask;
+                frontFaceStencil.writeMask =                    desc.frontStencilState.writeMask;
 
-        this.handle_ = mtlDevice.handle.newDepthStencilState(mtldesc);
-        mtldesc.release();
+                // Back-face stencil
+                auto backFaceStencil = MTLStencilDescriptor.alloc.init;
+                backFaceStencil.stencilCompareFunction =        desc.backStencilState.compareFunction.toMTLCompareFunction();
+                backFaceStencil.stencilFailureOperation =       desc.backStencilState.failureOp.toMTLStencilOperation();
+                backFaceStencil.depthFailureOperation =         desc.backStencilState.depthFailureOp.toMTLStencilOperation();
+                backFaceStencil.depthStencilPassOperation =     desc.backStencilState.passOp.toMTLStencilOperation();
+                backFaceStencil.readMask =                      desc.backStencilState.readMask;
+                backFaceStencil.writeMask =                     desc.backStencilState.writeMask;
+                
+                mtldesc.frontFaceStencil = frontFaceStencil;
+                mtldesc.backFaceStencil = backFaceStencil;
+            }
+
+            this.handle_ = mtlDevice.handle.newDepthStencilState(mtldesc);
+            mtldesc.release();
+        });
     }
 
 public:

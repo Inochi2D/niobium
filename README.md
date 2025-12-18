@@ -10,3 +10,9 @@ for 3D rendering, while also providing the flexibility needed by modern multimed
 ## Building Niobium
 Niobium depends on the linker ordering guarantees of [redub](https://github.com/MrcSnm/redub) on Linux, 
 it is recommended you use redub in general for Niobium.
+
+### Notes on memory leaks in Metal
+Metal's validation layers leak memory throughout the runtime of the application,
+you can disable those layers by setting the `MTL_DEBUG_LAYER` environment variable to `0`.
+
+If you wish to use the Metal Performance HUD, you'll want to wrap your main loop in a `autoreleasepool`.

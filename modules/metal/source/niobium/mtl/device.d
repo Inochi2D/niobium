@@ -19,6 +19,7 @@ import niobium.mtl.video;
 import niobium.mtl.cmd;
 import niobium.mtl.sync;
 import niobium.mtl.heap;
+import niobium.mtl.utils;
 import foundation;
 import metal.device;
 import numem;
@@ -46,33 +47,35 @@ private:
     NioBuffer stagingBuffer;
 
     void setup(MTLDevice device) {
-        this.handle_ = device;
-        this.deviceName_ = device.name.toString().nu_dup();
-        this.deviceType_ = device.location.toNioDeviceType();
-        this.deviceFeatures_ = NioDeviceFeatures(
-            presentation: true,
-            meshShaders: true,
-            geometryShaders: false,
-            tesselationShaders: false,
-            videoEncode: false,         // TODO: Add support for Video Toolkit
-            videoDecode: false,
-            dualSourceBlend: true,
-            anisotropicFiltering: true,
-            alphaToCoverage: true
-        );
-        this.deviceLimits_ = NioDeviceLimits(
-            maxBufferSize: device.maxBufferLength,
-        );
+        .autorelease(() {
+            this.handle_ = device;
+            this.deviceName_ = device.name.toString().nu_dup();
+            this.deviceType_ = device.location.toNioDeviceType();
+            this.deviceFeatures_ = NioDeviceFeatures(
+                presentation: true,
+                meshShaders: true,
+                geometryShaders: false,
+                tesselationShaders: false,
+                videoEncode: false,         // TODO: Add support for Video Toolkit
+                videoDecode: false,
+                dualSourceBlend: true,
+                anisotropicFiltering: true,
+                alphaToCoverage: true
+            );
+            this.deviceLimits_ = NioDeviceLimits(
+                maxBufferSize: device.maxBufferLength,
+            );
 
-        foreach_reverse(i; 0..16) {
-            if (device.supportsTextureSampleCount(1 << i)) {
-                this.deviceLimits_.maxSamples = 1 << i;
-                break;
+            foreach_reverse(i; 0..16) {
+                if (device.supportsTextureSampleCount(1 << i)) {
+                    this.deviceLimits_.maxSamples = 1 << i;
+                    break;
+                }
             }
-        }
 
-        // Internal upload queue.
-        this.uploadQueue = this.createQueue(NioCommandQueueDescriptor(maxCommandBuffers: 4));
+            // Internal upload queue.
+            this.uploadQueue = this.createQueue(NioCommandQueueDescriptor(maxCommandBuffers: 4));
+        });
     }
 
     /// Updates the staging buffer to fit a new size if it's greater
@@ -453,19 +456,21 @@ export extern(C) @property NioDevice[] __nio_enumerate_devices() @nogc {
 
 pragma(crt_constructor)
 export extern(C) void __nio_crt_init() @nogc {
-    auto mtlDevices = MTLCopyAllDevices();
+    .autorelease(() {
+        auto mtlDevices = MTLCopyAllDevices();
 
-    vector!NioDevice devices;
-    foreach(i, device; mtlDevices) {
+        vector!NioDevice devices;
+        foreach(i, device; mtlDevices) {
 
-        // < Metal 3 is not supported.
-        if (!device.supportsFamily(MTLGPUFamily.Metal3))
-            continue;
-        
-        devices ~= nogc_new!NioMTLDevice(device);
-    }
-    __nio_mtl_devices = devices.take();
-    mtlDevices.release();
+            // < Metal 3 is not supported.
+            if (!device.supportsFamily(MTLGPUFamily.Metal3))
+                continue;
+            
+            devices ~= nogc_new!NioMTLDevice(device);
+        }
+        __nio_mtl_devices = devices.take();
+        mtlDevices.release();
+    });
 }
 
 pragma(crt_destructor)

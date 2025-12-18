@@ -14,6 +14,7 @@ import niobium.mtl.resource;
 import niobium.mtl.device;
 import niobium.mtl.shader;
 import niobium.mtl.formats;
+import niobium.mtl.utils;
 import metal.renderpipeline;
 import metal.vertexdescriptor;
 import foundation;
@@ -35,66 +36,68 @@ private:
     MTLRenderPipelineState handle_;
 
     void setup(NioRenderPipelineDescriptor desc) {
-        auto mtlDevice = cast(NioMTLDevice)device;
-        MTLRenderPipelineDescriptor mtldesc = MTLRenderPipelineDescriptor.alloc.init;
-        
-        // Basic settings
-        mtldesc.isAlphaToCoverageEnabled = desc.alphaToCoverage;
-        mtldesc.isAlphaToOneEnabled = desc.alphaToOne;
-        mtldesc.isRasterizationEnabled = desc.fragmentFunction !is null;
-        mtldesc.rasterSampleCount = max(1, desc.sampleCount);
+        .autorelease(() {
+            auto mtlDevice = cast(NioMTLDevice)device;
+            MTLRenderPipelineDescriptor mtldesc = MTLRenderPipelineDescriptor.alloc.init;
+            
+            // Basic settings
+            mtldesc.isAlphaToCoverageEnabled = desc.alphaToCoverage;
+            mtldesc.isAlphaToOneEnabled = desc.alphaToOne;
+            mtldesc.isRasterizationEnabled = desc.fragmentFunction !is null;
+            mtldesc.rasterSampleCount = max(1, desc.sampleCount);
 
-        // Functions
-        mtldesc.vertexFunction = (cast(NioMTLShaderFunction)desc.vertexFunction).handle;
-        mtldesc.fragmentFunction = (cast(NioMTLShaderFunction)desc.fragmentFunction).handle;
+            // Functions
+            mtldesc.vertexFunction = (cast(NioMTLShaderFunction)desc.vertexFunction).handle;
+            mtldesc.fragmentFunction = (cast(NioMTLShaderFunction)desc.fragmentFunction).handle;
 
-        // Vertex Descriptor
-        foreach(i, attrib; desc.vertexDescriptor.attributes) {
-            MTLVertexAttributeDescriptor attribdesc = MTLVertexAttributeDescriptor.alloc.init;
-            attribdesc.bufferIndex = attrib.bufferIndex;
-            attribdesc.offset = attrib.offset;
-            attribdesc.format = attrib.format.toMTLVertexFormat();
+            // Vertex Descriptor
+            foreach(i, attrib; desc.vertexDescriptor.attributes) {
+                MTLVertexAttributeDescriptor attribdesc = MTLVertexAttributeDescriptor.alloc.init;
+                attribdesc.bufferIndex = attrib.bufferIndex;
+                attribdesc.offset = attrib.offset;
+                attribdesc.format = attrib.format.toMTLVertexFormat();
 
-            mtldesc.vertexDescriptor.attributes.set(attribdesc, i);
-            attribdesc.release();
-        }
-        foreach(i, layout; desc.vertexDescriptor.bindings) {
-            MTLVertexBufferLayoutDescriptor layoutdesc = MTLVertexBufferLayoutDescriptor.alloc.init;
-            layoutdesc.stride = layout.stride;
-            layoutdesc.stepFunction = layout.rate.toMTLVertexStepFunction();
-            layoutdesc.stepRate = 1;
+                mtldesc.vertexDescriptor.attributes.set(attribdesc, i);
+                attribdesc.release();
+            }
+            foreach(i, layout; desc.vertexDescriptor.bindings) {
+                MTLVertexBufferLayoutDescriptor layoutdesc = MTLVertexBufferLayoutDescriptor.alloc.init;
+                layoutdesc.stride = layout.stride;
+                layoutdesc.stepFunction = layout.rate.toMTLVertexStepFunction();
+                layoutdesc.stepRate = 1;
 
-            mtldesc.vertexDescriptor.layouts.set(layoutdesc, i);
-            layoutdesc.release();
-        }
+                mtldesc.vertexDescriptor.layouts.set(layoutdesc, i);
+                layoutdesc.release();
+            }
 
-        // Color attachments
-        foreach(i, attachment; desc.colorAttachments) {
-            MTLRenderPipelineColorAttachmentDescriptor attachdesc = mtldesc.colorAttachments.get(i);
-            attachdesc.pixelFormat =                    attachment.format.toMTLPixelFormat();
-            attachdesc.isBlendingEnabled =              attachment.blending;
-            attachdesc.alphaBlendOperation =            attachment.alphaOp.toMTLBlendOperation();
-            attachdesc.rgbBlendOperation =              attachment.colorOp.toMTLBlendOperation();
-            attachdesc.sourceRGBBlendFactor =           attachment.srcColorFactor.toMTLBlendFactor();
-            attachdesc.sourceAlphaBlendFactor =         attachment.srcAlphaFactor.toMTLBlendFactor();
-            attachdesc.destinationRGBBlendFactor =      attachment.dstColorFactor.toMTLBlendFactor();
-            attachdesc.destinationAlphaBlendFactor =    attachment.dstAlphaFactor.toMTLBlendFactor();
+            // Color attachments
+            foreach(i, attachment; desc.colorAttachments) {
+                MTLRenderPipelineColorAttachmentDescriptor attachdesc = mtldesc.colorAttachments.get(i);
+                attachdesc.pixelFormat =                    attachment.format.toMTLPixelFormat();
+                attachdesc.isBlendingEnabled =              attachment.blending;
+                attachdesc.alphaBlendOperation =            attachment.alphaOp.toMTLBlendOperation();
+                attachdesc.rgbBlendOperation =              attachment.colorOp.toMTLBlendOperation();
+                attachdesc.sourceRGBBlendFactor =           attachment.srcColorFactor.toMTLBlendFactor();
+                attachdesc.sourceAlphaBlendFactor =         attachment.srcAlphaFactor.toMTLBlendFactor();
+                attachdesc.destinationRGBBlendFactor =      attachment.dstColorFactor.toMTLBlendFactor();
+                attachdesc.destinationAlphaBlendFactor =    attachment.dstAlphaFactor.toMTLBlendFactor();
 
-            // TODO: Multisample state
-        }
+                // TODO: Multisample state
+            }
 
-        // Depth-stencil attachments.
-        mtldesc.depthAttachmentPixelFormat = desc.depthFormat.toMTLPixelFormat();
-        mtldesc.stencilAttachmentPixelFormat = desc.stencilFormat.toMTLPixelFormat();
+            // Depth-stencil attachments.
+            mtldesc.depthAttachmentPixelFormat = desc.depthFormat.toMTLPixelFormat();
+            mtldesc.stencilAttachmentPixelFormat = desc.stencilFormat.toMTLPixelFormat();
 
-        NSError error;
-        this.handle_ = mtlDevice.handle.newRenderPipelineState(mtldesc, error);
-        if (error) {
-            string msg = error.toString();
-            error.release();
-            throw nogc_new!NuException(msg);
-        }
-        mtldesc.release();
+            NSError error;
+            this.handle_ = mtlDevice.handle.newRenderPipelineState(mtldesc, error);
+            if (error) {
+                string msg = error.toString();
+                error.release();
+                throw nogc_new!NuException(msg);
+            }
+            mtldesc.release();
+        });
     }
 
 public:

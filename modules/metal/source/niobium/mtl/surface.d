@@ -12,13 +12,12 @@
 module niobium.mtl.surface;
 import niobium.mtl.device;
 import niobium.mtl.resource;
-import niobium.mtl.memory;
+import niobium.mtl.utils;
 import metal.pixelformat;
 import metal.drawable;
 import foundation;
 import coregraphics.cggeometry;
 import nulib.threading.mutex;
-import objc.autorelease;
 import nulib;
 import numem;
 
@@ -59,10 +58,12 @@ public:
     */
     override @property NioDevice device() => device_;
     override @property void device(NioDevice value) {
-        if (auto device = cast(NioMTLDevice)value) {
-            this.device_ = device;
-            this.handle_.device = device.handle;
-        }
+        .autorelease(() {
+            if (auto device = cast(NioMTLDevice)value) {
+                this.device_ = device;
+                this.handle_.device = device.handle;
+            }
+        });
     }
 
     /**
@@ -70,9 +71,11 @@ public:
     */
     override @property NioExtent2D size() => size_;
     override @property void size(NioExtent2D size) {
-        this.size_ = size;
-        this.lastSize_ = CGSize(size.width, size.height);
-        this.handle_.drawableSize = lastSize_;
+        .autorelease(() {
+            this.size_ = size;
+            this.lastSize_ = CGSize(size.width, size.height);
+            this.handle_.drawableSize = lastSize_;
+        });
     }
 
     /**
@@ -80,8 +83,10 @@ public:
     */
     override @property NioPixelFormat format() => handle_.pixelFormat.toNioPixelFormat();
     override @property void format(NioPixelFormat value) {
-        if (this.supports(value))
-            this.handle_.pixelFormat = value.toMTLPixelFormat();
+        .autorelease(() {
+            if (this.supports(value))
+                this.handle_.pixelFormat = value.toMTLPixelFormat();
+        });
     }
 
     /**
@@ -100,10 +105,12 @@ public:
     */
     override @property uint framesInFlight() => framesInFlight_;
     override @property void framesInFlight(uint value) {
-        import nulib.math : clamp;
+        .autorelease(() {
+            import nulib.math : clamp;
 
-        this.framesInFlight_ = clamp(value, 2, 3);
-        this.handle_.maximumDrawableCount = framesInFlight_;
+            this.framesInFlight_ = clamp(value, 2, 3);
+            this.handle_.maximumDrawableCount = framesInFlight_;
+        });
     }
 
     /**
@@ -111,7 +118,9 @@ public:
     */
     override @property NioPresentMode presentMode() => handle_.displaySyncEnabled() ? NioPresentMode.vsync : NioPresentMode.immediate;
     override @property void presentMode(NioPresentMode value) {
-        handle_.displaySyncEnabled = value == NioPresentMode.vsync;
+        .autorelease(() {
+            this.handle_.displaySyncEnabled = value == NioPresentMode.vsync;
+        });
     }
 
     /**
@@ -168,21 +177,23 @@ public:
     override NioDrawable next() {
         if (!isReady) return null;
 
+        NioMTLDrawable result = null;
+
         mutex_.lock();
-        CAMetalDrawable drawable;
         .autorelease(() {
             auto currSize = handle_.drawableSize;
             if (currSize.width != lastSize_.width || currSize.height != lastSize_.height) {
-                this.lastSize_ = handle_.drawableSize;
+                this.lastSize_ = currSize;
                 this.size_ = NioExtent2D(cast(uint)lastSize_.width, cast(uint)lastSize_.height);
             }
             
-            drawable = handle_.next();
-            if (drawable)
-                drawable.retain();
+            if (auto drawable = handle_.next()) {
+                result = nogc_new!NioMTLDrawable(this, drawable);
+            }
         });
         mutex_.unlock();
-        return drawable !is null ? nogc_new!NioMTLDrawable(this, drawable) : null;
+        
+        return result;
     }
 }
 
@@ -214,6 +225,7 @@ public:
     */
     this(NioMTLSurface surface, CAMetalDrawable drawable) {
         super(surface);
+        drawable.retain();
         this.handle_ = drawable;
         this.texture_ = nogc_new!NioMTLTexture(surface.device, drawable.texture);
     }

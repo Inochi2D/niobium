@@ -11,6 +11,7 @@
 */
 module niobium.mtl.shader;
 import niobium.mtl.device;
+import niobium.mtl.utils;
 import metal.library;
 import metal.device;
 import foundation;
@@ -39,28 +40,30 @@ private:
     }
     
     void setup(string name, ubyte[] source) {
-        auto mtlDevice = cast(NioMTLDevice)device;
+        .autorelease(() {
+            auto mtlDevice = cast(NioMTLDevice)device;
 
-        NSError error;
-        auto nssource = NSString.create(cast(string)source);
-        auto compileOptions = MTLCompileOptions.alloc.init;
-        
-        handle_ = mtlDevice.handle.newLibrary(nssource, compileOptions, error);
-        
-        nssource.release();
-        compileOptions.release();
-        if (error) {
-            string errText = error.toString();
-            error.release();
-            throw nogc_new!NuException(errText);
-        }
+            NSError error;
+            auto nssource = NSString.create(cast(string)source);
+            auto compileOptions = MTLCompileOptions.alloc.init;
+            
+            handle_ = mtlDevice.handle.newLibrary(nssource, compileOptions, error);
+            
+            nssource.release();
+            compileOptions.release();
+            if (error) {
+                string errText = error.toString();
+                error.release();
+                throw nogc_new!NuException(errText);
+            }
 
-        auto funcNames = handle_.functionNames;
-        functions_ = nu_malloca!NioMTLShaderFunction(funcNames.length);
-        foreach(i, name; funcNames) {
-            functions_[i] = nogc_new!NioMTLShaderFunction(device, this, handle_.newFunctionWithName(name));
-        }
-        funcNames.release();
+            auto funcNames = handle_.functionNames;
+            functions_ = nu_malloca!NioMTLShaderFunction(funcNames.length);
+            foreach(i, name; funcNames) {
+                functions_[i] = nogc_new!NioMTLShaderFunction(device, this, handle_.newFunctionWithName(name));
+            }
+            funcNames.release();
+        });
     }
 
 public:

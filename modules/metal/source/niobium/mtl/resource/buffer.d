@@ -13,6 +13,7 @@ module niobium.mtl.resource.buffer;
 import niobium.mtl.resource;
 import niobium.mtl.device;
 import niobium.mtl.heap;
+import niobium.mtl.utils;
 import foundation;
 import metal.resource;
 import metal.buffer;
@@ -31,17 +32,19 @@ private:
     NioBufferDescriptor     desc_;
 
     void createBuffer(NioBufferDescriptor desc) {
-        auto nmtlDevice = cast(NioMTLDevice)device;
+        .autorelease(() {
+            auto nmtlDevice = cast(NioMTLDevice)device;
 
-        this.desc_ = desc;
-        this.handle_ = nmtlDevice.handle.newBuffer(
-            desc.size,
-            cast(MTLResourceOptions)(
-                MTLResourceOptions.CacheModeDefaultCache |
-                (desc.storage.toMTLStorageMode() << MTLResourceStorageModeShift) |
-                MTLResourceOptions.HazardTrackingModeDefault
-            )
-        );
+            this.desc_ = desc;
+            this.handle_ = nmtlDevice.handle.newBuffer(
+                desc.size,
+                cast(MTLResourceOptions)(
+                    MTLResourceOptions.CacheModeDefaultCache |
+                    (desc.storage.toMTLStorageMode() << MTLResourceStorageModeShift) |
+                    MTLResourceOptions.HazardTrackingModeDefault
+                )
+            );
+        });
     }
 
 protected:

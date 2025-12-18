@@ -10,11 +10,11 @@
         Luna Nielsen
 */
 module niobium.mtl.cmd.buffer;
-import niobium.mtl.memory;
 import niobium.mtl.device;
 import niobium.mtl.surface;
 import niobium.mtl.sync;
 import niobium.mtl.cmd;
+import niobium.mtl.utils;
 import niobium.queue;
 import niobium.cmd;
 import metal.commandbuffer;
@@ -46,6 +46,7 @@ private:
     // Handles
     MTLCommandBuffer handle_;
     Mutex encoderMutex_;
+    weak_vector!NioDrawable drawables_;
 
 protected:
 
@@ -79,6 +80,12 @@ public:
     ~this() {
         nogc_delete(encoderMutex_);
         handle_.release();
+
+        // Clear attached drawables.
+        foreach(ref drawable; drawables_) {
+            drawable.release();
+        }
+        drawables_.clear();
     }
 
     /**
@@ -91,6 +98,8 @@ public:
         super(queue);
         this.handle_ = handle;
         this.encoderMutex_ = nogc_new!Mutex();
+
+        handle_.retain();
     }
 
     /**
@@ -153,10 +162,12 @@ public:
     override void present(NioDrawable drawable) {
         if (drawable.queue)
             return;
-
+        
         .autorelease(() {
+            drawable.queue = this.queue;
+            drawables_ ~= drawable;
+
             handle_.present((cast(NioMTLDrawable)drawable).handle);
-            drawable.release();
         });
     }
 
@@ -165,7 +176,9 @@ public:
         execution.
     */
     override void await() {
-        handle_.waitUntilCompleted();
+        .autorelease(() {
+            handle_.waitUntilCompleted();
+        });
     }
 }
 
