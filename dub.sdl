@@ -11,9 +11,10 @@ subPackage "modules/vulkan"
 subPackage "modules/nir"
 subPackage "tools/dlslc"
 
-dependency ":nir" version="*"
-dependency "numem" version="~>1.4"
-dependency "nulib" version="~>0.3"
+dependency "niobium:nir" version="*"
+dependency "numem" version=">=1.6.13"
+dependency "nulib" version=">=0.4.8"
+dependency "nulib:threading" version="*"
 
 targetName "niobium"
 targetPath "out/"
