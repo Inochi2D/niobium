@@ -9,6 +9,8 @@ dependency "metal-d" version=">=0.5.2"
 dependency "numem" version="~>1.3"
 dependency "nulib" version="~>0.3"
 
+buildRequirements "allowWarnings"
+
 configuration "metal" {
     platforms "osx" "ios" "tvos" "watchos" "visionos"
     lflags "-all_load"
