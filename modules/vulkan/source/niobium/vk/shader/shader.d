@@ -114,6 +114,23 @@ public:
         this.setup(name, source);
     }
 
+
+    /**
+        Creates a new specialized function instance from the given descriptor.
+
+        Params:
+            desc = The descriptor.
+        
+        Returns:
+            A $(D NioShaderFunction) on success,
+            $(D null) otherwise.
+    */
+    override NioShaderFunction makeFunction(NioShaderFunctionDescriptor desc) {
+        
+        // TODO: Add shader specialization.
+        return null;
+    }
+
     /**
         Gets a named function from the shader.
 
