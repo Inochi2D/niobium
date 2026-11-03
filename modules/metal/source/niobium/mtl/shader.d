@@ -113,9 +113,18 @@ public:
             auto mtlDevice = cast(NioMTLDevice)device;
 
             MTLFunctionDescriptor mtldesc = MTLFunctionDescriptor.functionDescriptor;
-            mtldesc.name = NSString.create(desc.name);
+            mtldesc.name = NSString.create(desc.name).autoreleased();
 
             foreach(constant; desc.constants) {
+                if (constant.name) {
+                    mtldesc.constantValues.setConstantValue(
+                        constant.data.ptr, 
+                        constant.type.toMTLDataType(), 
+                        NSString.create(constant.name).autoreleased()
+                    );
+                    break;
+                }
+
                 mtldesc.constantValues.setConstantValue(
                     constant.data.ptr, 
                     constant.type.toMTLDataType(), 
@@ -204,8 +213,12 @@ public:
 
     /// Destructor
     ~this() {
-        nu_freea(name_);
-        nu_freea(attribs_);
+        if (name_)
+            nu_cleara(name_);
+
+        if (attribs_)
+            nu_cleara(attribs_);
+
         handle_.release();
         parent_.release();
     }
@@ -217,7 +230,7 @@ public:
         super(device, constants);
         this.parent_ = parent.retained();
         this.handle_ = func;
-        this.name_ = func.name.toString();
+        this.name_ = func.name.toString().nu_dup();
         this.stage_ = func.functionType.toNirShaderStage();
         this.calcAttribs(func);
     }

@@ -85,6 +85,11 @@ public:
 struct NioShaderConstant {
     
     /**
+        Name of the constant, will be used if possible.
+    */
+    string name;
+
+    /**
         ID of the constant
     */
     uint id;
@@ -121,7 +126,7 @@ public:
         Sets constant with the given ID.
 
         Params:
-            id =    The ID of constant to set.
+            id =    The ID of the constant to set.
             value = The value to set the constant to.
     */
     void setConstant(T)(uint id, T value) nothrow {
@@ -136,6 +141,27 @@ public:
         // Add new constant.
         constants = constants.nu_resize(constants.length+1);
         constants[$-1] = NioShaderConstant(id, toNioDataType!T(), (cast(void*)&value)[0..T.sizeof]);
+    }
+
+    /**
+        Sets constant with the given ID.
+
+        Params:
+            name =  The name of the constant to set.
+            value = The value to set the constant to.
+    */
+    void setConstant(T)(string name, T value) nothrow {
+        foreach(ref c; constants) {
+            if (c.name == name) {
+                c.type = toNioDataType!T();
+                c.data[0..T.sizeof] = (cast(void*)&value)[0..T.sizeof];
+                return;
+            }
+        }
+
+        // Add new constant.
+        constants = constants.nu_resize(constants.length+1);
+        constants[$-1] = NioShaderConstant(name, toNioDataType!T(), (cast(void*)&value)[0..T.sizeof]);
     }
 }
 
