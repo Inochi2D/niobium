@@ -115,6 +115,99 @@ enum NioDataType : uint {
 }
 
 /**
+    Gets the size of a data type in bytes.
+
+    Params:
+        type = The type of the data.
+
+    Returns:
+        The size of the data type.
+*/
+size_t sizeOf(NioDataType type) @nogc nothrow pure {
+    final switch(type) with(NioDataType) {
+        case unknown:                   return 0;
+        case bool1:                     return 1;
+        case bool2:                     return 2;
+        case bool3:                     return 3;
+        case bool4:                     return 4;
+        case ubyte1:                    return 1;
+        case ubyte2:                    return 2;
+        case ubyte3:                    return 3;
+        case ubyte4:                    return 4;
+        case byte1:                     return 1;
+        case byte2:                     return 2;
+        case byte3:                     return 3;
+        case byte4:                     return 4;
+        case ushort1:                   return 2;
+        case ushort2:                   return 4;
+        case ushort3:                   return 6;
+        case ushort4:                   return 8;
+        case short1:                    return 2;
+        case short2:                    return 4;
+        case short3:                    return 6;
+        case short4:                    return 8;
+        case half1:                     return 2;
+        case half2:                     return 4;
+        case half3:                     return 6;
+        case half4:                     return 8;
+        case half2x2:                   return 2*2*2;
+        case half2x3:                   return 2*3*2;
+        case half2x4:                   return 2*4*2;
+        case half3x2:                   return 3*2*2;
+        case half3x3:                   return 3*3*2;
+        case half3x4:                   return 3*4*2;
+        case half4x2:                   return 4*2*2;
+        case half4x3:                   return 4*3*2;
+        case half4x4:                   return 4*4*2;
+        case uint1:                     return 4;
+        case uint2:                     return 8;
+        case uint3:                     return 12;
+        case uint4:                     return 16;
+        case int1:                      return 4;
+        case int2:                      return 8;
+        case int3:                      return 12;
+        case int4:                      return 16;
+        case float1:                    return 4;
+        case float2:                    return 8;
+        case float3:                    return 12;
+        case float4:                    return 16;
+        case float2x2:                  return 2*2*4;
+        case float2x3:                  return 2*3*4;
+        case float2x4:                  return 2*4*4;
+        case float3x2:                  return 3*2*4;
+        case float3x3:                  return 3*3*4;
+        case float3x4:                  return 3*4*4;
+        case float4x2:                  return 4*2*4;
+        case float4x3:                  return 4*3*4;
+        case float4x4:                  return 4*4*4;
+        case ulong1:                    return 8;
+        case ulong2:                    return 16;
+        case ulong3:                    return 24;
+        case ulong4:                    return 32;
+        case long1:                     return 8;
+        case long2:                     return 16;
+        case long3:                     return 24;
+        case long4:                     return 32;
+        case r8Unorm:                   return 1;
+        case r8Snorm:                   return 1;
+        case rg8Unorm:                  return 2;
+        case rg8UnormSRGB:              return 2;
+        case rg8Snorm:                  return 2;
+        case rg16Unorm:                 return 4;
+        case rg16Snorm:                 return 4;
+        case rgba8Snorm:                return 4;
+        case rgba8Unorm:                return 4;
+        case rgba16Unorm:               return 8;
+        case rgba16Snorm:               return 8;
+        case texture:                   return 8;
+        case sampler:                   return 8;
+        case structure:                 return 8;
+        case array:                     return 8;
+        case pointer:                   return 8;
+    }
+}
+
+/**
     2D Extents
 */
 struct NioExtent2D {

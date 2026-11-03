@@ -166,6 +166,20 @@ private:
     string name_;
     NirShaderStage stage_;
 
+    NioVertexAttribute[] attribs_;
+    void calcAttribs(MTLFunction func) {
+        auto attribArray = func.vertexAttributes;
+        if (attribArray && attribArray.length > 0) {
+            this.attribs_ = nu_malloca!NioVertexAttribute(attribArray.length);
+
+            foreach(i, attrib; attribArray) {
+                attribs_[i].index = cast(uint)attrib.index;
+                attribs_[i].type = attrib.type.toNioDataType();
+                attribs_[i].size = cast(uint)attribs_[i].type.sizeOf;
+            }
+        }
+    }
+
 public:
 
     /**
@@ -183,9 +197,15 @@ public:
     */
     override @property NirShaderStage stage() => stage_;
 
+    /**
+        Vertex attributes of the function, if present.
+    */
+    override @property NioVertexAttribute[] attributes() => attribs_;
+
     /// Destructor
     ~this() {
         nu_freea(name_);
+        nu_freea(attribs_);
         handle_.release();
         parent_.release();
     }
@@ -199,6 +219,7 @@ public:
         this.handle_ = func;
         this.name_ = func.name.toString();
         this.stage_ = func.functionType.toNirShaderStage();
+        this.calcAttribs(func);
     }
 }
 
@@ -314,5 +335,98 @@ MTLDataType toMTLDataType(NioDataType type) @nogc nothrow pure {
         case structure:         return MTLDataType.Struct;     
         case array:             return MTLDataType.Array; 
         case pointer:           return MTLDataType.Pointer;     
+    }
+}
+
+/**
+    Converts a $(D MTLDataType) format to its $(D NioDataType) equivalent.
+
+    Params:
+        type = The $(D MTLDataType)
+    
+    Returns:
+        The $(D NioDataType) equivalent.
+*/
+pragma(inline, true)
+NioDataType toNioDataType(MTLDataType type) @nogc nothrow pure {
+    switch(type) with(MTLDataType) {
+        default:                return NioDataType.unknown;
+        case Bool:              return NioDataType.bool1;
+        case Bool2:             return NioDataType.bool2;
+        case Bool3:             return NioDataType.bool3;
+        case Bool4:             return NioDataType.bool4;
+        case UChar:             return NioDataType.ubyte1;
+        case UChar2:            return NioDataType.ubyte2;
+        case UChar3:            return NioDataType.ubyte3;
+        case UChar4:            return NioDataType.ubyte4;
+        case Char:              return NioDataType.byte1;
+        case Char2:             return NioDataType.byte2;
+        case Char3:             return NioDataType.byte3;
+        case Char4:             return NioDataType.byte4;
+        case UShort:            return NioDataType.ushort1;
+        case UShort2:           return NioDataType.ushort2;
+        case UShort3:           return NioDataType.ushort3;
+        case UShort4:           return NioDataType.ushort4;
+        case Short:             return NioDataType.short1;
+        case Short2:            return NioDataType.short2;
+        case Short3:            return NioDataType.short3;
+        case Short4:            return NioDataType.short4;
+        case Half:              return NioDataType.half1;
+        case Half2:             return NioDataType.half2;
+        case Half3:             return NioDataType.half3;
+        case Half4:             return NioDataType.half4;
+        case Half2x2:           return NioDataType.half2x2;
+        case Half2x3:           return NioDataType.half2x3;
+        case Half2x4:           return NioDataType.half2x4;
+        case Half3x2:           return NioDataType.half3x2;
+        case Half3x3:           return NioDataType.half3x3;
+        case Half3x4:           return NioDataType.half3x4;
+        case Half4x2:           return NioDataType.half4x2;
+        case Half4x3:           return NioDataType.half4x3;
+        case Half4x4:           return NioDataType.half4x4;
+        case UInt:              return NioDataType.uint1;
+        case UInt2:             return NioDataType.uint2;
+        case UInt3:             return NioDataType.uint3;
+        case UInt4:             return NioDataType.uint4;
+        case Int:               return NioDataType.int1;
+        case Int2:              return NioDataType.int2;
+        case Int3:              return NioDataType.int3;
+        case Int4:              return NioDataType.int4;
+        case Float:             return NioDataType.float1;
+        case Float2:            return NioDataType.float2;
+        case Float3:            return NioDataType.float3;
+        case Float4:            return NioDataType.float4;
+        case Float2x2:          return NioDataType.float2x2;
+        case Float2x3:          return NioDataType.float2x3;
+        case Float2x4:          return NioDataType.float2x4;
+        case Float3x2:          return NioDataType.float3x2;
+        case Float3x3:          return NioDataType.float3x3;
+        case Float3x4:          return NioDataType.float3x4;
+        case Float4x2:          return NioDataType.float4x2;
+        case Float4x3:          return NioDataType.float4x3;
+        case Float4x4:          return NioDataType.float4x4;
+        case ULong:             return NioDataType.ulong1;
+        case ULong2:            return NioDataType.ulong2;
+        case ULong3:            return NioDataType.ulong3;
+        case ULong4:            return NioDataType.ulong4;
+        case Long:              return NioDataType.long1;
+        case Long2:             return NioDataType.long2;
+        case Long3:             return NioDataType.long3;
+        case Long4:             return NioDataType.long4;
+        case R8Unorm:           return NioDataType.r8Unorm;
+        case R8Snorm:           return NioDataType.r8Snorm;
+        case RG8Unorm:          return NioDataType.rg8Unorm;
+        case RG8Snorm:          return NioDataType.rg8Snorm;
+        case RG16Unorm:         return NioDataType.rg16Unorm;
+        case RG16Snorm:         return NioDataType.rg16Snorm;
+        case RGBA8Snorm:        return NioDataType.rgba8Snorm;
+        case RGBA8Unorm:        return NioDataType.rgba8Unorm;
+        case RGBA16Unorm:       return NioDataType.rgba16Unorm;
+        case RGBA16Snorm:       return NioDataType.rgba16Snorm;
+        case Texture:           return NioDataType.texture;     
+        case Sampler:           return NioDataType.sampler;     
+        case Struct:            return NioDataType.structure;     
+        case Array:             return NioDataType.array; 
+        case Pointer:           return NioDataType.pointer;     
     }
 }

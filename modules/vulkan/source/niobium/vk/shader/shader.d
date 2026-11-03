@@ -190,6 +190,11 @@ public:
     */
     override @property NirShaderStage stage() => entrypoint_.stage;
 
+    /**
+        Vertex attributes of the function, if present.
+    */
+    override @property NioVertexAttribute[] attributes() => null; // TODO: Implement this
+
     /// Destructor
     ~this() {
         bindings_.clear();

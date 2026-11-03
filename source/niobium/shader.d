@@ -17,7 +17,6 @@ import nir.library;
 import nir.types;
 import numem;
 
-
 /**
     A shader
 */
@@ -141,6 +140,27 @@ public:
 }
 
 /**
+    A vertex attribute.
+*/
+struct NioVertexAttribute {
+
+    /**
+        Index of the vertex attribute.
+    */
+    uint index;
+
+    /**
+        Type of the vertex attribute.
+    */
+    NioDataType type;
+
+    /**
+        Size of the vertex attribute in bytes.
+    */
+    uint size;
+}
+
+/**
     A shader function.
 */
 abstract
@@ -174,6 +194,11 @@ public:
         The shader stage this shader conforms to.
     */
     abstract @property NirShaderStage stage();
+
+    /**
+        Vertex attributes of the function, if present.
+    */
+    abstract @property NioVertexAttribute[] attributes();
 
     // Destructor
     ~this() {
